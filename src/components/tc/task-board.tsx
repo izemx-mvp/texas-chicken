@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   AlertTriangle,
   CalendarDays,
@@ -278,6 +279,8 @@ export function TaskBoard({
             <ReportRow
               key={r.task.id}
               r={r}
+              date={date}
+              {...(restaurantId ? { restaurantId } : {})}
               open={openId === r.task.id}
               onToggle={() => setOpenId(openId === r.task.id ? null : r.task.id)}
             />
@@ -384,7 +387,19 @@ function ProcessRow({
   );
 }
 
-function ReportRow({ r, open, onToggle }: { r: DayTaskReport; open: boolean; onToggle: () => void }) {
+function ReportRow({
+  r,
+  date,
+  restaurantId,
+  open,
+  onToggle,
+}: {
+  r: DayTaskReport;
+  date: string;
+  restaurantId?: string;
+  open: boolean;
+  onToggle: () => void;
+}) {
   const [gallery, setGallery] = useState<number | null>(null);
   const late = r.startedAt && r.startedAt > r.planned;
   return (
