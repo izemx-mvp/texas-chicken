@@ -42,11 +42,21 @@ export function TaskDetailFilled({ exec, className }: { exec: ExecutionDetail; c
     <div className={cn("space-y-3", className)}>
       {/* identité de la tâche */}
       <div className="rounded-2xl border border-border bg-secondary/25 p-4">
+        {exec.process && (
+          <div className="mb-1.5 text-[10px] uppercase tracking-widest text-gold">
+            Processus {exec.process.name}
+            {(() => {
+              const i = exec.process!.steps.findIndex((s) => s.id === task.stepId);
+              return i >= 0 ? ` — étape ${i + 1}/${exec.process!.steps.length}` : "";
+            })()}
+          </div>
+        )}
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="font-display text-lg font-bold uppercase">{task.name}</h3>
           <StatusPill status={exec.status} />
         </div>
         <p className="mt-1 text-sm text-muted-foreground">{task.description}</p>
+
 
         <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
           {meta.map(([l, v]) => (
@@ -65,7 +75,7 @@ export function TaskDetailFilled({ exec, className }: { exec: ExecutionDetail; c
         {task.guide && task.guide.length > 0 && (
           <div className="mt-3 rounded-xl border border-border bg-background/40 p-3">
             <div className="mb-2 flex items-center gap-2 text-[10px] uppercase tracking-widest text-gold">
-              <ListOrdered className="h-3.5 w-3.5" /> Étapes détaillées de la tâche
+              <ListOrdered className="h-3.5 w-3.5" /> Consignes détaillées de l'étape
             </div>
             <ol className="space-y-1.5">
               {task.guide.map((g, i) => (
@@ -107,19 +117,19 @@ export function TaskDetailFilled({ exec, className }: { exec: ExecutionDetail; c
             )}
           </div>
           <div>
-            {exec.kpi.done}/{exec.kpi.steps} étapes validées · conformité {exec.compliance} %
+            {exec.kpi.done}/{exec.kpi.steps} points de contrôle validés · conformité {exec.compliance} %
           </div>
         </div>
         {done && (
           <span className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-success/50 bg-success/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-success">
-            <CheckCircle2 className="h-3.5 w-3.5" /> Tâche terminée
+            <CheckCircle2 className="h-3.5 w-3.5" /> Étape terminée
           </span>
         )}
       </div>
 
       {/* saisie réellement enregistrée */}
       <div className="space-y-2 rounded-2xl border border-border bg-secondary/25 p-4">
-        <span className="text-[10px] uppercase tracking-widest text-gold">Saisie — {task.type}</span>
+        <span className="text-[10px] uppercase tracking-widest text-gold">Points de contrôle saisis — {task.type}</span>
         {exec.steps.map((st) => {
           const ok = st.status === "Validée";
           const ko = st.status === "Non conforme";
@@ -231,7 +241,7 @@ export function TaskDetailFilled({ exec, className }: { exec: ExecutionDetail; c
           </>
         ) : (
           <p className="mt-2 text-[11px] text-muted-foreground">
-            {future ? "Aucune preuve — tâche planifiée." : "Aucune preuve enregistrée pour cette tâche."}
+            {future ? "Aucune preuve — étape planifiée." : "Aucune preuve enregistrée pour cette étape."}
           </p>
         )}
       </div>
