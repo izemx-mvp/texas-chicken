@@ -26,6 +26,17 @@ export function AnimatedBackground({
     [],
   );
 
+  const logos = useMemo(
+    () =>
+      Array.from({ length: 64 }, (_, i) => ({
+        size: [44, 62, 80, 96][i % 4],
+        opacity: intensity === "soft" ? 0.05 + (i % 3) * 0.015 : 0.07 + (i % 4) * 0.02,
+        shift: ((i * 53) % 90) - 45,
+      })),
+    [intensity],
+  );
+
+
   return (
     <div
       aria-hidden="true"
