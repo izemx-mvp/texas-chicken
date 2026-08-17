@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { StatusPill } from "./bits";
 import { EvidenceGallery, EvidenceThumb } from "./evidence-gallery";
+import { TaskDetailFilled } from "./task-detail-filled";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
