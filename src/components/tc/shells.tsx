@@ -24,7 +24,6 @@ import { cn } from "@/lib/utils";
 import { AnimatedBackground } from "./background";
 import { TCLogo, TCMark } from "./logo";
 import { ThemeToggle } from "./theme-toggle";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { can, currentUser, logout, useStore } from "@/lib/tc/store";
 import { StatusPill } from "./bits";
