@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Building2, Check, LayoutGrid, Map as MapIcon, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Building2, Check, Eye, LayoutGrid, Map as MapIcon, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
