@@ -86,6 +86,17 @@ export interface ProcessStep {
   critical: boolean;
   criteria: string;
   conditions: Condition[];
+  videoUrl?: string;
+  guide?: string[];
+}
+
+export type AvailabilityType = "Permanent" | "Période" | "Dates spécifiques";
+
+export interface Availability {
+  type: AvailabilityType;
+  startDate?: string;
+  endDate?: string;
+  dates?: string[];
 }
 
 export interface ProcessVersion {
@@ -111,6 +122,7 @@ export interface Process {
   author: string;
   steps: ProcessStep[];
   versions: ProcessVersion[];
+  availability: Availability;
 }
 
 export interface Restaurant {
@@ -128,6 +140,8 @@ export interface Restaurant {
   lastActivity: string;
   score: number;
   openedAt: string;
+  lat: number;
+  lng: number;
 }
 
 export type UserRole =
@@ -278,4 +292,9 @@ export interface ShiftTask {
   status: TaskStatus;
   result?: string;
   evidenceId?: ID;
+  videoUrl?: string;
+  guide?: string[];
+  date?: string;
+  startedAt?: string;
+  completedAt?: string;
 }
