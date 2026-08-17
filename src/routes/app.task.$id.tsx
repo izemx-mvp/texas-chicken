@@ -105,6 +105,20 @@ function TaskExecution() {
     setTimeout(() => navigate({ to: "/app/process/$id", params: { id: task.processId } }), 700);
   };
 
+  if (exec)
+    return (
+      <div className="space-y-4">
+        <Link
+          to="/app/process/$id"
+          params={{ id: task.processId }}
+          className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground hover:text-gold"
+        >
+          <ArrowLeft className="h-4 w-4" /> Retour au processus
+        </Link>
+        <TaskDetailFilled exec={exec} />
+      </div>
+    );
+
   return (
     <div className="space-y-4">
       <Link
@@ -114,6 +128,7 @@ function TaskExecution() {
       >
         <ArrowLeft className="h-4 w-4" /> Retour au processus
       </Link>
+
 
       <div className="glass rounded-2xl p-5">
         <div className="flex flex-wrap items-center gap-2">
