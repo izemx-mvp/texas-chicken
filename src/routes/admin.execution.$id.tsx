@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { EmptyState, KpiCard, SectionTitle } from "@/components/tc/bits";
 import { EvidenceGallery, EvidenceThumb } from "@/components/tc/evidence-gallery";
+import { TaskDetailFilled } from "@/components/tc/task-detail-filled";
 import { cn } from "@/lib/utils";
 import { executionDetail, useStore } from "@/lib/tc/store";
 import type { Evidence } from "@/lib/tc/types";
