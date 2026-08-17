@@ -3,6 +3,8 @@ import {
   alerts as seedAlerts,
   controls as seedControls,
   evidence as seedEvidence,
+  fraudAlerts as seedFraudAlerts,
+  ZONE_GRADIENT,
   processes as seedProcesses,
   restaurants as seedRestaurants,
   roles as seedRoles,
@@ -15,6 +17,8 @@ import type {
   Alert,
   Control,
   Evidence,
+  FraudAlert,
+  FraudStatus,
   PermissionName,
   Process,
   Restaurant,
@@ -41,6 +45,7 @@ export interface State {
   controls: Control[];
   evidence: Evidence[];
   alerts: Alert[];
+  fraudAlerts: FraudAlert[];
   roles: Role[];
   shiftTasks: ShiftTask[];
   usedPhotoHashes: string[];
@@ -56,6 +61,7 @@ let state: State = {
   controls: seedControls,
   evidence: seedEvidence,
   alerts: seedAlerts,
+  fraudAlerts: seedFraudAlerts,
   roles: seedRoles,
   shiftTasks: seedShiftTasks,
   usedPhotoHashes: [],
