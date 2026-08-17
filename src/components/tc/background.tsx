@@ -360,8 +360,9 @@ export function AnimatedBackground({
         } else if (dark) {
           ctx.fillStyle = lit > 0.35 ? "#b9cbb2" : lit > 0.12 ? "#7e9a86" : "#33505c";
         } else {
-          ctx.fillStyle = lit > 0.35 ? "#e7dcc0" : lit > 0.12 ? "#bfc79b" : "#5d7a72";
+          ctx.fillStyle = lit > 0.35 ? "#3f8f56" : lit > 0.12 ? "#2f7048" : "#1d4a44";
         }
+
         const size = (cityLight[i] && lit < 0.15 ? 1.6 : 1.35) * dotScale;
         ctx.fillRect(x, y, size, size);
       }
