@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Copy, Plus, Power, Trash2, Workflow } from "lucide-react";
+import { Copy, Pencil, Plus, Power, Trash2, Workflow } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { SectionTitle, StatusPill } from "@/components/tc/bits";
