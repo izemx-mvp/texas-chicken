@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { AnimatedBackground } from "./background";
 import { TCLogo, TCMark } from "./logo";
+import { ThemeToggle } from "./theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { can, currentUser, logout, useStore } from "@/lib/tc/store";
@@ -266,6 +267,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 <div className="text-[10px] uppercase tracking-widest text-gold">{user?.role}</div>
               </div>
             </div>
+            <ThemeToggle />
             <Button
               variant="outline"
               size="sm"
@@ -314,6 +316,7 @@ export function ManagerShell({ children }: { children: ReactNode }) {
               {user?.firstName} {user?.lastName} — {user?.role}
             </div>
           </div>
+          <ThemeToggle />
           <div className="relative">
             <Link
               to="/app/alerts"

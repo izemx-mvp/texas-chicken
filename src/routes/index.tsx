@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, ChefHat, Radar, ShieldCheck, Sparkles } from "lucide-react";
 import { AnimatedBackground } from "@/components/tc/background";
 import { TCLogo } from "@/components/tc/logo";
+import { ThemeToggle } from "@/components/tc/theme-toggle";
 import { AnimatedNumber } from "@/components/tc/bits";
 import { kpis, useStore } from "@/lib/tc/store";
 
@@ -34,9 +35,12 @@ function Welcome() {
 
       <header className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6">
         <TCLogo />
-        <span className="hidden items-center gap-2 rounded-full border border-border bg-secondary/40 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-gold sm:flex">
-          <Sparkles className="h-3.5 w-3.5" /> AI Operations Control
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="hidden items-center gap-2 rounded-full border border-border bg-secondary/40 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-gold sm:flex">
+            <Sparkles className="h-3.5 w-3.5" /> AI Operations Control
+          </span>
+          <ThemeToggle />
+        </div>
       </header>
 
       <main className="mx-auto max-w-7xl px-6 pb-24">
