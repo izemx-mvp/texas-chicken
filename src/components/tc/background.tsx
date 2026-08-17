@@ -335,7 +335,7 @@ export function AnimatedBackground({
         let y = p.sy;
         let a = 0;
         const lit = Math.max(0, (land[i] as Vec3).x * sun.x + (land[i] as Vec3).y * sun.y + (land[i] as Vec3).z * sun.z);
-        const dayA = 0.28 + lit * 0.5;
+        const dayA = dark ? 0.28 + lit * 0.5 : 0.55 + lit * 0.45;
         if (front) a = dayA;
 
         if (morphT > 0 && logoPts.length) {
