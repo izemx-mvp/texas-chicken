@@ -386,3 +386,17 @@
 @utility animate-ember {
   animation: tc-ember 6s linear infinite;
 }
+
+/* Défilement uniforme des logos de fond : même direction, même vitesse */
+@keyframes tc-logo-march {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-25%, -25%, 0);
+  }
+}
+
+@utility animate-logo-march {
+  animation: tc-logo-march 46s linear infinite;
+}
