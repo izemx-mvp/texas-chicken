@@ -207,7 +207,48 @@ export interface Evidence {
   aiScore: number;
   hash: string;
   status: "Valide" | "Rejetée" | "Dupliquée" | "Suspecte" | "En analyse";
+  /** Dégradé CSS contextuel (zone) utilisé comme rendu de la photo/vidéo. */
   gradient: string;
+  zone?: Zone;
+  taskId?: ID;
+  taskName?: string;
+  /** Preuve antérieure détectée par l'IA anti-fraude. */
+  previousEvidenceId?: ID;
+  similarity?: number;
+  note?: string;
+}
+
+/** Alerte anti-fraude générée par l'analyse IA des preuves. */
+export type FraudSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type FraudStatus =
+  | "À vérifier"
+  | "Fraude confirmée"
+  | "Rejetée"
+  | "Nouvelle preuve demandée";
+
+export interface FraudComment {
+  at: string;
+  author: string;
+  text: string;
+}
+
+export interface FraudAlert {
+  id: ID;
+  ref: string;
+  restaurantId: ID;
+  userId: ID;
+  processId: ID;
+  taskName: string;
+  stepName: string;
+  date: string;
+  time: string;
+  evidenceId: ID;
+  previousEvidenceId?: ID;
+  similarity: number;
+  reason: string;
+  severity: FraudSeverity;
+  status: FraudStatus;
+  comments: FraudComment[];
 }
 
 export interface Alert {
@@ -222,6 +263,7 @@ export interface Alert {
   read: boolean;
   resolved: boolean;
 }
+
 
 export interface Standard {
   id: ID;
