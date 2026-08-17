@@ -139,82 +139,8 @@ function ExecutionPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <div className="space-y-3">
-          <SectionTitle title="Étapes réalisées" subtitle="Réponses, preuves et analyse IA étape par étape" />
-          {exec.steps.map((st) => (
-            <div key={st.index} className="glass rounded-2xl p-4">
-              <div className="flex items-start gap-3">
-                <span
-                  className={cn(
-                    "grid h-9 w-9 shrink-0 place-items-center rounded-xl border text-xs font-bold",
-                    STEP_STYLE[st.status],
-                  )}
-                >
-                  {st.index}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold">{st.name}</span>
-                    <span className="rounded-full border border-border px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-                      {st.type}
-                    </span>
-                    <span className={cn("rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase", STEP_STYLE[st.status])}>
-                      {st.status}
-                    </span>
-                    <span className="ml-auto text-[11px] tabular text-muted-foreground">{st.time}</span>
-                  </div>
-
-                  {st.question && (
-                    <p className="mt-2 text-[11px] uppercase tracking-widest text-muted-foreground">{st.question}</p>
-                  )}
-                  {st.answer && <p className="mt-0.5 text-sm font-semibold">{st.answer}</p>}
-                  {st.comment && (
-                    <p className="mt-2 rounded-xl border border-border bg-secondary/25 px-3 py-2 text-xs text-muted-foreground">
-                      « {st.comment} »
-                    </p>
-                  )}
-
-                  {(st.evidence || st.replacement) && (
-                    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                      {st.evidence && (
-                        <EvidenceThumb
-                          evidence={st.evidence}
-                          onClick={() =>
-                            openGallery([st.evidence as Evidence, ...(st.replacement ? [st.replacement] : [])], 0)
-                          }
-                        />
-                      )}
-                      {st.replacement && (
-                        <EvidenceThumb
-                          evidence={st.replacement}
-                          onClick={() =>
-                            openGallery([...(st.evidence ? [st.evidence] : []), st.replacement as Evidence], 1)
-                          }
-                        />
-                      )}
-                    </div>
-                  )}
-
-                  {st.ai && (
-                    <p
-                      className={cn(
-                        "mt-2 flex items-start gap-1.5 text-[11px]",
-                        st.rejected || st.fraud ? "text-danger" : "text-muted-foreground",
-                      )}
-                    >
-                      {st.rejected || st.fraud ? (
-                        <XCircle className="mt-px h-3.5 w-3.5 shrink-0" />
-                      ) : (
-                        <ShieldCheck className="mt-px h-3.5 w-3.5 shrink-0 text-success" />
-                      )}
-                      <span>
-                        Analyse IA{typeof st.aiScore === "number" ? ` (${st.aiScore}%)` : ""} — {st.ai}
-                      </span>
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+          <SectionTitle title="Détail de la tâche" subtitle="Fiche d'exécution complète, champs renseignés sur le terrain" />
+          <TaskDetailFilled exec={exec} />
         </div>
 
         <div className="space-y-4">
