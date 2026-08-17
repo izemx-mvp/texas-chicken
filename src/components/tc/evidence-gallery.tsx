@@ -229,11 +229,16 @@ export function EvidenceGallery({
                   key={e.id}
                   onClick={() => onIndexChange(i)}
                   className={cn(
-                    "h-14 w-20 shrink-0 rounded-lg border",
+                    "h-14 w-20 shrink-0 overflow-hidden rounded-lg border",
                     i === index ? "border-gold" : "border-border opacity-70",
                   )}
                   style={{ background: e.gradient }}
-                />
+                >
+                  {e.imageUrl && (
+                    <img src={e.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  )}
+                </button>
+
               ))}
             </div>
           )}
