@@ -1,33 +1,80 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, CalendarDays, Camera, CheckCircle2, ChevronLeft, ChevronRight, Clock, ListOrdered, ShieldAlert } from "lucide-react";
+import {
+  AlertTriangle,
+  CalendarDays,
+  Camera,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  ListOrdered,
+  Search,
+  ShieldAlert,
+  Workflow,
+} from "lucide-react";
 import { StatusPill } from "./bits";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { dayKind, dayReport, useStore, type DayTaskReport } from "@/lib/tc/store";
+import {
+  dateLabel,
+  dayKind,
+  dayReport,
+  dayStats,
+  longDateLabel,
+  processDayReports,
+  shiftDate,
+  useActiveDate,
+  useStore,
+  type DayTaskReport,
+  type ProcessDayReport,
+} from "@/lib/tc/store";
 import { TODAY } from "@/lib/tc/data";
+import { PRIORITIES_LIST, STATUS_LIST } from "@/lib/tc/view-options";
 
 const WEEK = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
-function shift(date: string, days: number) {
-  const d = new Date(`${date}T12:00:00`);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
 function monthLabel(date: string) {
   return new Date(`${date}T12:00:00`).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
 }
-function longDate(date: string) {
-  return new Date(`${date}T12:00:00`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
-}
 
-/** Vue tâches partagée : bascule Liste / Calendrier + historique opérationnel détaillé. */
-export function TaskBoard({ title = "Tâches" }: { title?: string }) {
+export type BoardMode = "list" | "calendar" | "process";
+
+/**
+ * Vue opérationnelle partagée Admin / Manager : Liste, Calendrier et Processus,
+ * toutes branchées sur la date active globale.
+ */
+export function TaskBoard({ title = "Tâches", defaultMode = "list" }: { title?: string; defaultMode?: BoardMode }) {
   const state = useStore((s) => s);
-  const [mode, setMode] = useState<"list" | "calendar">("list");
-  const [date, setDate] = useState(TODAY);
+  const [date, setDate] = useActiveDate();
+  const [mode, setMode] = useState<BoardMode>(defaultMode);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [openProcess, setOpenProcess] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const [zone, setZone] = useState("Toutes zones");
+  const [status, setStatus] = useState("Tous statuts");
+  const [priority, setPriority] = useState("Toutes priorités");
+  const [processId, setProcessId] = useState("Tous processus");
 
-  const reports = useMemo(() => dayReport(date, TODAY, state), [date, state]);
+  const allReports = useMemo(() => dayReport(date, TODAY, state), [date, state]);
+  const procReports = useMemo(() => processDayReports(date, TODAY, state), [date, state]);
   const kind = dayKind(date, TODAY);
+
+  const reports = useMemo(
+    () =>
+      allReports.filter((r) => {
+        const t = r.task;
+        if (zone !== "Toutes zones" && t.zone !== zone) return false;
+        if (status !== "Tous statuts" && r.status !== status) return false;
+        if (priority !== "Toutes priorités" && t.priority !== priority) return false;
+        if (processId !== "Tous processus" && t.processId !== processId) return false;
+        const term = q.trim().toLowerCase();
+        if (term && !`${t.name} ${t.zone} ${t.role}`.toLowerCase().includes(term)) return false;
+        return true;
+      }),
+    [allReports, zone, status, priority, processId, q],
+  );
+
+  const stats = useMemo(() => dayStats(reports), [reports]);
 
   const monthDays = useMemo(() => {
     const d = new Date(`${date}T12:00:00`);
@@ -41,33 +88,50 @@ export function TaskBoard({ title = "Tâches" }: { title?: string }) {
     return cells;
   }, [date]);
 
-  const done = reports.filter((r) => r.status === "Terminé").length;
-  const issues = reports.filter((r) => r.status === "Non conforme" || r.evidenceRejected || r.fraud).length;
+  const zones = useMemo(
+    () => ["Toutes zones", ...Array.from(new Set(allReports.map((r) => r.task.zone)))],
+    [allReports],
+  );
 
   return (
     <div className="space-y-4">
+      {/* en-tête + date active */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="font-display text-lg font-bold uppercase">{title}</h3>
           <p className="text-xs capitalize text-muted-foreground">
-            {longDate(date)} ·{" "}
+            <span className={cn("font-semibold", date === TODAY ? "text-gold" : "text-foreground")}>
+              {dateLabel(date, TODAY)}
+            </span>{" "}
+            · {longDateLabel(date)} ·{" "}
             {kind === "past" ? "historique opérationnel" : kind === "future" ? "planification" : "shift en cours"}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 rounded-xl border border-border p-0.5">
-            <button className="grid h-8 w-8 place-items-center rounded-lg" onClick={() => setDate(shift(date, -1))} aria-label="Jour précédent">
+            <button
+              className="grid h-8 w-8 place-items-center rounded-lg"
+              onClick={() => setDate(shiftDate(date, -1))}
+              aria-label="Jour précédent"
+            >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <button className="px-2 text-xs font-semibold" onClick={() => setDate(TODAY)}>
+            <button
+              className={cn("px-2 text-xs font-semibold", date === TODAY && "text-gold")}
+              onClick={() => setDate(TODAY)}
+            >
               Aujourd'hui
             </button>
-            <button className="grid h-8 w-8 place-items-center rounded-lg" onClick={() => setDate(shift(date, 1))} aria-label="Jour suivant">
+            <button
+              className="grid h-8 w-8 place-items-center rounded-lg"
+              onClick={() => setDate(shiftDate(date, 1))}
+              aria-label="Jour suivant"
+            >
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
           <div className="flex rounded-xl border border-border p-0.5">
-            {(["list", "calendar"] as const).map((m) => (
+            {(["list", "calendar", "process"] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => setMode(m)}
@@ -76,28 +140,63 @@ export function TaskBoard({ title = "Tâches" }: { title?: string }) {
                   mode === m ? "bg-brand/20 text-foreground" : "text-muted-foreground",
                 )}
               >
-                {m === "list" ? <ListOrdered className="h-4 w-4" /> : <CalendarDays className="h-4 w-4" />}
-                {m === "list" ? "Liste" : "Calendrier"}
+                {m === "list" ? (
+                  <ListOrdered className="h-4 w-4" />
+                ) : m === "calendar" ? (
+                  <CalendarDays className="h-4 w-4" />
+                ) : (
+                  <Workflow className="h-4 w-4" />
+                )}
+                {m === "list" ? "Liste" : m === "calendar" ? "Calendrier" : "Processus"}
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        <Mini label="Tâches" value={`${reports.length}`} />
-        <Mini label="Terminées" value={`${done}`} tone="success" />
-        <Mini label="Écarts" value={`${issues}`} tone={issues ? "danger" : "muted"} />
+      {/* KPIs de la journée */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+        <Mini label="Tâches" value={`${stats.total}`} />
+        <Mini label={kind === "future" ? "Planifiées" : "Terminées"} value={`${kind === "future" ? stats.planned : stats.done}`} tone="success" />
+        <Mini label="En retard" value={`${stats.late}`} tone={stats.late ? "danger" : "muted"} />
+        <Mini label="Écarts" value={`${stats.issues}`} tone={stats.issues ? "danger" : "muted"} />
+        <Mini label="Progression" value={`${kind === "future" ? 0 : stats.progress} %`} />
       </div>
+
+      {/* filtres */}
+      {mode !== "calendar" && (
+        <div className="glass space-y-2 rounded-2xl p-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Rechercher une tâche, une zone, un rôle..."
+              className="h-10 bg-secondary/40 pl-9"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Select value={zone} onChange={setZone} options={zones} />
+            <Select value={status} onChange={setStatus} options={["Tous statuts", ...STATUS_LIST]} />
+            <Select value={priority} onChange={setPriority} options={["Toutes priorités", ...PRIORITIES_LIST]} />
+            <Select
+              value={processId}
+              onChange={setProcessId}
+              options={["Tous processus", ...procReports.map((p) => p.process.id)]}
+              labels={Object.fromEntries(procReports.map((p) => [p.process.id, p.process.name]))}
+            />
+          </div>
+        </div>
+      )}
 
       {mode === "calendar" && (
         <div className="glass rounded-2xl p-4">
           <div className="mb-3 flex items-center justify-between">
-            <button onClick={() => setDate(shift(date, -28))} aria-label="Mois précédent">
+            <button onClick={() => setDate(shiftDate(date, -28))} aria-label="Mois précédent">
               <ChevronLeft className="h-4 w-4" />
             </button>
             <span className="font-display text-sm font-bold uppercase">{monthLabel(date)}</span>
-            <button onClick={() => setDate(shift(date, 28))} aria-label="Mois suivant">
+            <button onClick={() => setDate(shiftDate(date, 28))} aria-label="Mois suivant">
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
@@ -116,19 +215,23 @@ export function TaskBoard({ title = "Tâches" }: { title?: string }) {
                   key={d}
                   onClick={() => setDate(d)}
                   className={cn(
-                    "aspect-square rounded-lg border text-xs transition-colors",
+                    "aspect-square rounded-lg border text-xs transition-colors hover:border-gold/50",
                     d === date ? "border-gold bg-brand/20 font-bold" : "border-border bg-secondary/25",
+                    d === TODAY && d !== date && "border-brand/60",
                     !count && "opacity-40",
                   )}
                 >
                   <div>{Number(d.slice(-2))}</div>
                   {count > 0 && (
-                    <div
-                      className={cn(
-                        "mx-auto mt-0.5 h-1.5 w-1.5 rounded-full",
-                        k === "past" ? "bg-muted-foreground" : k === "today" ? "bg-gold" : "bg-brand",
-                      )}
-                    />
+                    <>
+                      <div
+                        className={cn(
+                          "mx-auto mt-0.5 h-1.5 w-1.5 rounded-full",
+                          k === "past" ? "bg-muted-foreground" : k === "today" ? "bg-gold" : "bg-brand",
+                        )}
+                      />
+                      <div className="text-[9px] text-muted-foreground">{count}</div>
+                    </>
                   )}
                 </button>
               );
@@ -137,16 +240,131 @@ export function TaskBoard({ title = "Tâches" }: { title?: string }) {
         </div>
       )}
 
-      <div className="space-y-2">
-        {reports.map((r) => (
-          <ReportRow key={r.task.id} r={r} open={openId === r.task.id} onToggle={() => setOpenId(openId === r.task.id ? null : r.task.id)} />
-        ))}
-        {reports.length === 0 && (
-          <p className="glass rounded-2xl p-6 text-center text-sm text-muted-foreground">
-            Aucune tâche planifiée pour cette date.
-          </p>
-        )}
-      </div>
+      {mode === "process" ? (
+        <div className="space-y-2">
+          {procReports.length === 0 && (
+            <p className="glass rounded-2xl p-6 text-center text-sm text-muted-foreground">
+              Aucun processus disponible à cette date.
+            </p>
+          )}
+          {procReports.map((p) => (
+            <ProcessRow
+              key={p.process.id}
+              p={p}
+              future={kind === "future"}
+              open={openProcess === p.process.id}
+              onToggle={() => setOpenProcess(openProcess === p.process.id ? null : p.process.id)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {reports.map((r) => (
+            <ReportRow
+              key={r.task.id}
+              r={r}
+              open={openId === r.task.id}
+              onToggle={() => setOpenId(openId === r.task.id ? null : r.task.id)}
+            />
+          ))}
+          {reports.length === 0 && (
+            <p className="glass rounded-2xl p-6 text-center text-sm text-muted-foreground">
+              Aucune tâche pour cette date avec ces filtres.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Select({
+  value,
+  onChange,
+  options,
+  labels,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  labels?: Record<string, string>;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="h-9 rounded-xl border border-border bg-secondary/40 px-2 text-xs font-semibold"
+    >
+      {options.map((o) => (
+        <option key={o} value={o}>
+          {labels?.[o] ?? o}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function ProcessRow({
+  p,
+  open,
+  future,
+  onToggle,
+}: {
+  p: ProcessDayReport;
+  open: boolean;
+  future: boolean;
+  onToggle: () => void;
+}) {
+  const progress = future ? 0 : p.progress;
+  return (
+    <div className="rounded-2xl border border-border bg-secondary/25">
+      <button className="w-full p-3 text-left" onClick={onToggle}>
+        <div className="flex items-center gap-3">
+          <Workflow className="h-4 w-4 shrink-0 text-gold" />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-semibold uppercase">{p.process.name}</span>
+            <span className="block truncate text-[11px] text-muted-foreground">
+              {p.tasks} tâches · {p.steps} étapes · {p.duration} min
+            </span>
+          </span>
+          <span className="tabular font-display text-lg font-bold">{progress} %</span>
+        </div>
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-secondary">
+          <div className="h-full rounded-full bg-brand-gradient transition-all" style={{ width: `${progress}%` }} />
+        </div>
+      </button>
+      {open && (
+        <div className="border-t border-border p-3">
+          <p className="mb-3 text-xs text-muted-foreground">{p.process.description}</p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <Info icon={<ListOrdered className="h-3.5 w-3.5" />} label="Tâches" value={`${p.tasks}`} />
+            <Info icon={<CheckCircle2 className="h-3.5 w-3.5" />} label="Terminées" value={future ? "0" : `${p.done}`} />
+            <Info icon={<Clock className="h-3.5 w-3.5" />} label="Restantes" value={`${future ? p.tasks : p.remaining}`} />
+            <Info
+              icon={<ShieldAlert className="h-3.5 w-3.5" />}
+              label="Fraudes"
+              value={`${future ? 0 : p.fraud}`}
+              {...(p.fraud && !future ? { tone: "danger" as const } : {})}
+            />
+            <Info icon={<ListOrdered className="h-3.5 w-3.5" />} label="Étapes" value={`${p.steps}`} />
+            <Info icon={<CheckCircle2 className="h-3.5 w-3.5" />} label="Étapes faites" value={future ? "0" : `${p.stepsDone}`} />
+            <Info icon={<Camera className="h-3.5 w-3.5" />} label="Preuves" value={future ? "0" : `${p.evidence}`} />
+            <Info icon={<CheckCircle2 className="h-3.5 w-3.5" />} label="Conformité" value={`${future ? 0 : p.compliance} %`} />
+          </div>
+          <div className="mt-3 space-y-1.5">
+            {p.reports.map((r) => (
+              <div key={r.task.id} className="flex items-center gap-2 rounded-xl border border-border bg-background/40 px-3 py-2">
+                <span className="tabular text-xs font-bold text-gold">{r.planned}</span>
+                <span className="min-w-0 flex-1 truncate text-xs">{r.task.name}</span>
+                <span className="text-[11px] text-muted-foreground">
+                  {future ? 0 : r.stepsDone}/{r.stepsTotal}
+                </span>
+                <StatusPill status={r.status} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -162,7 +380,7 @@ function ReportRow({ r, open, onToggle }: { r: DayTaskReport; open: boolean; onT
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold">{r.task.name}</span>
           <span className="block truncate text-[11px] text-muted-foreground">
-            {r.task.zone} · {r.stepsDone}/{r.stepsTotal} étapes
+            {r.task.zone} · {r.stepsDone}/{r.stepsTotal} étapes · priorité {r.task.priority}
           </span>
         </span>
         {r.fraud && <ShieldAlert className="h-4 w-4 shrink-0 text-destructive" />}
@@ -176,7 +394,7 @@ function ReportRow({ r, open, onToggle }: { r: DayTaskReport; open: boolean; onT
             icon={<Clock className="h-3.5 w-3.5" />}
             label="Heure réelle de démarrage"
             value={r.startedAt ? `${r.startedAt}${late ? " (retard)" : ""}` : "—"}
-            tone={late ? "danger" : undefined}
+            {...(late ? { tone: "danger" as const } : {})}
           />
           <Info icon={<CheckCircle2 className="h-3.5 w-3.5" />} label="Clôture" value={r.completedAt ?? "—"} />
           <Info icon={<ListOrdered className="h-3.5 w-3.5" />} label="Résultat" value={r.result ?? "—"} />

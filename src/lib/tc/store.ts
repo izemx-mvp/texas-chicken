@@ -9,6 +9,7 @@ import {
   shiftTasks as seedShiftTasks,
   standards as seedStandards,
   users as seedUsers,
+  TODAY as SEED_TODAY,
 } from "./data";
 import type {
   Alert,
@@ -31,6 +32,8 @@ export interface Session {
 
 export interface State {
   session: Session | null;
+  /** Date active partagée par toutes les vues (shift, tâches, calendrier, processus). */
+  activeDate: string;
   restaurants: Restaurant[];
   users: User[];
   processes: Process[];
@@ -45,6 +48,7 @@ export interface State {
 
 let state: State = {
   session: null,
+  activeDate: SEED_TODAY,
   restaurants: seedRestaurants,
   users: seedUsers,
   processes: seedProcesses,
@@ -56,6 +60,7 @@ let state: State = {
   shiftTasks: seedShiftTasks,
   usedPhotoHashes: [],
 };
+
 
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
@@ -124,11 +129,49 @@ export function currentUser(): User | null {
   const s = state.session;
   return s ? (state.users.find((u) => u.id === s.userId) ?? null) : null;
 }
+/** Le Super Admin dispose automatiquement d'un CRUD complet sur toutes les interfaces. */
+export function isSuperAdmin(user: User | null) {
+  if (!user) return false;
+  if (user.role === "Super Admin") return true;
+  return state.roles.find((r) => r.id === user.roleId)?.name === "Super Admin";
+}
 export function can(user: User | null, module: string, perm: PermissionName) {
   if (!user) return false;
+  if (isSuperAdmin(user)) return true;
   const role = state.roles.find((r) => r.id === user.roleId);
   return !!role?.permissions[module]?.includes(perm);
 }
+
+/* -------------------- date active globale -------------------- */
+export const TODAY_DATE = SEED_TODAY;
+export function setActiveDate(date: string) {
+  setState({ activeDate: date });
+}
+export function useActiveDate(): [string, (d: string) => void] {
+  const date = useStore((s) => s.activeDate);
+  return [date, setActiveDate];
+}
+export function shiftDate(date: string, days: number) {
+  const d = new Date(`${date}T12:00:00`);
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+/** Libellé humain : « Aujourd'hui » uniquement pour la date réelle du jour. */
+export function dateLabel(date: string, today: string = SEED_TODAY) {
+  if (date === today) return "Aujourd'hui";
+  if (date === shiftDate(today, -1)) return "Hier";
+  if (date === shiftDate(today, 1)) return "Demain";
+  return new Date(`${date}T12:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+}
+export function longDateLabel(date: string) {
+  return new Date(`${date}T12:00:00`).toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 
 /* -------------------- generic CRUD -------------------- */
 type Collections = "restaurants" | "users" | "processes" | "standards" | "roles" | "controls" | "evidence" | "alerts";
@@ -209,11 +252,20 @@ export function isProcessAvailableOn(p: Process, date: string) {
 
 /** Tâches planifiées pour une date donnée (dépend de la disponibilité du processus). */
 export function tasksForDate(date: string, s: State = state) {
+  const d = new Date(`${date}T12:00:00`);
+  const weekday = d.getDay(); // 0 = dimanche
+  const dayOfMonth = d.getDate();
   return orderedShiftTasks(s).filter((t) => {
     const p = s.processes.find((x) => x.id === t.processId);
-    return p ? isProcessAvailableOn(p, date) : true;
+    if (p && !isProcessAvailableOn(p, date)) return false;
+    // Chaque date possède réellement son propre jeu de tâches selon la fréquence.
+    if (t.frequency === "Hebdomadaire") return hash(t.processId) % 7 === weekday;
+    if (t.frequency === "Mensuel") return (hash(t.id) % 28) + 1 === dayOfMonth;
+    if (t.frequency === "À la demande") return hash(date + t.id) % 5 === 0;
+    return true;
   });
 }
+
 
 /** Clôture robuste d'une tâche : statut, résultat, horodatage. */
 export function finishTask(id: string, patch: Partial<ShiftTask> = {}) {
@@ -392,4 +444,93 @@ export function dayReport(date: string, today: string, s: State = state): DayTas
       result: status === "Terminé" ? "Conforme" : status,
     };
   });
+}
+
+/* -------------------- agrégats de la journée -------------------- */
+export interface DayStats {
+  total: number;
+  done: number;
+  running: number;
+  late: number;
+  missed: number;
+  planned: number;
+  issues: number;
+  fraud: number;
+  evidenceRejected: number;
+  progress: number;
+  compliance: number;
+}
+
+export function dayStats(reports: DayTaskReport[]): DayStats {
+  const total = reports.length;
+  const done = reports.filter((r) => r.status === "Terminé").length;
+  const running = reports.filter((r) => r.status === "En cours").length;
+  const late = reports.filter((r) => r.status === "En retard").length;
+  const missed = reports.filter((r) => r.status === "Bloqué" || r.status === "Non conforme").length;
+  const planned = reports.filter((r) => r.status === "À faire").length;
+  const fraud = reports.filter((r) => r.fraud).length;
+  const evidenceRejected = reports.filter((r) => r.evidenceRejected).length;
+  return {
+    total,
+    done,
+    running,
+    late,
+    missed,
+    planned,
+    issues: missed + evidenceRejected + fraud,
+    fraud,
+    evidenceRejected,
+    progress: Math.round((done / Math.max(1, total)) * 100),
+    compliance: Math.round(((done - missed * 0.5 - evidenceRejected * 0.5) / Math.max(1, total)) * 100),
+  };
+}
+
+export interface ProcessDayReport {
+  process: Process;
+  reports: DayTaskReport[];
+  tasks: number;
+  done: number;
+  remaining: number;
+  steps: number;
+  stepsDone: number;
+  fraud: number;
+  evidence: number;
+  progress: number;
+  compliance: number;
+  duration: number;
+}
+
+/** Niveau de complétion de chaque processus pour la date active. */
+export function processDayReports(date: string, today: string, s: State = state): ProcessDayReport[] {
+  const reports = dayReport(date, today, s);
+  const byProcess = new Map<string, DayTaskReport[]>();
+  for (const r of reports) {
+    const list = byProcess.get(r.task.processId) ?? [];
+    list.push(r);
+    byProcess.set(r.task.processId, list);
+  }
+  const out: ProcessDayReport[] = [];
+  for (const [pid, list] of byProcess) {
+    const process = s.processes.find((p) => p.id === pid);
+    if (!process) continue;
+    const steps = list.reduce((a, r) => a + r.stepsTotal, 0);
+    const stepsDone = list.reduce((a, r) => a + r.stepsDone, 0);
+    const done = list.filter((r) => r.status === "Terminé").length;
+    const st = dayStats(list);
+    out.push({
+      process,
+      reports: list,
+      tasks: list.length,
+      done,
+      remaining: list.length - done,
+      steps,
+      stepsDone,
+      fraud: st.fraud,
+      evidence: list.filter((r) => !!r.evidence).length,
+      progress: Math.round((stepsDone / Math.max(1, steps)) * 100),
+      compliance: st.compliance,
+      duration: list.reduce((a, r) => a + r.task.duration, 0),
+    });
+  }
+  return out.sort((a, b) => a.process.name.localeCompare(b.process.name));
 }

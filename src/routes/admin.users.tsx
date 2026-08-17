@@ -177,13 +177,17 @@ function UsersPage() {
         />
       ) : (
         <div className="space-y-4">
-          {roles.map((role) => (
+          {roles.map((role) => {
+            const superRole = /super/i.test(role.name) || role.id === "role-super";
+            return (
             <div key={role.id} className="glass rounded-3xl p-5">
               <div className="mb-3 flex items-center gap-2">
                 <Shield className="h-4 w-4 text-gold" />
                 <div>
                   <div className="font-display text-sm font-bold uppercase">{role.name}</div>
-                  <div className="text-xs text-muted-foreground">{role.description}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {superRole ? "Accès total automatique à toutes les interfaces et actions" : role.description}
+                  </div>
                 </div>
                 {role.system && <span className="ml-auto text-[10px] uppercase tracking-widest text-gold">Système</span>}
               </div>
@@ -204,15 +208,17 @@ function UsersPage() {
                       <tr key={m} className="border-t border-border/60">
                         <td className="py-2 font-medium">{m}</td>
                         {PERMISSIONS.map((p) => {
-                          const on = role.permissions[m]?.includes(p);
+                          const on = superRole || role.permissions[m]?.includes(p);
                           return (
                             <td key={p} className="py-1.5 text-center">
                               <button
+                                disabled={superRole}
                                 onClick={() => togglePerm(role, m, p)}
                                 aria-label={`${m} ${p}`}
                                 className={cn(
                                   "grid h-6 w-6 place-items-center rounded-md border transition-colors",
                                   on ? "border-success/50 bg-success/20 text-success" : "border-border text-muted-foreground",
+                                  superRole && "opacity-70",
                                 )}
                               >
                                 {on ? <Check className="h-3.5 w-3.5" /> : <X className="h-3 w-3 opacity-40" />}
@@ -226,7 +232,8 @@ function UsersPage() {
                 </table>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
