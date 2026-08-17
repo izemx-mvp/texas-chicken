@@ -2,12 +2,11 @@ import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, Camera, MapPin, ShieldAlert, Users } from "lucide-react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ComplianceRing, KpiCard, SectionTitle, StatusPill } from "@/components/tc/bits";
+import { ComplianceRing, KpiCard, StatusPill } from "@/components/tc/bits";
 import { TaskBoard } from "@/components/tc/task-board";
-import { DateFilter } from "@/components/tc/date-filter";
 import texasLogo from "@/assets/texas-chicken-logo.svg";
 import { cn } from "@/lib/utils";
-import { restaurantStats, useActiveDate, useStore } from "@/lib/tc/store";
+import { restaurantStats, useStore } from "@/lib/tc/store";
 
 export const Route = createFileRoute("/admin/restaurants/$id")({
   head: () => ({
@@ -31,7 +30,6 @@ function RestaurantPage() {
   const state = useStore((s) => s);
   const restaurant = state.restaurants.find((r) => r.id === id);
   const [tab, setTab] = useState<"dashboard" | "tasks">("dashboard");
-  const [activeDate] = useActiveDate();
 
   if (!restaurant) {
     return (
