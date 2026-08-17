@@ -1,6 +1,7 @@
 import type {
   Alert,
   Control,
+  FraudAlert,
   Evidence,
   Process,
   ProcessStep,
@@ -678,3 +679,75 @@ export const complianceHistory = Array.from({ length: 26 }, (_, i) => {
     anomalies: Math.round(48 - i * 0.9 + Math.sin(i / 1.7) * 7),
   };
 });
+
+/* ---------------- alertes fraude (scénarios IA) ---------------- */
+const FRAUD_CASES: {
+  reason: string;
+  severity: FraudAlert["severity"];
+  similarity: number;
+  status: FraudAlert["status"];
+}[] = [
+  { reason: "Photo identique détectée — empreinte déjà utilisée hier.", severity: "CRITICAL", similarity: 99, status: "À vérifier" },
+  { reason: "Photo très similaire à une preuve précédente (même cadrage).", severity: "HIGH", similarity: 96, status: "À vérifier" },
+  { reason: "Preuve prise avant l'heure planifiée de l'étape.", severity: "MEDIUM", similarity: 61, status: "Nouvelle preuve demandée" },
+  { reason: "Preuve incohérente avec la zone déclarée.", severity: "MEDIUM", similarity: 48, status: "Fraude confirmée" },
+  { reason: "Tentative de réutilisation d'une ancienne preuve (J-6).", severity: "HIGH", similarity: 94, status: "Rejetée" },
+  { reason: "Luminosité et métadonnées suspectes détectées par l'IA.", severity: "LOW", similarity: 38, status: "À vérifier" },
+];
+
+export const fraudAlerts: FraudAlert[] = [];
+{
+  let n = 0;
+  for (let day = 0; day <= 9; day++) {
+    const date = dateMinus(day);
+    const count = day === 0 ? 3 : day < 7 ? ((day % 2) + 1) : 1;
+    for (let k = 0; k < count; k++) {
+      n++;
+      // Le restaurant du shift concentre les cas du jour pour la démo Manager.
+      const r = day <= 1 || n % 3 === 0 ? restaurants[0] : restaurants[(n * 5) % restaurants.length];
+      const p = processes[(n * 2) % processes.length];
+      const s = p.steps[n % p.steps.length];
+      const c = FRAUD_CASES[n % FRAUD_CASES.length];
+      const ev = evidence[(n * 7) % evidence.length];
+      const prev = evidence[(n * 7 + 13) % evidence.length];
+      const resolved = day > 2 && n % 3 !== 0;
+      fraudAlerts.push({
+        id: `f${n}`,
+        ref: `FRD-${2000 + n}`,
+        restaurantId: r.id,
+        userId: users.find((u) => u.restaurantId === r.id)?.id ?? "u2",
+        processId: p.id,
+        taskName: p.name,
+        stepName: s.name,
+        date,
+        time: `${pad(7 + ((n * 3) % 13))}:${pad((n * 17) % 60)}`,
+        evidenceId: ev.id,
+        previousEvidenceId: prev.id,
+        similarity: c.similarity,
+        reason: c.reason,
+        severity: c.severity,
+        status: resolved ? (n % 2 === 0 ? "Fraude confirmée" : "Rejetée") : c.status,
+        comments: resolved
+          ? [
+              {
+                at: `${date} ${pad(9 + (n % 8))}:15`,
+                author: "Analyse IA",
+                text: `Similarité ${c.similarity} % avec la preuve ${prev.ref}.`,
+              },
+              {
+                at: `${date} ${pad(10 + (n % 7))}:02`,
+                author: "Responsable restaurant",
+                text: n % 2 === 0 ? "Fraude confirmée après vérification terrain." : "Alerte rejetée : contexte justifié.",
+              },
+            ]
+          : [
+              {
+                at: `${date} ${pad(9 + (n % 8))}:15`,
+                author: "Analyse IA",
+                text: `Similarité ${c.similarity} % avec la preuve ${prev.ref}.`,
+              },
+            ],
+      });
+    }
+  }
+}
