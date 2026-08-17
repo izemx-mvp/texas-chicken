@@ -66,6 +66,14 @@ function AdminProcesses() {
             </Button>
           )}
           {can(user, "Processus", "Modifier") && (
+            <Button size="icon" variant="ghost" aria-label="Modifier" asChild>
+              <Link to="/admin/builder" search={{ process: p.id }} onClick={(e) => e.stopPropagation()}>
+                <Pencil className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+          {can(user, "Processus", "Modifier") && (
+
             <Button
               size="icon"
               variant="ghost"
