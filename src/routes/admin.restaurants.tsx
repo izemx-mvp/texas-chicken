@@ -234,7 +234,7 @@ function AdminRestaurants() {
       {view === "map" ? (
         <MoroccoMap restaurants={rows} onSelect={setDetail} selectedCity={city} onCityChange={setCity} />
       ) : (
-        <DataTable rows={rows} columns={columns} searchKeys={(r) => `${r.name} ${r.code} ${r.city}`} />
+        <DataTable rows={rows} columns={columns} searchFields={(r) => `${r.name} ${r.code} ${r.city}`} />
       )}
 
       {view === "map" && city && (
