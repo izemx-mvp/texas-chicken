@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Building2, Check, LayoutGrid, Map as MapIcon, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Building2, Check, Eye, LayoutGrid, Map as MapIcon, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,7 +114,11 @@ function RestaurantsIndex() {
       header: "",
       render: (r) => (
         <div className="flex justify-end gap-1">
+          <Button size="sm" variant="outline" onClick={() => open(r)}>
+            <Eye className="mr-1.5 h-4 w-4" /> Voir détails
+          </Button>
           {editable && (
+
             <Button
               size="icon"
               variant="ghost"

@@ -87,6 +87,19 @@ export function AnimatedBackground({
     [],
   );
 
+  /** Champ de logos défilants (identique à la première version). */
+  const logoField = useMemo(
+    () =>
+      Array.from({ length: 64 }, (_, i) => ({
+        size: [44, 62, 80, 96][i % 4] as number,
+        opacity: intensity === "soft" ? 0.05 + (i % 3) * 0.015 : 0.07 + (i % 4) * 0.02,
+        shift: ((i * 53) % 90) - 45,
+      })),
+    [intensity],
+  );
+
+
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -490,17 +503,27 @@ export function AnimatedBackground({
         />
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
-        {/* trame de logos Texas Chicken en défilement uniforme */}
-        <div className="absolute -inset-1/4 overflow-hidden">
-          <div
-            className="animate-logo-march h-[200%] w-[200%] opacity-[0.07] dark:opacity-[0.12]"
-            style={{
-              backgroundImage: `url(${texasLogo})`,
-              backgroundRepeat: "repeat",
-              backgroundSize: "220px 220px",
-            }}
-          />
+        {/* champ de logos Texas Chicken — même direction, même vitesse */}
+        <div className="absolute inset-0 [mask-image:radial-gradient(85%_75%_at_50%_45%,black,transparent)]">
+          <div className="animate-logo-march absolute -inset-y-1/2 -left-1/2 grid h-[200%] w-[200%] grid-cols-8 place-items-center gap-y-16">
+            {logoField.map((l, i) => (
+              <img
+                key={i}
+                src={texasLogo}
+                alt=""
+                aria-hidden="true"
+                className="object-contain dark:[filter:drop-shadow(0_0_14px_oklch(0.86_0.17_82_/_35%))]"
+                style={{
+                  width: l.size,
+                  height: l.size,
+                  opacity: l.opacity,
+                  transform: `translateX(${l.shift}px)`,
+                }}
+              />
+            ))}
+          </div>
         </div>
+
 
 
         {/* logo officiel formé par les particules */}
