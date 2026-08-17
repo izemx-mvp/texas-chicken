@@ -2,20 +2,16 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   Activity,
-  BarChart3,
   Bell,
   Building2,
   Camera,
-  ClipboardCheck,
   Home,
   LayoutDashboard,
   ListChecks,
   LogOut,
   Menu,
   Search,
-  Settings,
   ShieldCheck,
-  Users,
   Workflow,
   X,
 } from "lucide-react";
