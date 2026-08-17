@@ -37,6 +37,8 @@ const EMPTY: Restaurant = {
   lastActivity: "à l'instant",
   score: 90,
   openedAt: new Date().toISOString().slice(0, 10),
+  lat: 33.5731,
+  lng: -7.5898,
 };
 
 function AdminRestaurants() {
