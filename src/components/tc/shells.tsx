@@ -267,6 +267,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 <div className="text-[10px] uppercase tracking-widest text-gold">{user?.role}</div>
               </div>
             </div>
+            <ThemeToggle />
             <Button
               variant="outline"
               size="sm"
