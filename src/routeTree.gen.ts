@@ -28,6 +28,7 @@ import { Route as AppTasksRouteImport } from './routes/app.tasks'
 import { Route as LoginAdminRouteImport } from './routes/login.admin'
 import { Route as LoginManagerRouteImport } from './routes/login.manager'
 import { Route as AdminRestaurantsIndexRouteImport } from './routes/admin.restaurants.index'
+import { Route as AdminRestaurantsIdRouteImport } from './routes/admin.restaurants.$id'
 import { Route as AppProcessIdRouteImport } from './routes/app.process.$id'
 import { Route as AppTaskIdRouteImport } from './routes/app.task.$id'
 
@@ -126,6 +127,11 @@ const AdminRestaurantsIndexRoute = AdminRestaurantsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRestaurantsRoute,
 } as any)
+const AdminRestaurantsIdRoute = AdminRestaurantsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminRestaurantsRoute,
+} as any)
 const AppProcessIdRoute = AppProcessIdRouteImport.update({
   id: '/process/$id',
   path: '/process/$id',
@@ -156,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/login/manager': typeof LoginManagerRoute
   '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
+  '/admin/restaurants/$id': typeof AdminRestaurantsIdRoute
   '/app/process/$id': typeof AppProcessIdRoute
   '/app/task/$id': typeof AppTaskIdRoute
   '/admin/restaurants/': typeof AdminRestaurantsIndexRoute
@@ -176,6 +183,7 @@ export interface FileRoutesByTo {
   '/login/manager': typeof LoginManagerRoute
   '/admin': typeof AdminIndexRoute
   '/app': typeof AppIndexRoute
+  '/admin/restaurants/$id': typeof AdminRestaurantsIdRoute
   '/app/process/$id': typeof AppProcessIdRoute
   '/app/task/$id': typeof AppTaskIdRoute
   '/admin/restaurants': typeof AdminRestaurantsIndexRoute
@@ -200,6 +208,7 @@ export interface FileRoutesById {
   '/login/manager': typeof LoginManagerRoute
   '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
+  '/admin/restaurants/$id': typeof AdminRestaurantsIdRoute
   '/app/process/$id': typeof AppProcessIdRoute
   '/app/task/$id': typeof AppTaskIdRoute
   '/admin/restaurants/': typeof AdminRestaurantsIndexRoute
@@ -225,6 +234,7 @@ export interface FileRouteTypes {
     | '/login/manager'
     | '/admin/'
     | '/app/'
+    | '/admin/restaurants/$id'
     | '/app/process/$id'
     | '/app/task/$id'
     | '/admin/restaurants/'
@@ -245,6 +255,7 @@ export interface FileRouteTypes {
     | '/login/manager'
     | '/admin'
     | '/app'
+    | '/admin/restaurants/$id'
     | '/app/process/$id'
     | '/app/task/$id'
     | '/admin/restaurants'
@@ -268,6 +279,7 @@ export interface FileRouteTypes {
     | '/login/manager'
     | '/admin/'
     | '/app/'
+    | '/admin/restaurants/$id'
     | '/app/process/$id'
     | '/app/task/$id'
     | '/admin/restaurants/'
@@ -417,6 +429,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRestaurantsIndexRouteImport
       parentRoute: typeof AdminRestaurantsRoute
     }
+    '/admin/restaurants/$id': {
+      id: '/admin/restaurants/$id'
+      path: '/$id'
+      fullPath: '/admin/restaurants/$id'
+      preLoaderRoute: typeof AdminRestaurantsIdRouteImport
+      parentRoute: typeof AdminRestaurantsRoute
+    }
     '/app/process/$id': {
       id: '/app/process/$id'
       path: '/process/$id'
@@ -435,10 +454,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRestaurantsRouteChildren {
+  AdminRestaurantsIdRoute: typeof AdminRestaurantsIdRoute
   AdminRestaurantsIndexRoute: typeof AdminRestaurantsIndexRoute
 }
 
 const AdminRestaurantsRouteChildren: AdminRestaurantsRouteChildren = {
+  AdminRestaurantsIdRoute: AdminRestaurantsIdRoute,
   AdminRestaurantsIndexRoute: AdminRestaurantsIndexRoute,
 }
 
