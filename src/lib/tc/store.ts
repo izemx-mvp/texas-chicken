@@ -363,6 +363,73 @@ export function restaurantStats(restaurantId: string, s: State = state): Restaur
   };
 }
 
+
+/* -------------------- preuves soumises par tâche -------------------- */
+const EV_STEP_LABEL: Record<string, string[]> = {
+  Cuisine: ["Plan de travail", "Friteuses", "Sol cuisine"],
+  Stockage: ["Étiquetage DLC", "Rangement réserve", "Zone sèche"],
+  "Chambre froide": ["Relevé température", "Rangement froid positif", "Sonde"],
+  Salle: ["Vue salle", "Tables & banquettes", "Sol salle"],
+  Toilettes: ["Sanitaires", "Consommables", "Sol toilettes"],
+  Terrasse: ["Vue terrasse", "Mobilier extérieur", "Propreté sol"],
+  Entrée: ["Façade & entrée", "Vitrine", "Paillasson"],
+  Extérieur: ["Abords", "Local poubelles", "Parking"],
+  Équipements: ["Contrôle équipement", "Maintenance", "Relevé compteur"],
+};
+
+/** Preuve déterministe réellement « soumise » par le restaurant pour une tâche/date. */
+function synthEvidence(
+  date: string,
+  task: ShiftTask,
+  restaurantId: string,
+  userId: string,
+  idx: number,
+): Evidence {
+  const h = hash(`${date}|${task.id}|${idx}`);
+  const roll = h % 100;
+  const status: Evidence["status"] =
+    roll < 74 ? "Valide" : roll < 84 ? "Suspecte" : roll < 92 ? "Dupliquée" : roll < 97 ? "Rejetée" : "En analyse";
+  const labels = EV_STEP_LABEL[task.zone] ?? ["Preuve terrain"];
+  const suspicious = status === "Dupliquée" || status === "Suspecte";
+  return {
+    id: `ev-${date}-${task.id}-${idx}`,
+    ref: `EVD-${date.replaceAll("-", "").slice(4)}-${(h % 900) + 100}`,
+    kind: task.type === "Vidéo" ? "Vidéo" : idx === 2 && h % 5 === 0 ? "Vidéo" : "Photo",
+    restaurantId,
+    userId,
+    processId: task.processId,
+    stepName: labels[idx % labels.length] ?? task.name,
+    taskId: task.id,
+    taskName: task.name,
+    zone: task.zone,
+    date,
+    time: addMinutes(task.time, 3 + idx * 4 + (h % 5)),
+    aiScore: status === "Valide" ? 88 + (h % 12) : 40 + (h % 45),
+    hash: `sha1:${(h * (idx + 7)).toString(16)}`,
+    status,
+    gradient: ZONE_GRADIENT[task.zone],
+    ...(suspicious
+      ? {
+          similarity: status === "Dupliquée" ? 93 + (h % 7) : 70 + (h % 18),
+          previousEvidenceId: `ev-${shiftDate(date, -1)}-${task.id}-${idx}`,
+          note:
+            status === "Dupliquée"
+              ? "Empreinte identique à la preuve du jour précédent."
+              : "Cadrage quasi identique à une preuve antérieure.",
+        }
+      : status === "Rejetée"
+        ? { note: "Preuve floue ou hors sujet — nouvelle preuve demandée." }
+        : {}),
+  };
+}
+
+/** Preuves soumises pour une tâche à une date donnée (1 à 3 selon l'étape). */
+export function taskEvidence(date: string, task: ShiftTask, restaurantId: string, userId: string): Evidence[] {
+  if (!task.evidenceRequired) return [];
+  const count = 1 + (hash(date + task.id) % 3);
+  return Array.from({ length: count }, (_, i) => synthEvidence(date, task, restaurantId, userId, i));
+}
+
 /* -------------------- journée opérationnelle -------------------- */
 export type DayKind = "past" | "today" | "future";
 
@@ -375,6 +442,8 @@ export interface DayTaskReport {
   stepsDone: number;
   stepsTotal: number;
   evidence?: Evidence;
+  /** Toutes les preuves réellement soumises pour cette tâche ce jour-là. */
+  evidences: Evidence[];
   evidenceRejected: boolean;
   fraud: boolean;
   comment?: string;
@@ -392,12 +461,27 @@ function addMinutes(time: string, min: number) {
 }
 
 /** Rapport opérationnel d'une journée : historique réel (passé), état live (aujourd'hui), plan (futur). */
-export function dayReport(date: string, today: string, s: State = state): DayTaskReport[] {
+export function dayReport(
+  date: string,
+  today: string,
+  s: State = state,
+  restaurantId?: string,
+): DayTaskReport[] {
   const tasks = tasksForDate(date, s);
   const kind = dayKind(date, today);
+  const rid = restaurantId ?? s.restaurants[0]?.id ?? "r1";
+  const uid2 = s.users.find((u) => u.restaurantId === rid)?.id ?? s.session?.userId ?? "u2";
   return tasks.map((task, i) => {
     if (kind === "today") {
       const ev = s.evidence.find((e) => e.id === task.evidenceId);
+      const submitted =
+        task.status === "Terminé"
+          ? ev
+            ? [ev, ...taskEvidence(date, task, rid, uid2).slice(1)]
+            : taskEvidence(date, task, rid, uid2)
+          : ev
+            ? [ev]
+            : [];
       return {
         task,
         planned: task.time,
@@ -406,7 +490,8 @@ export function dayReport(date: string, today: string, s: State = state): DayTas
         status: task.status,
         stepsDone: task.status === "Terminé" ? 4 : task.status === "En cours" ? 2 : 0,
         stepsTotal: 4,
-        evidence: ev,
+        evidence: submitted[0] ?? ev,
+        evidences: submitted,
         evidenceRejected: ev?.status === "Rejetée",
         fraud: ev?.status === "Dupliquée" || ev?.status === "Suspecte",
         result: task.result,
@@ -419,6 +504,7 @@ export function dayReport(date: string, today: string, s: State = state): DayTas
         status: "À faire",
         stepsDone: 0,
         stepsTotal: 4,
+        evidences: [],
         evidenceRejected: false,
         fraud: false,
       };
@@ -427,9 +513,8 @@ export function dayReport(date: string, today: string, s: State = state): DayTas
     const roll = h % 100;
     const status: ShiftTask["status"] = roll < 82 ? "Terminé" : roll < 90 ? "En retard" : roll < 96 ? "Non conforme" : "Bloqué";
     const delay = roll < 82 ? h % 4 : 6 + (h % 22);
-    const evidence = task.evidenceRequired
-      ? s.evidence[(h + i) % Math.max(1, s.evidence.length)]
-      : undefined;
+    const submitted = status === "Terminé" || status === "Non conforme" ? taskEvidence(date, task, rid, uid2) : [];
+    const evidence = submitted[0];
     return {
       task,
       planned: task.time,
@@ -439,8 +524,9 @@ export function dayReport(date: string, today: string, s: State = state): DayTas
       stepsDone: status === "Terminé" ? 4 : 2 + (h % 2),
       stepsTotal: 4,
       evidence,
-      evidenceRejected: evidence?.status === "Rejetée",
-      fraud: evidence?.status === "Dupliquée" || evidence?.status === "Suspecte",
+      evidences: submitted,
+      evidenceRejected: submitted.some((e) => e.status === "Rejetée"),
+      fraud: submitted.some((e) => e.status === "Dupliquée" || e.status === "Suspecte"),
       comment:
         status === "Non conforme"
           ? "Écart constaté — action corrective enregistrée par le responsable."
@@ -507,8 +593,13 @@ export interface ProcessDayReport {
 }
 
 /** Niveau de complétion de chaque processus pour la date active. */
-export function processDayReports(date: string, today: string, s: State = state): ProcessDayReport[] {
-  const reports = dayReport(date, today, s);
+export function processDayReports(
+  date: string,
+  today: string,
+  s: State = state,
+  restaurantId?: string,
+): ProcessDayReport[] {
+  const reports = dayReport(date, today, s, restaurantId);
   const byProcess = new Map<string, DayTaskReport[]>();
   for (const r of reports) {
     const list = byProcess.get(r.task.processId) ?? [];
@@ -539,4 +630,77 @@ export function processDayReports(date: string, today: string, s: State = state)
     });
   }
   return out.sort((a, b) => a.process.name.localeCompare(b.process.name));
+}
+
+
+/* -------------------- alertes fraude -------------------- */
+export function fraudAlertsFor(
+  s: State = state,
+  opts: { restaurantId?: string; date?: string } = {},
+): FraudAlert[] {
+  return s.fraudAlerts
+    .filter((f) => (!opts.restaurantId || f.restaurantId === opts.restaurantId) && (!opts.date || f.date === opts.date))
+    .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+}
+
+export interface FraudStats {
+  today: number;
+  week: number;
+  open: number;
+  resolved: number;
+  critical: number;
+}
+
+export function fraudStats(list: FraudAlert[], today: string): FraudStats {
+  const weekStart = shiftDate(today, -6);
+  const isOpen = (f: FraudAlert) => f.status === "À vérifier" || f.status === "Nouvelle preuve demandée";
+  return {
+    today: list.filter((f) => f.date === today).length,
+    week: list.filter((f) => f.date >= weekStart && f.date <= today).length,
+    open: list.filter(isOpen).length,
+    resolved: list.filter((f) => !isOpen(f)).length,
+    critical: list.filter((f) => f.severity === "CRITICAL" && isOpen(f)).length,
+  };
+}
+
+export function setFraudStatus(id: string, status: FraudStatus, author = "Responsable restaurant", text?: string) {
+  setState((s) => ({
+    fraudAlerts: s.fraudAlerts.map((f) =>
+      f.id === id
+        ? {
+            ...f,
+            status,
+            comments: [
+              ...f.comments,
+              {
+                at: new Date().toISOString().slice(0, 16).replace("T", " "),
+                author,
+                text: text ?? `Statut mis à jour : ${status}.`,
+              },
+            ],
+          }
+        : f,
+    ),
+  }));
+}
+
+export function addFraudComment(id: string, text: string, author = "Responsable restaurant") {
+  setState((s) => ({
+    fraudAlerts: s.fraudAlerts.map((f) =>
+      f.id === id
+        ? {
+            ...f,
+            comments: [
+              ...f.comments,
+              { at: new Date().toISOString().slice(0, 16).replace("T", " "), author, text },
+            ],
+          }
+        : f,
+    ),
+  }));
+}
+
+/** Retrouve une preuve : catalogue seed ou preuve synthétisée d'une journée. */
+export function findEvidence(id: string, s: State = state): Evidence | undefined {
+  return s.evidence.find((e) => e.id === id);
 }
