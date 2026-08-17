@@ -40,8 +40,9 @@ export const ADMIN_NAV: NavItem[] = [
   { to: "/admin", label: "Command Center", module: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/restaurants", label: "Restaurants", module: "Restaurants", icon: Building2 },
   { to: "/admin/processes", label: "Processus & Contrôles", module: "Processus", icon: Workflow },
-  { to: "/admin/builder", label: "Process Builder", module: "Processus", icon: ListChecks },
+  { to: "/admin/users", label: "Utilisateurs", module: "Utilisateurs", icon: UsersIcon },
 ];
+
 
 /* ---------------- global search ---------------- */
 function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => void }) {
