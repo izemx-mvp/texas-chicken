@@ -2,11 +2,13 @@ import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, Camera, MapPin, ShieldAlert, Users } from "lucide-react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ComplianceRing, KpiCard, StatusPill } from "@/components/tc/bits";
+import { ComplianceRing, KpiCard, SectionTitle, StatusPill } from "@/components/tc/bits";
 import { TaskBoard } from "@/components/tc/task-board";
+import { ExecutionTable } from "@/components/tc/execution-table";
+import { DateFilter } from "@/components/tc/date-filter";
 import texasLogo from "@/assets/texas-chicken-logo.svg";
 import { cn } from "@/lib/utils";
-import { restaurantStats, useStore } from "@/lib/tc/store";
+import { restaurantStats, useActiveDate, useStore } from "@/lib/tc/store";
 
 export const Route = createFileRoute("/admin/restaurants/$id")({
   head: () => ({
@@ -29,7 +31,8 @@ function RestaurantPage() {
   const { id } = useParams({ from: "/admin/restaurants/$id" });
   const state = useStore((s) => s);
   const restaurant = state.restaurants.find((r) => r.id === id);
-  const [tab, setTab] = useState<"dashboard" | "tasks">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "tasks" | "execution">("dashboard");
+  const [activeDate] = useActiveDate();
 
   if (!restaurant) {
     return (
@@ -86,7 +89,7 @@ function RestaurantPage() {
       </header>
 
       <div className="flex gap-1 rounded-xl border border-border p-1">
-        {(["dashboard", "tasks"] as const).map((t) => (
+        {(["dashboard", "tasks", "execution"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -95,7 +98,7 @@ function RestaurantPage() {
               tab === t ? "bg-brand/20 text-foreground" : "text-muted-foreground",
             )}
           >
-            {t === "dashboard" ? "Dashboard" : "Tâches"}
+            {t === "dashboard" ? "Dashboard" : t === "tasks" ? "Tâches" : "Exécutions"}
           </button>
         ))}
       </div>
@@ -177,9 +180,18 @@ function RestaurantPage() {
             </div>
           </div>
         </div>
-      ) : (
+      ) : tab === "tasks" ? (
         <div className="glass rounded-3xl p-5">
           <TaskBoard title={`Tâches — ${restaurant.name}`} restaurantId={restaurant.id} />
+        </div>
+      ) : (
+        <div className="glass space-y-4 rounded-3xl p-5">
+          <SectionTitle
+            title="Exécutions du jour"
+            subtitle="Ce que le restaurant a réellement soumis : étapes, réponses, preuves et analyse IA"
+          />
+          <DateFilter />
+          <ExecutionTable date={activeDate} restaurantId={restaurant.id} />
         </div>
       )}
     </div>

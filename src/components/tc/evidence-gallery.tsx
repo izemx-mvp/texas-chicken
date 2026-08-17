@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, ChevronLeft, ChevronRight, Copy, ShieldCheck, X, ZoomIn, ZoomOut } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight, Copy, Play, ShieldCheck, X, ZoomIn, ZoomOut } from "lucide-react";
 import { StatusPill } from "@/components/tc/bits";
 import { cn } from "@/lib/utils";
 import type { Evidence } from "@/lib/tc/types";
@@ -27,10 +27,25 @@ export function EvidenceThumb({
       style={{ background: evidence.gradient }}
       title={`${evidence.stepName} — ${evidence.time}`}
     >
+      {evidence.imageUrl && (
+        <img
+          src={evidence.imageUrl}
+          alt={`Preuve ${evidence.stepName}`}
+          loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      )}
       <span className="absolute inset-0 bg-[linear-gradient(transparent_45%,oklch(0_0_0/0.55))]" />
       <span className="absolute left-1.5 top-1.5 rounded-full bg-background/75 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider">
         {evidence.kind}
       </span>
+      {evidence.kind === "Vidéo" && (
+        <span className="absolute inset-0 grid place-items-center">
+          <span className="grid h-8 w-8 place-items-center rounded-full bg-background/70">
+            <Play className="h-4 w-4 text-gold" />
+          </span>
+        </span>
+      )}
       {suspicious && (
         <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-danger text-danger-foreground">
           <AlertTriangle className="h-3 w-3" />
@@ -41,6 +56,7 @@ export function EvidenceThumb({
         <span className="tabular">{evidence.time}</span>
       </span>
     </button>
+
   );
 }
 
@@ -107,11 +123,31 @@ export function EvidenceGallery({
         </div>
 
         <div className="relative h-[42vh] shrink-0 overflow-hidden bg-black/40">
-          <div
-            className="h-full w-full transition-transform duration-300"
-            style={{ background: current.gradient, transform: `scale(${zoom})` }}
-          />
-          <div className="absolute inset-0 bg-[linear-gradient(transparent_55%,oklch(0_0_0/0.5))]" />
+          {current.kind === "Vidéo" && current.videoUrl ? (
+            <video
+              src={current.videoUrl}
+              poster={current.imageUrl}
+              controls
+              playsInline
+              className="h-full w-full bg-black object-contain"
+            />
+          ) : current.imageUrl ? (
+            <img
+              src={current.imageUrl}
+              alt={`Preuve ${current.stepName}`}
+              className="h-full w-full object-cover transition-transform duration-300"
+              style={{ transform: `scale(${zoom})` }}
+            />
+          ) : (
+            <div
+              className="h-full w-full transition-transform duration-300"
+              style={{ background: current.gradient, transform: `scale(${zoom})` }}
+            />
+          )}
+          {current.kind !== "Vidéo" && (
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(transparent_55%,oklch(0_0_0/0.5))]" />
+          )}
+
           <span className="absolute left-3 top-3">
             <StatusPill status={current.status} />
           </span>
@@ -193,11 +229,16 @@ export function EvidenceGallery({
                   key={e.id}
                   onClick={() => onIndexChange(i)}
                   className={cn(
-                    "h-14 w-20 shrink-0 rounded-lg border",
+                    "h-14 w-20 shrink-0 overflow-hidden rounded-lg border",
                     i === index ? "border-gold" : "border-border opacity-70",
                   )}
                   style={{ background: e.gradient }}
-                />
+                >
+                  {e.imageUrl && (
+                    <img src={e.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  )}
+                </button>
+
               ))}
             </div>
           )}

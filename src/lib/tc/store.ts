@@ -13,6 +13,8 @@ import {
   users as seedUsers,
   TODAY as SEED_TODAY,
 } from "./data";
+import { REJECTED_PHOTO, evidenceVideo, zonePhoto } from "./media";
+
 import type {
   Alert,
   Control,
@@ -391,10 +393,11 @@ function synthEvidence(
     roll < 74 ? "Valide" : roll < 84 ? "Suspecte" : roll < 92 ? "Dupliquée" : roll < 97 ? "Rejetée" : "En analyse";
   const labels = EV_STEP_LABEL[task.zone] ?? ["Preuve terrain"];
   const suspicious = status === "Dupliquée" || status === "Suspecte";
+  const kind: Evidence["kind"] = task.type === "Vidéo" ? "Vidéo" : idx === 2 && h % 5 === 0 ? "Vidéo" : "Photo";
   return {
     id: `ev-${date}-${task.id}-${idx}`,
     ref: `EVD-${date.replaceAll("-", "").slice(4)}-${(h % 900) + 100}`,
-    kind: task.type === "Vidéo" ? "Vidéo" : idx === 2 && h % 5 === 0 ? "Vidéo" : "Photo",
+    kind,
     restaurantId,
     userId,
     processId: task.processId,
@@ -408,6 +411,8 @@ function synthEvidence(
     hash: `sha1:${(h * (idx + 7)).toString(16)}`,
     status,
     gradient: ZONE_GRADIENT[task.zone],
+    imageUrl: status === "Rejetée" ? REJECTED_PHOTO : zonePhoto(task.zone, idx + (h % 3)),
+    ...(kind === "Vidéo" ? { videoUrl: evidenceVideo(h) } : {}),
     ...(suspicious
       ? {
           similarity: status === "Dupliquée" ? 93 + (h % 7) : 70 + (h % 18),
@@ -422,6 +427,7 @@ function synthEvidence(
         : {}),
   };
 }
+
 
 /** Preuves soumises pour une tâche à une date donnée (1 à 3 selon l'étape). */
 export function taskEvidence(date: string, task: ShiftTask, restaurantId: string, userId: string): Evidence[] {
@@ -703,4 +709,300 @@ export function addFraudComment(id: string, text: string, author = "Responsable 
 /** Retrouve une preuve : catalogue seed ou preuve synthétisée d'une journée. */
 export function findEvidence(id: string, s: State = state): Evidence | undefined {
   return s.evidence.find((e) => e.id === id);
+}
+
+/* -------------------- détail d'exécution d'une tâche -------------------- */
+
+/** Checklist réellement exécutée sur le terrain, par zone de contrôle. */
+const CHECKLIST: Record<string, { name: string; question?: string; answers: string[]; ai: string }[]> = {
+  Cuisine: [
+    { name: "Vérifier nettoyage du plan de travail", answers: ["Conforme", "Conforme après reprise"], ai: "Plan de travail dégagé et désinfecté." },
+    { name: "Vérifier nettoyage des équipements", answers: ["Conforme"], ai: "Équipements propres, aucun résidu détecté." },
+    { name: "Contrôle huile des friteuses", question: "Indice de qualité de l'huile ?", answers: ["TPM 18 %", "TPM 21 %"], ai: "Couleur d'huile conforme au référentiel." },
+    { name: "Température de maintien", question: "Température relevée ?", answers: ["64 °C", "66 °C"], ai: "Température visible et conforme (> 63 °C)." },
+    { name: "Vérifier sol et évacuations", answers: ["Conforme", "Écart mineur"], ai: "Sol sec, siphons dégagés." },
+    { name: "Fermeture des équipements", answers: ["Conforme"], ai: "Équipements éteints et sécurisés." },
+  ],
+  "Chambre froide": [
+    { name: "Vérification température", question: "Température de la chambre froide ?", answers: ["4 °C — conforme", "3 °C — conforme", "6 °C — écart"], ai: "Température visible et environnement conforme." },
+    { name: "Contrôle étiquetage DLC", answers: ["Conforme"], ai: "Étiquettes DLC lisibles sur l'ensemble des bacs." },
+    { name: "Rangement froid positif", answers: ["Conforme", "Réorganisé"], ai: "Rangement conforme au plan de stockage." },
+    { name: "Contrôle joints et fermeture", answers: ["Conforme"], ai: "Joints propres, fermeture étanche." },
+    { name: "Relevé de la sonde", question: "Sonde calibrée ?", answers: ["Oui", "Oui — recalibrée"], ai: "Sonde présente et fonctionnelle." },
+  ],
+  Stockage: [
+    { name: "Contrôle rotation des stocks", answers: ["FIFO respecté"], ai: "Rotation FIFO visible sur les rayonnages." },
+    { name: "Étiquetage et DLC", answers: ["Conforme", "2 produits retirés"], ai: "Aucune DLC dépassée détectée." },
+    { name: "Propreté de la réserve", answers: ["Conforme"], ai: "Sol propre, aucun carton au sol." },
+    { name: "Contrôle nuisibles", question: "Traces détectées ?", answers: ["Aucune"], ai: "Aucune trace de nuisible visible." },
+  ],
+  Salle: [
+    { name: "Nettoyage des tables", answers: ["Conforme"], ai: "Tables dégagées et désinfectées." },
+    { name: "État des banquettes", answers: ["Conforme", "Écart mineur"], ai: "Assises propres, aucun dommage visible." },
+    { name: "Propreté du sol", answers: ["Conforme"], ai: "Sol nettoyé, aucune zone grasse." },
+    { name: "Affichage et menus", answers: ["Conforme"], ai: "Affichage réglementaire présent." },
+  ],
+  Toilettes: [
+    { name: "Nettoyage sanitaires", answers: ["Conforme"], ai: "Sanitaires propres et secs." },
+    { name: "Réassort consommables", question: "Consommables complets ?", answers: ["Oui", "Réassort effectué"], ai: "Savon et essuie-mains disponibles." },
+    { name: "Fiche de suivi horaire", answers: ["Signée"], ai: "Fiche de passage renseignée." },
+  ],
+  Terrasse: [
+    { name: "Propreté du mobilier", answers: ["Conforme"], ai: "Mobilier propre et aligné." },
+    { name: "Propreté du sol extérieur", answers: ["Conforme", "Balayage refait"], ai: "Sol balayé, aucun déchet visible." },
+    { name: "Sécurité des installations", answers: ["Conforme"], ai: "Installations stables et sécurisées." },
+  ],
+  Entrée: [
+    { name: "Façade et vitrine", answers: ["Conforme"], ai: "Vitrine propre, enseigne fonctionnelle." },
+    { name: "Paillasson et accès", answers: ["Conforme"], ai: "Accès dégagé et propre." },
+    { name: "Affichage horaires", answers: ["Conforme"], ai: "Affichage à jour." },
+  ],
+  Extérieur: [
+    { name: "Local poubelles", answers: ["Conforme", "Nettoyage complémentaire"], ai: "Bacs fermés, local nettoyé." },
+    { name: "Abords et parking", answers: ["Conforme"], ai: "Abords dégagés, aucun déchet." },
+    { name: "Éclairage extérieur", question: "Éclairage fonctionnel ?", answers: ["Oui"], ai: "Éclairage opérationnel." },
+  ],
+  Équipements: [
+    { name: "Contrôle visuel équipement", answers: ["Conforme"], ai: "Aucun défaut visible." },
+    { name: "Relevé compteur", question: "Valeur relevée ?", answers: ["1 284 kWh", "1 311 kWh"], ai: "Relevé lisible sur la photo." },
+    { name: "Maintenance préventive", answers: ["Effectuée"], ai: "Opération de maintenance documentée." },
+  ],
+};
+
+export type ExecStepStatus = "Validée" | "Non conforme" | "Non réalisée";
+
+export interface ExecStep {
+  index: number;
+  name: string;
+  type: string;
+  status: ExecStepStatus;
+  time: string;
+  question?: string;
+  answer?: string;
+  comment?: string;
+  ai?: string;
+  aiScore?: number;
+  evidence?: Evidence;
+  /** Nouvelle preuve soumise après rejet de la première. */
+  replacement?: Evidence;
+  rejected: boolean;
+  fraud: boolean;
+}
+
+export interface ExecTimelineEvent {
+  at: string;
+  label: string;
+  kind: "start" | "step" | "evidence" | "issue" | "end";
+}
+
+export interface ExecutionDetail {
+  key: string;
+  date: string;
+  task: ShiftTask;
+  process?: Process;
+  restaurant?: Restaurant;
+  manager?: User;
+  status: ShiftTask["status"];
+  startedAt: string;
+  completedAt?: string;
+  duration: number;
+  progress: number;
+  compliance: number;
+  steps: ExecStep[];
+  evidences: Evidence[];
+  timeline: ExecTimelineEvent[];
+  comments: { author: string; at: string; text: string }[];
+  kpi: {
+    steps: number;
+    done: number;
+    undone: number;
+    proofs: number;
+    validated: number;
+    rejected: number;
+    fraud: number;
+    compliance: number;
+  };
+}
+
+function minutesBetween(a: string, b: string) {
+  const [ah = "0", am = "0"] = a.split(":");
+  const [bh = "0", bm = "0"] = b.split(":");
+  return Number(bh) * 60 + Number(bm) - (Number(ah) * 60 + Number(am));
+}
+
+/**
+ * Reconstitue l'exécution réelle d'une tâche : checklist, réponses du manager,
+ * preuves photo/vidéo, horodatages, analyse IA, rejets et fraude.
+ */
+export function executionDetail(
+  date: string,
+  taskId: string,
+  restaurantId?: string,
+  s: State = state,
+): ExecutionDetail | null {
+  const report = dayReport(date, TODAY_DATE, s, restaurantId).find((r) => r.task.id === taskId);
+  if (!report) return null;
+  const task = report.task;
+  const rid = restaurantId ?? s.restaurants[0]?.id ?? "r1";
+  const restaurant = s.restaurants.find((r) => r.id === rid);
+  const manager =
+    s.users.find((u) => u.id === restaurant?.managerId) ??
+    s.users.find((u) => u.restaurantId === rid) ??
+    currentUser() ??
+    undefined;
+  const managerName = manager ? `${manager.firstName} ${manager.lastName}` : "Manager restaurant";
+
+  const template = CHECKLIST[task.zone] ?? CHECKLIST['Cuisine'] ?? [];
+  const base = hash(`${date}|${task.id}|exec`);
+  const started = report.startedAt ?? task.time;
+  const finished = report.completedAt;
+  const future = dayKind(date, TODAY_DATE) === "future";
+  const evidences = report.evidences;
+
+  const steps: ExecStep[] = template.map((tpl, i) => {
+    const h = hash(`${date}|${task.id}|${i}`);
+    const evidence = evidences[i % Math.max(1, evidences.length)];
+    const attached = evidences.length && (i < evidences.length || h % 3 === 0) ? evidence : undefined;
+    const rejected = attached?.status === "Rejetée";
+    const fraud = attached?.status === "Dupliquée" || attached?.status === "Suspecte";
+    const stepStatus: ExecStepStatus = future
+      ? "Non réalisée"
+      : report.status === "Terminé"
+        ? rejected || fraud
+          ? "Non conforme"
+          : "Validée"
+        : i < report.stepsDone
+          ? "Validée"
+          : i === report.stepsDone && report.status !== "À faire"
+            ? "Non conforme"
+            : "Non réalisée";
+    const answers = tpl.answers;
+    const answer = answers[h % answers.length];
+    const replacement =
+      rejected && attached
+        ? {
+            ...attached,
+            id: `${attached.id}-bis`,
+            ref: `${attached.ref}-B`,
+            status: "Valide" as const,
+            aiScore: 91 + (h % 8),
+            time: addMinutes(attached.time, 6 + (h % 8)),
+            imageUrl: zonePhoto(task.zone, i + 1),
+            note: "Nouvelle preuve conforme soumise après demande de l'administration.",
+          }
+        : undefined;
+    return {
+      index: i + 1,
+      name: tpl.name,
+      type: task.type,
+      status: stepStatus,
+      time: addMinutes(started, 2 + i * Math.max(2, Math.round(task.duration / Math.max(1, template.length)))),
+      ...(tpl.question ? { question: tpl.question } : {}),
+      ...(stepStatus === "Non réalisée" ? {} : { answer }),
+      ...(h % 4 === 0 && stepStatus !== "Non réalisée"
+        ? { comment: "Le nettoyage a été effectué avant la fermeture du service." }
+        : {}),
+      ...(stepStatus === "Non réalisée"
+        ? {}
+        : {
+            ai: rejected
+              ? "Image insuffisamment claire — nouvelle preuve demandée."
+              : fraud
+                ? `Similarité ${attached?.similarity ?? 95} % avec une preuve antérieure.`
+                : tpl.ai,
+            aiScore: attached?.aiScore ?? 88 + (h % 11),
+          }),
+      ...(attached && stepStatus !== "Non réalisée" ? { evidence: attached } : {}),
+      ...(replacement ? { replacement } : {}),
+      rejected: !!rejected,
+      fraud: !!fraud,
+    };
+  });
+
+  const done = steps.filter((x) => x.status === "Validée").length;
+  const rejectedCount = steps.filter((x) => x.rejected).length;
+  const fraudCount = steps.filter((x) => x.fraud).length;
+  const proofs = steps.filter((x) => x.evidence).length;
+  const validated = proofs - rejectedCount - fraudCount;
+  const compliance = future
+    ? 0
+    : Math.max(
+        0,
+        Math.round(((done - rejectedCount * 0.5 - fraudCount) / Math.max(1, steps.length)) * 100),
+      );
+
+  const timeline: ExecTimelineEvent[] = [];
+  if (!future) {
+    timeline.push({ at: started, label: "Tâche démarrée", kind: "start" });
+    steps.forEach((st) => {
+      if (st.status === "Non réalisée") return;
+      timeline.push({ at: st.time, label: `Étape ${st.index} — ${st.name}`, kind: "step" });
+      if (st.evidence)
+        timeline.push({
+          at: st.evidence.time,
+          label: `${st.evidence.kind} soumise — ${st.evidence.stepName}`,
+          kind: st.rejected || st.fraud ? "issue" : "evidence",
+        });
+      if (st.replacement)
+        timeline.push({ at: st.replacement.time, label: "Nouvelle preuve conforme soumise", kind: "evidence" });
+    });
+    if (finished) timeline.push({ at: finished, label: "Tâche terminée", kind: "end" });
+    timeline.sort((a, b) => a.at.localeCompare(b.at));
+  }
+
+  const comments = [
+    ...(report.comment ? [{ author: managerName, at: `${date} ${finished ?? started}`, text: report.comment }] : []),
+    ...steps
+      .filter((st) => st.comment)
+      .slice(0, 2)
+      .map((st) => ({ author: managerName, at: `${date} ${st.time}`, text: st.comment as string })),
+  ];
+
+  return {
+    key: `${date}:${task.id}`,
+    date,
+    task,
+    ...(s.processes.find((p) => p.id === task.processId) ? { process: s.processes.find((p) => p.id === task.processId) } : {}),
+    ...(restaurant ? { restaurant } : {}),
+    ...(manager ? { manager } : {}),
+    status: report.status,
+    startedAt: started,
+    ...(finished ? { completedAt: finished } : {}),
+    duration: finished ? Math.max(1, minutesBetween(started, finished)) : task.duration,
+    progress: future ? 0 : Math.round((done / Math.max(1, steps.length)) * 100),
+    compliance,
+    steps,
+    evidences: [...evidences, ...steps.flatMap((st) => (st.replacement ? [st.replacement] : []))],
+    timeline,
+    comments,
+    kpi: {
+      steps: steps.length,
+      done,
+      undone: steps.length - done,
+      proofs,
+      validated: Math.max(0, validated),
+      rejected: rejectedCount,
+      fraud: fraudCount,
+      compliance,
+    },
+  };
+}
+
+/** Toutes les exécutions d'une journée pour un restaurant (table Administration). */
+export function executionsForDate(date: string, restaurantId?: string, s: State = state): ExecutionDetail[] {
+  return dayReport(date, TODAY_DATE, s, restaurantId)
+    .map((r) => executionDetail(date, r.task.id, restaurantId, s))
+    .filter(Boolean) as ExecutionDetail[];
+}
+
+/** Exécutions sur une plage de jours (historique multi-dates de l'Administration). */
+export function executionsRange(
+  from: string,
+  days: number,
+  restaurantId?: string,
+  s: State = state,
+): ExecutionDetail[] {
+  const out: ExecutionDetail[] = [];
+  for (let i = 0; i < days; i++) out.push(...executionsForDate(shiftDate(from, -i), restaurantId, s));
+  return out;
 }

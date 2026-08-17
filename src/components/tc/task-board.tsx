@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   AlertTriangle,
   CalendarDays,
@@ -278,6 +279,8 @@ export function TaskBoard({
             <ReportRow
               key={r.task.id}
               r={r}
+              date={date}
+              {...(restaurantId ? { restaurantId } : {})}
               open={openId === r.task.id}
               onToggle={() => setOpenId(openId === r.task.id ? null : r.task.id)}
             />
@@ -384,7 +387,19 @@ function ProcessRow({
   );
 }
 
-function ReportRow({ r, open, onToggle }: { r: DayTaskReport; open: boolean; onToggle: () => void }) {
+function ReportRow({
+  r,
+  date,
+  restaurantId,
+  open,
+  onToggle,
+}: {
+  r: DayTaskReport;
+  date: string;
+  restaurantId?: string;
+  open: boolean;
+  onToggle: () => void;
+}) {
   const [gallery, setGallery] = useState<number | null>(null);
   const late = r.startedAt && r.startedAt > r.planned;
   return (
@@ -420,13 +435,25 @@ function ReportRow({ r, open, onToggle }: { r: DayTaskReport; open: boolean; onT
                 <div className="text-[10px] uppercase tracking-widest text-gold">
                   Preuves soumises ({r.evidences.length})
                 </div>
-                <button
-                  onClick={() => setGallery(0)}
-                  className="rounded-lg border border-border px-2 py-1 text-[11px] font-semibold"
-                >
-                  Voir les preuves
-                </button>
+                <span className="flex gap-2">
+                  {restaurantId && (
+                    <Link
+                      to="/admin/execution/$id"
+                      params={{ id: `${date}__${r.task.id}__${restaurantId}` }}
+                      className="rounded-lg border border-gold/40 bg-gold/10 px-2 py-1 text-[11px] font-semibold text-gold"
+                    >
+                      Voir détails
+                    </Link>
+                  )}
+                  <button
+                    onClick={() => setGallery(0)}
+                    className="rounded-lg border border-border px-2 py-1 text-[11px] font-semibold"
+                  >
+                    Voir les preuves
+                  </button>
+                </span>
               </div>
+
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                 {r.evidences.map((e, i) => (
                   <EvidenceThumb key={e.id} evidence={e} onClick={() => setGallery(i)} />

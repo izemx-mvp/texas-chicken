@@ -1,246 +1,440 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { LAND } from "@/lib/tc/land";
 import { restaurants } from "@/lib/tc/data";
+import texasLogo from "@/assets/texas-chicken-logo.svg";
 
 /**
- * DIGITAL TERRITORY — fond propriétaire Texas Chicken.
+ * GLOBAL TEXAS CHICKEN DIGITAL TERRITORY
  *
- * Concept : le réseau marocain vu comme un territoire numérique vivant.
- * Contour abstrait du Maroc + nœuds (villes réelles du réseau) + flux de données
- * animés entre les villes + particules lentes + halo de contrôle.
- * Aucune image, uniquement SVG/CSS : léger, net à toute résolution.
+ * Globe terrestre numérique (continents Natural Earth, jour/nuit, city lights,
+ * atmosphère, nuages, restaurants Texas Chicken dans le monde, arcs réseau)
+ * qui se dissout en particules pour former le logo officiel Texas Chicken,
+ * puis revient au globe. Tout est dessiné dans un seul canvas 2D.
  */
 
-const VB_W = 1000;
-const VB_H = 1200;
-const LNG_MIN = -17.6;
-const LNG_MAX = -0.6;
-const LAT_MIN = 20.4;
-const LAT_MAX = 36.4;
-
-const px = (lng: number) => ((lng - LNG_MIN) / (LNG_MAX - LNG_MIN)) * VB_W;
-const py = (lat: number) => ((LAT_MAX - lat) / (LAT_MAX - LAT_MIN)) * VB_H;
-
-/** Contour abstrait (stylisé) du territoire marocain. */
-const OUTLINE: [number, number][] = [
-  [-5.9, 35.9],
-  [-5.2, 35.85],
-  [-4.3, 35.2],
-  [-2.9, 35.3],
-  [-2.0, 34.75],
-  [-1.7, 33.6],
-  [-1.1, 32.1],
-  [-2.6, 31.6],
-  [-3.7, 30.9],
-  [-4.9, 30.5],
-  [-6.1, 29.6],
-  [-7.6, 29.3],
-  [-8.7, 28.7],
-  [-8.7, 27.7],
-  [-8.7, 25.9],
-  [-12.0, 25.9],
-  [-12.0, 23.5],
-  [-13.1, 22.8],
-  [-13.1, 21.4],
-  [-17.0, 21.0],
-  [-16.0, 22.2],
-  [-14.6, 26.1],
-  [-13.2, 27.7],
-  [-11.4, 28.5],
-  [-9.9, 29.9],
-  [-9.7, 31.5],
-  [-8.7, 33.2],
-  [-7.0, 34.0],
-  [-6.3, 35.0],
+/* -------- réseau mondial Texas Chicken (implantations réelles de l'enseigne) -------- */
+const WORLD_SITES: { name: string; lat: number; lng: number; hub?: boolean }[] = [
+  { name: "San Antonio", lat: 29.42, lng: -98.49, hub: true },
+  { name: "Houston", lat: 29.76, lng: -95.37 },
+  { name: "Mexico", lat: 19.43, lng: -99.13 },
+  { name: "Panama", lat: 8.98, lng: -79.52 },
+  { name: "Bogota", lat: 4.71, lng: -74.07 },
+  { name: "Londres", lat: 51.51, lng: -0.13 },
+  { name: "Le Caire", lat: 30.04, lng: 31.24 },
+  { name: "Riyad", lat: 24.71, lng: 46.68, hub: true },
+  { name: "Dubaï", lat: 25.2, lng: 55.27 },
+  { name: "Doha", lat: 25.29, lng: 51.53 },
+  { name: "Karachi", lat: 24.86, lng: 67.01 },
+  { name: "Delhi", lat: 28.61, lng: 77.21 },
+  { name: "Jakarta", lat: -6.21, lng: 106.85, hub: true },
+  { name: "Kuala Lumpur", lat: 3.14, lng: 101.69 },
+  { name: "Singapour", lat: 1.35, lng: 103.82 },
+  { name: "Manille", lat: 14.6, lng: 120.98 },
+  { name: "Hô Chi Minh", lat: 10.82, lng: 106.63 },
+  { name: "Lagos", lat: 6.52, lng: 3.38 },
+  { name: "Nairobi", lat: -1.29, lng: 36.82 },
 ];
 
-const outlinePath =
-  OUTLINE.map(([lng, lat], i) => `${i === 0 ? "M" : "L"}${px(lng).toFixed(1)} ${py(lat).toFixed(1)}`).join(" ") + " Z";
+const MOROCCO_HUB = { lat: 33.57, lng: -7.59 };
+
+const DEG = Math.PI / 180;
+
+type Vec3 = { x: number; y: number; z: number };
+const toVec = (lat: number, lng: number): Vec3 => {
+  const la = lat * DEG;
+  const lo = lng * DEG;
+  return { x: Math.cos(la) * Math.cos(lo), y: Math.sin(la), z: Math.cos(la) * Math.sin(lo) };
+};
+
+function slerp(a: Vec3, b: Vec3, t: number): Vec3 {
+  const dot = Math.min(1, Math.max(-1, a.x * b.x + a.y * b.y + a.z * b.z));
+  const o = Math.acos(dot);
+  if (o < 1e-4) return a;
+  const s = Math.sin(o);
+  const k1 = Math.sin((1 - t) * o) / s;
+  const k2 = Math.sin(t * o) / s;
+  return { x: a.x * k1 + b.x * k2, y: a.y * k1 + b.y * k2, z: a.z * k1 + b.z * k2 };
+}
+
+const smooth = (a: number, b: number, x: number) => {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
+
+/* cycle : globe → dissolution → logo → recomposition → globe */
+const T_GLOBE = 15;
+const T_MORPH = 3.4;
+const T_LOGO = 4.6;
+const T_BACK = 3.4;
+const T_CYCLE = T_GLOBE + T_MORPH + T_LOGO + T_BACK;
 
 export function AnimatedBackground({
   intensity = "full",
   className,
 }: {
-  intensity?: "full" | "soft";
+  intensity?: "full" | "soft" | number;
   className?: string;
 }) {
-  const soft = intensity === "soft";
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const logoRef = useRef<HTMLDivElement | null>(null);
 
-  /** Nœuds = villes réelles du réseau (une par ville, taille = nb de restaurants). */
-  const nodes = useMemo(() => {
-    const byCity = new Map<string, { city: string; lat: number; lng: number; count: number }>();
-    for (const r of restaurants) {
-      const cur = byCity.get(r.city);
-      if (cur) cur.count += 1;
-      else byCity.set(r.city, { city: r.city, lat: r.lat, lng: r.lng, count: 1 });
-    }
-    return [...byCity.values()].map((c, i) => ({
-      ...c,
-      x: px(c.lng),
-      y: py(c.lat),
-      delay: (i % 7) * 0.7,
-    }));
-  }, []);
+  const opacity = typeof intensity === "number" ? intensity : intensity === "soft" ? 0.35 : 1;
 
-  /** Flux de données : chaque ville reliée à son voisin le plus proche + au hub. */
-  const links = useMemo(() => {
-    if (nodes.length < 2) return [];
-    const hub = nodes.reduce((a, b) => (a.count >= b.count ? a : b));
-    const out: { d: string; delay: number; dur: number }[] = [];
-    nodes.forEach((n, i) => {
-      if (n === hub) return;
-      const nearest = nodes
-        .filter((o) => o !== n)
-        .sort((a, b) => (a.x - n.x) ** 2 + (a.y - n.y) ** 2 - ((b.x - n.x) ** 2 + (b.y - n.y) ** 2))[0];
-      const targets = [hub, nearest].filter(Boolean) as typeof nodes;
-      targets.forEach((t, k) => {
-        const mx = (n.x + t.x) / 2 + (((i * 37) % 60) - 30);
-        const my = (n.y + t.y) / 2 + (((i * 53) % 60) - 30);
-        out.push({
-          d: `M${n.x.toFixed(1)} ${n.y.toFixed(1)} Q${mx.toFixed(1)} ${my.toFixed(1)} ${t.x.toFixed(1)} ${t.y.toFixed(1)}`,
-          delay: ((i * 2 + k) % 9) * 0.8,
-          dur: 5 + ((i + k) % 5),
-        });
-      });
-    });
-    return out;
-  }, [nodes]);
-
-  const particles = useMemo(
-    () =>
-      Array.from({ length: soft ? 14 : 26 }, (_, i) => ({
-        left: (i * 41) % 100,
-        delay: (i % 13) * 0.9,
-        dur: 14 + (i % 9) * 2,
-        size: 1.5 + (i % 3),
-        gold: i % 3 === 0,
-      })),
-    [soft],
+  /** Restaurants du réseau marocain géré par la plateforme. */
+  const moroccoSites = useMemo(
+    () => restaurants.map((r) => ({ lat: r.lat, lng: r.lng })),
+    [],
   );
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const lowPower = window.innerWidth < 640 || (navigator.hardwareConcurrency ?? 8) <= 4;
+
+    /* ---------- données statiques ---------- */
+    const stride = lowPower ? 2 : 1;
+    const land: Vec3[] = [];
+    for (let i = 0; i < LAND.length; i += 2 * stride) {
+      land.push(toVec((LAND[i + 1] as number) / 10, (LAND[i] as number) / 10));
+    }
+    const cityLight = land.map((_, i) => i % 17 === 0);
+
+    const clouds = Array.from({ length: lowPower ? 14 : 26 }, (_, i) => ({
+      lat: ((i * 37) % 140) - 70,
+      lng: ((i * 97) % 360) - 180,
+      r: 0.1 + ((i * 13) % 9) / 42,
+      a: 0.05 + ((i * 7) % 5) / 90,
+    }));
+
+    const worldVecs = WORLD_SITES.map((s) => ({ ...s, v: toVec(s.lat, s.lng) }));
+    const moroccoVecs = moroccoSites.map((s) => toVec(s.lat, s.lng));
+    const moroccoV = toVec(MOROCCO_HUB.lat, MOROCCO_HUB.lng);
+
+    const arcs = worldVecs.map((s, i) => ({
+      a: s.v,
+      b: i % 3 === 0 ? moroccoV : (worldVecs[(i * 5 + 3) % worldVecs.length] as { v: Vec3 }).v,
+      speed: 0.09 + ((i % 5) * 0.03),
+      phase: (i % 7) / 7,
+    }));
+
+    const stars = Array.from({ length: lowPower ? 60 : 130 }, (_, i) => ({
+      x: ((i * 71) % 100) / 100,
+      y: ((i * 149) % 100) / 100,
+      r: 0.4 + ((i * 17) % 10) / 12,
+      p: (i % 11) / 11,
+    }));
+
+    /* ---------- silhouette du logo (cible des particules) ---------- */
+    let logoPts: { x: number; y: number }[] = [];
+    const img = new Image();
+    img.onload = () => {
+      const S = 220;
+      const off = document.createElement("canvas");
+      off.width = S;
+      off.height = S;
+      const octx = off.getContext("2d");
+      if (!octx) return;
+      const ratio = Math.min(S / img.width, S / img.height);
+      const w = img.width * ratio;
+      const h = img.height * ratio;
+      octx.drawImage(img, (S - w) / 2, (S - h) / 2, w, h);
+      const data = octx.getImageData(0, 0, S, S).data;
+      const pts: { x: number; y: number }[] = [];
+      for (let y = 0; y < S; y += 2) {
+        for (let x = 0; x < S; x += 2) {
+          const alpha = data[(y * S + x) * 4 + 3] ?? 0;
+          if (alpha > 120) pts.push({ x: x / S - 0.5, y: y / S - 0.5 });
+        }
+      }
+      // mélange déterministe pour des trajectoires réparties
+      for (let i = pts.length - 1; i > 0; i--) {
+        const j = (i * 7919) % (i + 1);
+        const tmp = pts[i] as { x: number; y: number };
+        pts[i] = pts[j] as { x: number; y: number };
+        pts[j] = tmp;
+      }
+      logoPts = pts;
+    };
+    img.src = texasLogo;
+
+    /* ---------- boucle ---------- */
+    let w = 0;
+    let h = 0;
+    let dpr = 1;
+    const resize = () => {
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      w = canvas.clientWidth;
+      h = canvas.clientHeight;
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(canvas);
+
+    let raf = 0;
+    const start = performance.now();
+    const speed = reduced ? 0.35 : 1;
+
+    const render = (now: number) => {
+      const t = ((now - start) / 1000) * speed;
+      const c = t % T_CYCLE;
+      const morphT =
+        c < T_GLOBE
+          ? 0
+          : c < T_GLOBE + T_MORPH
+            ? smooth(0, 1, (c - T_GLOBE) / T_MORPH)
+            : c < T_GLOBE + T_MORPH + T_LOGO
+              ? 1
+              : 1 - smooth(0, 1, (c - T_GLOBE - T_MORPH - T_LOGO) / T_BACK);
+
+      const globeA = 1 - morphT;
+      const logoA = smooth(0.72, 1, morphT);
+      if (logoRef.current) {
+        logoRef.current.style.opacity = String(logoA);
+        logoRef.current.style.transform = `scale(${0.9 + logoA * 0.1})`;
+      }
+
+      ctx.clearRect(0, 0, w, h);
+
+      /* caméra flottante */
+      const cx = w / 2 + Math.sin(t * 0.07) * w * 0.02;
+      const cy = h * 0.52 + Math.cos(t * 0.05) * h * 0.02;
+      const R = Math.min(w, h) * (w < 640 ? 0.42 : 0.36) * (1 + Math.sin(t * 0.045) * 0.02);
+
+      /* étoiles */
+      for (const s of stars) {
+        const tw = 0.35 + 0.35 * Math.sin(t * 0.8 + s.p * 9);
+        ctx.globalAlpha = tw * 0.7;
+        ctx.fillStyle = "#e9e2d6";
+        ctx.beginPath();
+        ctx.arc(s.x * w + Math.sin(t * 0.03) * 6, s.y * h, s.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      /* rotation + inclinaison */
+      const rot = t * (reduced ? 0.02 : 0.055);
+      const tilt = 0.32;
+      const cosT = Math.cos(tilt);
+      const sinT = Math.sin(tilt);
+      const cosR = Math.cos(rot);
+      const sinR = Math.sin(rot);
+      const project = (v: Vec3) => {
+        const x1 = v.x * cosR - v.z * sinR;
+        const z1 = v.x * sinR + v.z * cosR;
+        const y2 = v.y * cosT - z1 * sinT;
+        const z2 = v.y * sinT + z1 * cosT;
+        return { sx: cx + x1 * R, sy: cy - y2 * R, z: z2, nx: x1, ny: y2 };
+      };
+      // direction du soleil (jour/nuit) tournant plus lentement
+      const sunA = t * 0.02 + 0.6;
+      const sun = { x: Math.cos(sunA), y: 0.25, z: Math.sin(sunA) };
+
+      if (globeA > 0.02) {
+        /* atmosphère + océan */
+        const ocean = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.35, R * 0.1, cx, cy, R);
+        ocean.addColorStop(0, `rgba(18,38,58,${0.85 * globeA})`);
+        ocean.addColorStop(0.75, `rgba(8,16,28,${0.92 * globeA})`);
+        ocean.addColorStop(1, `rgba(4,8,14,${0.96 * globeA})`);
+        ctx.fillStyle = ocean;
+        ctx.beginPath();
+        ctx.arc(cx, cy, R, 0, Math.PI * 2);
+        ctx.fill();
+
+        const halo = ctx.createRadialGradient(cx, cy, R * 0.94, cx, cy, R * 1.22);
+        halo.addColorStop(0, `rgba(120,180,235,${0.22 * globeA})`);
+        halo.addColorStop(0.45, `rgba(90,140,210,${0.09 * globeA})`);
+        halo.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(cx, cy, R * 1.22, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      /* continents / particules */
+      const logoScale = Math.min(w, h) * (w < 640 ? 0.72 : 0.62);
+      for (let i = 0; i < land.length; i++) {
+        const p = project(land[i] as Vec3);
+        const front = p.z > -0.02;
+        let x = p.sx;
+        let y = p.sy;
+        let a = 0;
+        const lit = Math.max(0, (land[i] as Vec3).x * sun.x + (land[i] as Vec3).y * sun.y + (land[i] as Vec3).z * sun.z);
+        const dayA = 0.28 + lit * 0.5;
+        if (front) a = dayA;
+
+        if (morphT > 0 && logoPts.length) {
+          const target = logoPts[i % logoPts.length] as { x: number; y: number };
+          const tx = cx + target.x * logoScale;
+          const ty = cy + target.y * logoScale;
+          const k = smooth(0, 1, Math.min(1, morphT * 1.15 - ((i % 9) / 9) * 0.12));
+          x = p.sx + (tx - p.sx) * k;
+          y = p.sy + (ty - p.sy) * k;
+          a = (front ? dayA : 0.16) * (1 - morphT * 0.85) + 0.55 * morphT;
+          if (morphT > 0.85) a *= 1 - smooth(0.85, 1, morphT);
+        } else if (!front) {
+          continue;
+        }
+        if (a <= 0.01) continue;
+
+        ctx.globalAlpha = a;
+        if (morphT > 0.15) {
+          ctx.fillStyle = i % 4 === 0 ? "#e8b23a" : "#d8452f";
+        } else if (cityLight[i] && lit < 0.15) {
+          ctx.fillStyle = "#ffc978";
+        } else {
+          ctx.fillStyle = lit > 0.15 ? "#9fb4bf" : "#3f5a6b";
+        }
+        const size = cityLight[i] && lit < 0.15 ? 1.5 : 1.2;
+        ctx.fillRect(x, y, size, size);
+      }
+      ctx.globalAlpha = 1;
+
+      if (globeA > 0.05) {
+        /* nuages */
+        for (const cl of clouds) {
+          const v = toVec(cl.lat, cl.lng + t * (reduced ? 0.4 : 1.6));
+          const p = project(v);
+          if (p.z < 0.05) continue;
+          const rr = cl.r * R * (0.5 + p.z * 0.7);
+          const g = ctx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, rr);
+          g.addColorStop(0, `rgba(226,236,244,${cl.a * p.z * globeA})`);
+          g.addColorStop(1, "rgba(226,236,244,0)");
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(p.sx, p.sy, rr, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        /* arcs réseau international */
+        ctx.lineWidth = 0.8;
+        for (const arc of arcs) {
+          ctx.beginPath();
+          let started = false;
+          for (let s = 0; s <= 24; s++) {
+            const f = s / 24;
+            const m = slerp(arc.a, arc.b, f);
+            const lift = 1 + Math.sin(f * Math.PI) * 0.16;
+            const p = project({ x: m.x * lift, y: m.y * lift, z: m.z * lift });
+            if (p.z < 0) {
+              started = false;
+              continue;
+            }
+            if (!started) {
+              ctx.moveTo(p.sx, p.sy);
+              started = true;
+            } else ctx.lineTo(p.sx, p.sy);
+          }
+          ctx.strokeStyle = `rgba(232,178,58,${0.16 * globeA})`;
+          ctx.stroke();
+
+          /* flux lumineux le long de l'arc */
+          const f = (t * arc.speed + arc.phase) % 1;
+          const m = slerp(arc.a, arc.b, f);
+          const lift = 1 + Math.sin(f * Math.PI) * 0.16;
+          const p = project({ x: m.x * lift, y: m.y * lift, z: m.z * lift });
+          if (p.z > 0) {
+            ctx.globalAlpha = globeA;
+            ctx.fillStyle = "#f2c14e";
+            ctx.beginPath();
+            ctx.arc(p.sx, p.sy, 1.6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+          }
+        }
+
+        /* implantations Texas Chicken dans le monde */
+        worldVecs.forEach((s, i) => {
+          const p = project(s.v);
+          if (p.z < 0) return;
+          const pulse = 0.5 + 0.5 * Math.sin(t * 1.1 + i);
+          const a = globeA * (0.45 + p.z * 0.55);
+          ctx.globalAlpha = a * (0.35 + pulse * 0.4);
+          ctx.fillStyle = "#f0b93f";
+          ctx.beginPath();
+          ctx.arc(p.sx, p.sy, 3 + pulse * 3.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = a;
+          ctx.fillStyle = s.hub ? "#ffd97a" : "#e8622f";
+          ctx.beginPath();
+          ctx.arc(p.sx, p.sy, s.hub ? 2 : 1.5, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        /* emphase Maroc : territoire piloté par la plateforme */
+        const pm = project(moroccoV);
+        if (pm.z > 0) {
+          const g = ctx.createRadialGradient(pm.sx, pm.sy, 0, pm.sx, pm.sy, R * 0.26);
+          g.addColorStop(0, `rgba(216,69,47,${0.3 * globeA * pm.z})`);
+          g.addColorStop(1, "rgba(216,69,47,0)");
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(pm.sx, pm.sy, R * 0.26, 0, Math.PI * 2);
+          ctx.fill();
+          moroccoVecs.forEach((v, i) => {
+            const p = project(v);
+            if (p.z < 0) return;
+            const pulse = 0.5 + 0.5 * Math.sin(t * 1.6 + i * 0.9);
+            ctx.globalAlpha = globeA * (0.5 + pulse * 0.5) * p.z;
+            ctx.fillStyle = "#ffd06a";
+            ctx.beginPath();
+            ctx.arc(p.sx, p.sy, 1.6 + pulse, 0, Math.PI * 2);
+            ctx.fill();
+          });
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      raf = requestAnimationFrame(render);
+    };
+    raf = requestAnimationFrame(render);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
+  }, [moroccoSites]);
 
   return (
     <div
       aria-hidden="true"
       className={cn("pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-background", className)}
     >
-      {/* profondeur : halos de contrôle */}
+      {/* intensité : plus discret en light mode pour préserver la lisibilité */}
       <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(110% 65% at 50% 110%, oklch(0.62 0.23 28 / 22%) 0%, transparent 62%)," +
-            "radial-gradient(70% 50% at 14% -8%, oklch(0.86 0.17 82 / 14%) 0%, transparent 62%)," +
-            "radial-gradient(65% 45% at 90% 6%, oklch(0.52 0.13 250 / 14%) 0%, transparent 66%)",
-        }}
-      />
-
-      {/* grille de contrôle */}
-      <div className="grid-lines absolute inset-0 opacity-40 [mask-image:radial-gradient(75%_65%_at_50%_45%,black,transparent)]" />
-
-      {/* territoire numérique */}
-      <div
-        className={cn(
-          "animate-territory absolute inset-0 grid place-items-center [mask-image:radial-gradient(95%_85%_at_50%_45%,black,transparent)]",
-          soft ? "opacity-[0.55]" : "opacity-90",
-        )}
+        className="absolute inset-0 opacity-[calc(var(--tc-bg-i)*0.4)] dark:opacity-[var(--tc-bg-i)]"
+        style={{ "--tc-bg-i": opacity } as React.CSSProperties}
       >
-        <svg
-          viewBox={`0 0 ${VB_W} ${VB_H}`}
-          preserveAspectRatio="xMidYMid meet"
-          className="h-[125%] w-[125%] max-w-none text-[oklch(0.52_0.2_30)] dark:text-[oklch(0.88_0.17_82)]"
-        >
-          <defs>
-            <linearGradient id="tc-territory-fill" x1="0" y1="0" x2="0.4" y2="1">
-              <stop offset="0%" stopColor="currentColor" stopOpacity="0.07" />
-              <stop offset="100%" stopColor="currentColor" stopOpacity="0.13" />
-            </linearGradient>
-            <linearGradient id="tc-territory-stroke" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="currentColor" stopOpacity="0.55" />
-              <stop offset="100%" stopColor="currentColor" stopOpacity="0.85" />
-            </linearGradient>
-          </defs>
-
-          <path d={outlinePath} fill="url(#tc-territory-fill)" />
-          {/* contour permanent (visible même sans animation) */}
-          <path
-            d={outlinePath}
-            fill="none"
-            stroke="currentColor"
-            strokeOpacity={0.3}
-            strokeWidth={2}
-            strokeLinejoin="round"
-          />
-          <path
-            d={outlinePath}
-            fill="none"
-            stroke="url(#tc-territory-stroke)"
-            strokeWidth={2.5}
-            strokeLinejoin="round"
-            className="animate-territory-trace"
-          />
-
-          {/* flux de données entre villes */}
-          {links.map((l, i) => (
-            <path
-              key={i}
-              d={l.d}
-              fill="none"
-              stroke="currentColor"
-              strokeOpacity={soft ? 0.22 : 0.34}
-              strokeWidth={1.2}
-              strokeDasharray="6 22"
-              className="animate-data-flow"
-              style={{ animationDelay: `${l.delay}s`, animationDuration: `${l.dur}s` }}
-            />
-          ))}
-
-          {/* nœuds = villes du réseau */}
-          {nodes.map((n) => (
-            <g key={n.city} style={{ animationDelay: `${n.delay}s` }} className="animate-node-pulse">
-              <circle cx={n.x} cy={n.y} r={6 + n.count * 2.2} fill="currentColor"
-                fillOpacity={0.12} />
-              <circle cx={n.x} cy={n.y} r={3 + n.count * 0.6} fill="currentColor" fillOpacity={0.8} />
-            </g>
-          ))}
-        </svg>
-      </div>
-
-      {/* particules de données */}
-      {particles.map((p, i) => (
-        <span
-          key={i}
-          className="animate-ember absolute bottom-0 rounded-full"
+        {/* espace profond */}
+        <div
+          className="absolute inset-0"
           style={{
-            left: `${p.left}%`,
-            width: p.size,
-            height: p.size,
-            animationDelay: `${p.delay}s`,
-            animationDuration: `${p.dur}s`,
-            background: p.gold ? "oklch(0.88 0.17 82)" : "oklch(0.66 0.22 30)",
-            boxShadow: p.gold ? "0 0 10px oklch(0.88 0.17 82 / 70%)" : "0 0 10px oklch(0.66 0.22 30 / 70%)",
+            background:
+              "radial-gradient(120% 90% at 50% 45%, oklch(0.20 0.03 250 / 55%) 0%, oklch(0.12 0.02 260 / 75%) 55%, oklch(0.08 0.01 265 / 92%) 100%)",
           }}
         />
-      ))}
+        <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
-      {intensity === "full" && (
-        <>
-          <div className="animate-float absolute left-[8%] top-[18%] h-72 w-72 rounded-full bg-[oklch(0.62_0.23_28_/_16%)] blur-[90px]" />
-          <div
-            className="animate-float absolute right-[10%] top-[8%] h-80 w-80 rounded-full bg-[oklch(0.86_0.17_82_/_12%)] blur-[110px]"
-            style={{ animationDelay: "3s" }}
+        {/* logo officiel formé par les particules */}
+        <div ref={logoRef} className="absolute inset-0 grid place-items-center" style={{ opacity: 0 }}>
+          <img
+            src={texasLogo}
+            alt=""
+            className="w-[62vmin] max-w-[620px] object-contain [filter:drop-shadow(0_0_40px_oklch(0.86_0.17_82_/_45%))_drop-shadow(0_0_10px_oklch(0.98_0_0_/_35%))]"
           />
-          <div
-            className="animate-float absolute bottom-[6%] left-[42%] h-64 w-64 rounded-full bg-[oklch(0.55_0.15_250_/_12%)] blur-[100px]"
-            style={{ animationDelay: "6s" }}
-          />
-        </>
-      )}
+        </div>
 
-      {/* balayage radar horizontal très lent */}
-      <div className="animate-sweep absolute inset-y-0 -left-1/3 w-1/3 bg-[linear-gradient(90deg,transparent,oklch(0.86_0.17_82_/_7%),transparent)]" />
+        {/* vignette */}
+        <div className="absolute inset-0 bg-[radial-gradient(100%_100%_at_50%_50%,transparent_45%,oklch(0.08_0.01_260_/_55%)_100%)]" />
+      </div>
 
-      {/* vignette */}
-      <div className="absolute inset-0 bg-[radial-gradient(100%_100%_at_50%_50%,transparent_55%,oklch(0.1_0.01_40_/_16%)_100%)] dark:bg-[radial-gradient(100%_100%_at_50%_50%,transparent_35%,oklch(0.1_0.01_40_/_78%)_100%)]" />
     </div>
   );
 }

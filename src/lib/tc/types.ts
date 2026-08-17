@@ -207,8 +207,12 @@ export interface Evidence {
   aiScore: number;
   hash: string;
   status: "Valide" | "Rejetée" | "Dupliquée" | "Suspecte" | "En analyse";
-  /** Dégradé CSS contextuel (zone) utilisé comme rendu de la photo/vidéo. */
+  /** Dégradé CSS contextuel (zone) utilisé en repli si le média est indisponible. */
   gradient: string;
+  /** Photo réellement soumise par le restaurant. */
+  imageUrl?: string;
+  /** Vidéo réellement soumise (preuve filmée). */
+  videoUrl?: string;
   zone?: Zone;
   taskId?: ID;
   taskName?: string;
@@ -216,6 +220,7 @@ export interface Evidence {
   previousEvidenceId?: ID;
   similarity?: number;
   note?: string;
+
 }
 
 /** Alerte anti-fraude générée par l'analyse IA des preuves. */
