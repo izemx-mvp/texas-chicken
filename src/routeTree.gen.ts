@@ -10,33 +10,206 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AppRouteImport } from './routes/app'
+import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminProcessesRouteImport } from './routes/admin.processes'
+import { Route as AdminRestaurantsRouteImport } from './routes/admin.restaurants'
+import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppAlertsRouteImport } from './routes/app.alerts'
+import { Route as AppProcessesRouteImport } from './routes/app.processes'
+import { Route as AppTasksRouteImport } from './routes/app.tasks'
+import { Route as LoginAdminRouteImport } from './routes/login.admin'
+import { Route as LoginManagerRouteImport } from './routes/login.manager'
+import { Route as AppProcessIdRouteImport } from './routes/app.process.$id'
+import { Route as AppTaskIdRouteImport } from './routes/app.task.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UnauthorizedRoute = UnauthorizedRouteImport.update({
+  id: '/unauthorized',
+  path: '/unauthorized',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminProcessesRoute = AdminProcessesRouteImport.update({
+  id: '/processes',
+  path: '/processes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRestaurantsRoute = AdminRestaurantsRouteImport.update({
+  id: '/restaurants',
+  path: '/restaurants',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAlertsRoute = AppAlertsRouteImport.update({
+  id: '/alerts',
+  path: '/alerts',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProcessesRoute = AppProcessesRouteImport.update({
+  id: '/processes',
+  path: '/processes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTasksRoute = AppTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => AppRoute,
+} as any)
+const LoginAdminRoute = LoginAdminRouteImport.update({
+  id: '/login/admin',
+  path: '/login/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginManagerRoute = LoginManagerRouteImport.update({
+  id: '/login/manager',
+  path: '/login/manager',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppProcessIdRoute = AppProcessIdRouteImport.update({
+  id: '/process/$id',
+  path: '/process/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTaskIdRoute = AppTaskIdRouteImport.update({
+  id: '/task/$id',
+  path: '/task/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/app': typeof AppRouteWithChildren
+  '/unauthorized': typeof UnauthorizedRoute
+  '/admin/processes': typeof AdminProcessesRoute
+  '/admin/restaurants': typeof AdminRestaurantsRoute
+  '/app/alerts': typeof AppAlertsRoute
+  '/app/processes': typeof AppProcessesRoute
+  '/app/tasks': typeof AppTasksRoute
+  '/login/admin': typeof LoginAdminRoute
+  '/login/manager': typeof LoginManagerRoute
+  '/admin/': typeof AdminIndexRoute
+  '/app/': typeof AppIndexRoute
+  '/app/process/$id': typeof AppProcessIdRoute
+  '/app/task/$id': typeof AppTaskIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/unauthorized': typeof UnauthorizedRoute
+  '/admin/processes': typeof AdminProcessesRoute
+  '/admin/restaurants': typeof AdminRestaurantsRoute
+  '/app/alerts': typeof AppAlertsRoute
+  '/app/processes': typeof AppProcessesRoute
+  '/app/tasks': typeof AppTasksRoute
+  '/login/admin': typeof LoginAdminRoute
+  '/login/manager': typeof LoginManagerRoute
+  '/admin': typeof AdminIndexRoute
+  '/app': typeof AppIndexRoute
+  '/app/process/$id': typeof AppProcessIdRoute
+  '/app/task/$id': typeof AppTaskIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/app': typeof AppRouteWithChildren
+  '/unauthorized': typeof UnauthorizedRoute
+  '/admin/processes': typeof AdminProcessesRoute
+  '/admin/restaurants': typeof AdminRestaurantsRoute
+  '/app/alerts': typeof AppAlertsRoute
+  '/app/processes': typeof AppProcessesRoute
+  '/app/tasks': typeof AppTasksRoute
+  '/login/admin': typeof LoginAdminRoute
+  '/login/manager': typeof LoginManagerRoute
+  '/admin/': typeof AdminIndexRoute
+  '/app/': typeof AppIndexRoute
+  '/app/process/$id': typeof AppProcessIdRoute
+  '/app/task/$id': typeof AppTaskIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/app'
+    | '/unauthorized'
+    | '/admin/processes'
+    | '/admin/restaurants'
+    | '/app/alerts'
+    | '/app/processes'
+    | '/app/tasks'
+    | '/login/admin'
+    | '/login/manager'
+    | '/admin/'
+    | '/app/'
+    | '/app/process/$id'
+    | '/app/task/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/unauthorized'
+    | '/admin/processes'
+    | '/admin/restaurants'
+    | '/app/alerts'
+    | '/app/processes'
+    | '/app/tasks'
+    | '/login/admin'
+    | '/login/manager'
+    | '/admin'
+    | '/app'
+    | '/app/process/$id'
+    | '/app/task/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/app'
+    | '/unauthorized'
+    | '/admin/processes'
+    | '/admin/restaurants'
+    | '/app/alerts'
+    | '/app/processes'
+    | '/app/tasks'
+    | '/login/admin'
+    | '/login/manager'
+    | '/admin/'
+    | '/app/'
+    | '/app/process/$id'
+    | '/app/task/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
+  AppRoute: typeof AppRouteWithChildren
+  UnauthorizedRoute: typeof UnauthorizedRoute
+  LoginAdminRoute: typeof LoginAdminRoute
+  LoginManagerRoute: typeof LoginManagerRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +221,148 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/unauthorized': {
+      id: '/unauthorized'
+      path: '/unauthorized'
+      fullPath: '/unauthorized'
+      preLoaderRoute: typeof UnauthorizedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/processes': {
+      id: '/admin/processes'
+      path: '/processes'
+      fullPath: '/admin/processes'
+      preLoaderRoute: typeof AdminProcessesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/restaurants': {
+      id: '/admin/restaurants'
+      path: '/restaurants'
+      fullPath: '/admin/restaurants'
+      preLoaderRoute: typeof AdminRestaurantsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/app/': {
+      id: '/app/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/alerts': {
+      id: '/app/alerts'
+      path: '/alerts'
+      fullPath: '/app/alerts'
+      preLoaderRoute: typeof AppAlertsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/processes': {
+      id: '/app/processes'
+      path: '/processes'
+      fullPath: '/app/processes'
+      preLoaderRoute: typeof AppProcessesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/tasks': {
+      id: '/app/tasks'
+      path: '/tasks'
+      fullPath: '/app/tasks'
+      preLoaderRoute: typeof AppTasksRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/login/admin': {
+      id: '/login/admin'
+      path: '/login/admin'
+      fullPath: '/login/admin'
+      preLoaderRoute: typeof LoginAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login/manager': {
+      id: '/login/manager'
+      path: '/login/manager'
+      fullPath: '/login/manager'
+      preLoaderRoute: typeof LoginManagerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/process/$id': {
+      id: '/app/process/$id'
+      path: '/process/$id'
+      fullPath: '/app/process/$id'
+      preLoaderRoute: typeof AppProcessIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/task/$id': {
+      id: '/app/task/$id'
+      path: '/task/$id'
+      fullPath: '/app/task/$id'
+      preLoaderRoute: typeof AppTaskIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AdminRouteChildren {
+  AdminProcessesRoute: typeof AdminProcessesRoute
+  AdminRestaurantsRoute: typeof AdminRestaurantsRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminProcessesRoute: AdminProcessesRoute,
+  AdminRestaurantsRoute: AdminRestaurantsRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface AppRouteChildren {
+  AppAlertsRoute: typeof AppAlertsRoute
+  AppProcessesRoute: typeof AppProcessesRoute
+  AppTasksRoute: typeof AppTasksRoute
+  AppIndexRoute: typeof AppIndexRoute
+  AppProcessIdRoute: typeof AppProcessIdRoute
+  AppTaskIdRoute: typeof AppTaskIdRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAlertsRoute: AppAlertsRoute,
+  AppProcessesRoute: AppProcessesRoute,
+  AppTasksRoute: AppTasksRoute,
+  AppIndexRoute: AppIndexRoute,
+  AppProcessIdRoute: AppProcessIdRoute,
+  AppTaskIdRoute: AppTaskIdRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
+  AppRoute: AppRouteWithChildren,
+  UnauthorizedRoute: UnauthorizedRoute,
+  LoginAdminRoute: LoginAdminRoute,
+  LoginManagerRoute: LoginManagerRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
