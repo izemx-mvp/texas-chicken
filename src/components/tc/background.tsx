@@ -47,6 +47,28 @@ export function AnimatedBackground({
       {/* control grid */}
       <div className="grid-lines absolute inset-0 opacity-[0.5] [mask-image:radial-gradient(70%_60%_at_50%_40%,black,transparent)]" />
 
+      {/* champ de logos Texas Chicken — même direction, même vitesse */}
+      <div className="absolute inset-0 [mask-image:radial-gradient(85%_75%_at_50%_45%,black,transparent)]">
+        <div className="animate-logo-march absolute -inset-y-1/2 -left-1/2 grid h-[200%] w-[200%] grid-cols-8 place-items-center gap-y-16">
+          {logos.map((l, i) => (
+            <img
+              key={i}
+              src={texasLogo}
+              alt=""
+              aria-hidden="true"
+              className="object-contain dark:[filter:drop-shadow(0_0_14px_oklch(0.86_0.17_82_/_35%))]"
+              style={{
+                width: l.size,
+                height: l.size,
+                opacity: l.opacity,
+                transform: `translateX(${l.shift}px)`,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+
       {/* drifting mesa silhouettes */}
       <div className="animate-drift absolute -bottom-24 left-0 right-0 h-[46vh] opacity-60">
         <svg viewBox="0 0 1440 400" preserveAspectRatio="none" className="h-full w-full">
