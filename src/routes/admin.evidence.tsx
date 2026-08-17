@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState, KpiCard, SectionTitle, StatusPill } from "@/components/tc/bits";
 import { cn } from "@/lib/utils";
-import { upsert, useStore } from "@/lib/tc/store";
+import { dayReport, upsert, useActiveDate, useStore } from "@/lib/tc/store";
+import { DateFilter } from "@/components/tc/date-filter";
+import { EvidenceGallery, EvidenceThumb } from "@/components/tc/evidence-gallery";
+import { TODAY } from "@/lib/tc/data";
 import type { Evidence } from "@/lib/tc/types";
 
 export const Route = createFileRoute("/admin/evidence")({
@@ -30,6 +33,12 @@ function AdminEvidence() {
   const [status, setStatus] = useState("Toutes");
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<Evidence | null>(null);
+  const state = useStore((s) => s);
+  const [activeDate] = useActiveDate();
+  const [galleryIdx, setGalleryIdx] = useState<number | null>(null);
+  const submitted = restaurants
+    .slice(0, 6)
+    .flatMap((r) => dayReport(activeDate, TODAY, state, r.id).flatMap((rep) => rep.evidences));
 
   const list = evidence.filter(
     (e) =>
@@ -52,6 +61,36 @@ function AdminEvidence() {
         <KpiCard label="Suspectes" value={evidence.filter((e) => e.status === "Suspecte").length} tone="warning" icon={<ShieldAlert className="h-4 w-4" />} />
         <KpiCard label="Doublons détectés" value={evidence.filter((e) => e.status === "Dupliquée").length} tone="danger" />
         <KpiCard label="Score IA moyen" value={Math.round(evidence.reduce((a, e) => a + e.aiScore, 0) / Math.max(1, evidence.length))} suffix="%" tone="brand" />
+      </div>
+
+      <div className="glass space-y-3 rounded-2xl p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="font-display text-sm font-bold uppercase tracking-wide">Preuves réellement soumises</h3>
+            <p className="text-[11px] text-muted-foreground">
+              Preuves transmises par les restaurants à la date active ({submitted.length})
+            </p>
+          </div>
+          <DateFilter />
+        </div>
+        {submitted.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucune preuve soumise à cette date.</p>
+        ) : (
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6 xl:grid-cols-8">
+            {submitted.slice(0, 32).map((e, i) => (
+              <EvidenceThumb key={e.id} evidence={e} onClick={() => setGalleryIdx(i)} />
+            ))}
+          </div>
+        )}
+        {galleryIdx !== null && (
+          <EvidenceGallery
+            items={submitted.slice(0, 32)}
+            index={galleryIdx}
+            onIndexChange={setGalleryIdx}
+            onClose={() => setGalleryIdx(null)}
+            title="Preuves soumises"
+          />
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">
