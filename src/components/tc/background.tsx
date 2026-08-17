@@ -490,6 +490,19 @@ export function AnimatedBackground({
         />
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
+        {/* trame de logos Texas Chicken en défilement uniforme */}
+        <div className="absolute -inset-1/4 overflow-hidden">
+          <div
+            className="animate-logo-march h-[200%] w-[200%] opacity-[0.07] dark:opacity-[0.12]"
+            style={{
+              backgroundImage: `url(${texasLogo})`,
+              backgroundRepeat: "repeat",
+              backgroundSize: "220px 220px",
+            }}
+          />
+        </div>
+
+
         {/* logo officiel formé par les particules */}
         <div ref={logoRef} className="absolute inset-0 grid place-items-center" style={{ opacity: 0 }}>
           <img
