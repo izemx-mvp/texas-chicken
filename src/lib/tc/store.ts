@@ -13,6 +13,8 @@ import {
   users as seedUsers,
   TODAY as SEED_TODAY,
 } from "./data";
+import { REJECTED_PHOTO, evidenceVideo, zonePhoto } from "./media";
+
 import type {
   Alert,
   Control,
