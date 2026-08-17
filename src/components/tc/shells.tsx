@@ -10,7 +10,6 @@ import {
   Settings,
   User as UserIcon,
   Building2,
-  Camera,
   Home,
   LayoutDashboard,
   ListChecks,
