@@ -36,6 +36,14 @@ function dateMinus(days: number) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+function datePlus(days: number) {
+  const d = new Date(REF_DATE);
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+export const TODAY = `${REF_DATE.getFullYear()}-${pad(REF_DATE.getMonth() + 1)}-${pad(REF_DATE.getDate())}`;
+
 /* ---------------- restaurants ---------------- */
 const CITIES = [
   ["Tanger", "Centre"],
@@ -107,6 +115,19 @@ const LAST = [
   "Zniber",
 ];
 
+export const CITY_COORDS: Record<string, [number, number]> = {
+  Tanger: [35.7595, -5.834],
+  "Tétouan": [35.5785, -5.3684],
+  Rabat: [34.0209, -6.8416],
+  Casablanca: [33.5731, -7.5898],
+  Marrakech: [31.6295, -7.9811],
+  Agadir: [30.4278, -9.5981],
+  "Fès": [34.0331, -5.0003],
+  "Meknès": [33.8935, -5.5473],
+  Oujda: [34.6814, -1.9086],
+  "Kénitra": [34.261, -6.5802],
+};
+
 export const restaurants: Restaurant[] = CITIES.map(([city, area], i) => {
   const compliance = [96, 93, 71, 88, 84, 91, 63, 78, 95, 82, 74, 89, 68, 86, 92, 80, 58][i];
   return {
@@ -124,6 +145,8 @@ export const restaurants: Restaurant[] = CITIES.map(([city, area], i) => {
     lastActivity: `${dateMinus(int(0, 3))} ${pad(int(7, 22))}:${pad(int(0, 59))}`,
     score: Math.max(40, Math.min(99, compliance + int(-6, 6))),
     openedAt: `20${int(14, 24)}-${pad(int(1, 12))}-${pad(int(1, 28))}`,
+    lat: (CITY_COORDS[city as string]?.[0] ?? 33.5) + (i % 3 - 1) * 0.055,
+    lng: (CITY_COORDS[city as string]?.[1] ?? -7.5) + ((i % 4) - 1.5) * 0.06,
   };
 });
 
@@ -295,6 +318,18 @@ function step(
         : type === "Score"
           ? "Score minimum requis : 80 %"
           : "Conforme au référentiel visuel Texas Chicken",
+    guide: [
+      `Préparer le matériel nécessaire pour « ${name} ».`,
+      `Se positionner en zone ${zone} et sécuriser l'espace.`,
+      `Réaliser le contrôle selon le référentiel Texas Chicken.`,
+      `Enregistrer le résultat et la preuve demandée.`,
+    ],
+    videoUrl:
+      i % 3 === 0
+        ? "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+        : i % 3 === 1
+          ? "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4"
+          : undefined,
     conditions:
       type === "Valeur numérique"
         ? [
@@ -411,6 +446,14 @@ export const processes: Process[] = PROCESS_DEFS.map(([name, category, zones, st
       { version: "1.1", author: "Operations Admin", date: dateMinus(120), changes: "Ajout des preuves photo obligatoires" },
       { version: `${1 + (idx % 2)}.${idx % 3}`, author: "Sanaa Bennis", date: dateMinus(int(1, 60)), changes: "Mise à jour des critères de validation" },
     ],
+    availability:
+      idx === 6
+        ? { type: "Période", startDate: dateMinus(10), endDate: datePlus(20) }
+        : idx === 9
+          ? { type: "Dates spécifiques", dates: [dateMinus(0), datePlus(2), datePlus(5), datePlus(9)] }
+          : idx === 11
+            ? { type: "Période", startDate: datePlus(3), endDate: datePlus(45) }
+            : { type: "Permanent" },
   };
 });
 
@@ -580,10 +623,16 @@ export const shiftTasks: ShiftTask[] = [];
         type: s.type,
         evidenceRequired: s.evidenceRequired,
         status,
+        date: TODAY,
+        guide: s.guide,
+        videoUrl: s.videoUrl,
       });
     });
   }
 }
+
+// ordre chronologique global du shift (toutes tâches, tous processus confondus)
+shiftTasks.sort((a, b) => (a.time === b.time ? a.id.localeCompare(b.id) : a.time.localeCompare(b.time)));
 
 /* ---------------- history / trends ---------------- */
 export const complianceHistory = Array.from({ length: 26 }, (_, i) => {

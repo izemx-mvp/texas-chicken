@@ -168,6 +168,59 @@ export function addEvidence(e: Evidence) {
   setState((s) => ({ evidence: [e, ...s.evidence], usedPhotoHashes: [...s.usedPhotoHashes, e.hash] }));
 }
 
+/* -------------------- shift ordering / next step -------------------- */
+const PRIORITY_WEIGHT: Record<string, number> = { Critique: 0, Haute: 1, Normale: 2, Basse: 3 };
+const OPEN_STATUS: ShiftTask["status"][] = ["À faire", "En cours", "En retard", "Bloqué"];
+
+/** Ordre chronologique global du shift : heure planifiée puis priorité. */
+export function orderedShiftTasks(s: State = state) {
+  return [...s.shiftTasks].sort((a, b) => {
+    if (a.time !== b.time) return a.time.localeCompare(b.time);
+    return (PRIORITY_WEIGHT[a.priority] ?? 9) - (PRIORITY_WEIGHT[b.priority] ?? 9);
+  });
+}
+
+/**
+ * Prochaine étape à effectuer sur l'ensemble du shift : on privilégie les retards,
+ * puis les tâches critiques, puis l'ordre chronologique — tous processus confondus.
+ */
+export function nextShiftTask(s: State = state): ShiftTask | null {
+  const open = orderedShiftTasks(s).filter((t) => OPEN_STATUS.includes(t.status));
+  if (!open.length) return null;
+  const inProgress = open.find((t) => t.status === "En cours");
+  if (inProgress) return inProgress;
+  const late = open.filter((t) => t.status === "En retard");
+  const pool = late.length ? late : open;
+  return (
+    [...pool].sort(
+      (a, b) =>
+        (PRIORITY_WEIGHT[a.priority] ?? 9) - (PRIORITY_WEIGHT[b.priority] ?? 9) ||
+        a.time.localeCompare(b.time),
+    )[0] ?? null
+  );
+}
+
+export function isProcessAvailableOn(p: Process, date: string) {
+  const a = p.availability ?? { type: "Permanent" as const };
+  if (a.type === "Permanent") return true;
+  if (a.type === "Période") return (!a.startDate || date >= a.startDate) && (!a.endDate || date <= a.endDate);
+  return !!a.dates?.includes(date);
+}
+
+/** Tâches planifiées pour une date donnée (dépend de la disponibilité du processus). */
+export function tasksForDate(date: string, s: State = state) {
+  return orderedShiftTasks(s).filter((t) => {
+    const p = s.processes.find((x) => x.id === t.processId);
+    return p ? isProcessAvailableOn(p, date) : true;
+  });
+}
+
+/** Clôture robuste d'une tâche : statut, résultat, horodatage. */
+export function finishTask(id: string, patch: Partial<ShiftTask> = {}) {
+  const at = new Date().toISOString().slice(0, 16).replace("T", " ");
+  updateTask(id, { status: "Terminé", completedAt: at, ...patch });
+}
+
 /* -------------------- KPIs -------------------- */
 export function kpis(s: State = state) {
   const activeRest = s.restaurants.filter((r) => r.status === "Actif");

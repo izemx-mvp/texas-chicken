@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { toast } from "sonner";
 import {
   Activity,
+  BarChart3,
   Bell,
+  CalendarDays,
+  ChevronDown,
+  Settings,
+  User as UserIcon,
   Building2,
-  Camera,
   Home,
   LayoutDashboard,
   ListChecks,
@@ -19,7 +24,6 @@ import { cn } from "@/lib/utils";
 import { AnimatedBackground } from "./background";
 import { TCLogo, TCMark } from "./logo";
 import { ThemeToggle } from "./theme-toggle";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { can, currentUser, logout, useStore } from "@/lib/tc/store";
 import { StatusPill } from "./bits";
@@ -36,8 +40,6 @@ export const ADMIN_NAV: NavItem[] = [
   { to: "/admin", label: "Command Center", module: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/restaurants", label: "Restaurants", module: "Restaurants", icon: Building2 },
   { to: "/admin/processes", label: "Processus & Contrôles", module: "Processus", icon: Workflow },
-  { to: "/admin/evidence", label: "Preuves", module: "Preuves", icon: Camera },
-  { to: "/admin/alerts", label: "Alert Center", module: "Notifications", icon: Bell },
   { to: "/admin/builder", label: "Process Builder", module: "Processus", icon: ListChecks },
 ];
 
@@ -175,6 +177,76 @@ function NotificationBell() {
   );
 }
 
+/* ---------------- user menu ---------------- */
+function UserMenu({ compact = false }: { compact?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+  const user = useStore(() => currentUser());
+  const initials = `${user?.firstName?.[0] ?? ""}${user?.lastName?.[0] ?? ""}`;
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-2 rounded-xl border border-border bg-secondary/40 p-1 pr-2 transition-colors hover:border-gold/50"
+        aria-label="Menu utilisateur"
+      >
+        <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-gradient font-display text-sm font-bold text-brand-foreground">
+          {initials}
+        </span>
+        {!compact && (
+          <span className="hidden leading-tight sm:block">
+            <span className="block text-xs font-semibold">
+              {user?.firstName} {user?.lastName}
+            </span>
+            <span className="block text-[10px] uppercase tracking-widest text-gold">{user?.role}</span>
+          </span>
+        )}
+        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="glass animate-rise absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl">
+            <div className="border-b border-border px-4 py-3">
+              <div className="font-display text-sm font-bold uppercase">
+                {user?.firstName} {user?.lastName}
+              </div>
+              <div className="truncate text-xs text-muted-foreground">{user?.email}</div>
+              <div className="mt-1 text-[10px] uppercase tracking-widest text-gold">{user?.role}</div>
+            </div>
+            <div className="p-2">
+              <MenuRow icon={<UserIcon className="h-4 w-4" />} label="Mon profil" onClick={() => { setOpen(false); toast.info("Profil utilisateur", { description: `${user?.firstName} ${user?.lastName} — score ${user?.score}%` }); }} />
+              <MenuRow icon={<Settings className="h-4 w-4" />} label="Paramètres" onClick={() => { setOpen(false); toast.info("Paramètres du compte", { description: "Préférences, langue et notifications." }); }} />
+              <MenuRow
+                icon={<LogOut className="h-4 w-4 text-destructive" />}
+                label="Déconnexion"
+                onClick={() => {
+                  setOpen(false);
+                  logout();
+                  navigate({ to: "/" });
+                }}
+              />
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function MenuRow({ icon, label, onClick }: { icon: ReactNode; label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-secondary/60"
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
 /* ---------------- admin shell ---------------- */
 export function AdminShell({ children }: { children: ReactNode }) {
   const [mobileNav, setMobileNav] = useState(false);
@@ -255,30 +327,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </button>
           <div className="ml-auto flex items-center gap-2">
             <NotificationBell />
-            <div className="hidden items-center gap-3 rounded-xl border border-border bg-secondary/40 px-3 py-1.5 sm:flex">
-              <div className="grid h-8 w-8 place-items-center rounded-lg bg-brand-gradient font-display text-sm font-bold text-brand-foreground">
-                {user?.firstName?.[0]}
-                {user?.lastName?.[0]}
-              </div>
-              <div className="leading-tight">
-                <div className="text-xs font-semibold">
-                  {user?.firstName} {user?.lastName}
-                </div>
-                <div className="text-[10px] uppercase tracking-widest text-gold">{user?.role}</div>
-              </div>
-            </div>
             <ThemeToggle />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                logout();
-                navigate({ to: "/" });
-              }}
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Déconnexion</span>
-            </Button>
+            <UserMenu />
           </div>
         </header>
         <main className="animate-rise mx-auto w-full max-w-[1600px] p-4 lg:p-6">{children}</main>
@@ -292,7 +342,8 @@ const MANAGER_NAV: { to: string; label: string; icon: typeof Home; exact?: boole
   { to: "/app", label: "Shift", icon: Home, exact: true },
   { to: "/app/processes", label: "Processus", icon: Workflow },
   { to: "/app/tasks", label: "Tâches", icon: ListChecks },
-  { to: "/app/alerts", label: "Alertes", icon: Bell },
+  { to: "/app/calendar", label: "Calendrier", icon: CalendarDays },
+  { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
 ];
 
 export function ManagerShell({ children }: { children: ReactNode }) {
@@ -331,16 +382,7 @@ export function ManagerShell({ children }: { children: ReactNode }) {
               </span>
             )}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              logout();
-              navigate({ to: "/" });
-            }}
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
+          <UserMenu compact />
         </div>
       </header>
       <main className="animate-rise mx-auto w-full max-w-3xl px-4 py-4">{children}</main>

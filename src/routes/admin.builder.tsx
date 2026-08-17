@@ -1,13 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Camera, GitBranch, Plus, Save, Trash2, Workflow } from "lucide-react";
+import { ArrowDown, ArrowUp, CalendarDays, Camera, GitBranch, Plus, Save, Trash2, Workflow } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { SectionTitle } from "@/components/tc/bits";
 import { uid, upsert, useStore } from "@/lib/tc/store";
-import { ZONES, type Priority, type Process, type ProcessStep, type StepType, type Zone } from "@/lib/tc/types";
+import { ZONES, type AvailabilityType, type Priority, type Process, type ProcessStep, type StepType, type Zone } from "@/lib/tc/types";
 
 export const Route = createFileRoute("/admin/builder")({
   head: () => ({
@@ -51,6 +51,11 @@ function Builder() {
   const [targets, setTargets] = useState<string[]>([]);
   const [steps, setSteps] = useState<ProcessStep[]>([newStep()]);
   const [sel, setSel] = useState(0);
+  const [availType, setAvailType] = useState<AvailabilityType>("Permanent");
+  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState("");
+  const [dates, setDates] = useState<string[]>([]);
+  const [dateDraft, setDateDraft] = useState("");
 
   const step = steps[sel];
   const patch = (p: Partial<ProcessStep>) => setSteps((s) => s.map((x, i) => (i === sel ? { ...x, ...p } : x)));
@@ -74,6 +79,14 @@ function Builder() {
       toast.error("Sélectionnez au moins un restaurant");
       return;
     }
+    if (availType === "Période" && (!startDate || !endDate)) {
+      toast.error("Renseignez la date de début et de fin de la période");
+      return;
+    }
+    if (availType === "Dates spécifiques" && dates.length === 0) {
+      toast.error("Ajoutez au moins une date spécifique");
+      return;
+    }
     const p: Process = {
       id: uid("p"),
       name: name.trim(),
@@ -90,6 +103,12 @@ function Builder() {
       author: "Process Builder",
       steps,
       versions: [{ version: "1.0", author: "Process Builder", date: new Date().toISOString().slice(0, 10), changes: "Création du processus" }],
+      availability:
+        availType === "Permanent"
+          ? { type: "Permanent" }
+          : availType === "Période"
+            ? { type: "Période", startDate, endDate }
+            : { type: "Dates spécifiques", dates: [...dates].sort() },
     };
     upsert("processes", p);
     toast.success("Processus créé en brouillon");
@@ -125,6 +144,77 @@ function Builder() {
           <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">Description</span>
           <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Objectif du processus" />
         </label>
+        <div className="rounded-2xl border border-border bg-secondary/25 p-4 lg:col-span-3">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 text-gold" />
+            <h3 className="font-display text-sm font-bold uppercase tracking-wider">Disponibilité du processus</h3>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Définit les jours où ce processus apparaît dans le calendrier et le shift des managers.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {(["Permanent", "Période", "Dates spécifiques"] as AvailabilityType[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => setAvailType(t)}
+                className={
+                  "rounded-full border px-3 py-1 text-xs font-semibold transition-colors " +
+                  (availType === t ? "border-gold/60 bg-gold/15 text-gold" : "border-border text-muted-foreground")
+                }
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          {availType === "Période" && (
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <L label="Date de début"><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></L>
+              <L label="Date de fin"><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></L>
+            </div>
+          )}
+
+          {availType === "Dates spécifiques" && (
+            <div className="mt-3 space-y-2">
+              <div className="flex flex-wrap items-end gap-2">
+                <L label="Ajouter une date">
+                  <Input type="date" value={dateDraft} onChange={(e) => setDateDraft(e.target.value)} />
+                </L>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (!dateDraft) return;
+                    if (dates.includes(dateDraft)) {
+                      toast.error("Cette date est déjà sélectionnée");
+                      return;
+                    }
+                    setDates([...dates, dateDraft]);
+                    setDateDraft("");
+                  }}
+                >
+                  <Plus className="mr-1 h-4 w-4" /> Ajouter
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {dates.sort().map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDates(dates.filter((x) => x !== d))}
+                    className="rounded-full border border-brand/50 bg-brand/15 px-3 py-1 text-xs"
+                  >
+                    {d} ✕
+                  </button>
+                ))}
+                {dates.length === 0 && <span className="text-xs text-muted-foreground">Aucune date sélectionnée</span>}
+              </div>
+            </div>
+          )}
+
+          {availType === "Permanent" && (
+            <p className="mt-3 text-xs text-success">Actif tous les jours, sans limite de date.</p>
+          )}
+        </div>
+
         <div className="lg:col-span-3">
           <span className="mb-2 block text-[10px] uppercase tracking-widest text-muted-foreground">
             Affectation restaurants ({targets.length}/{restaurants.length})
