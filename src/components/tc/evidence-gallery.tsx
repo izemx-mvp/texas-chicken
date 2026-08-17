@@ -27,10 +27,25 @@ export function EvidenceThumb({
       style={{ background: evidence.gradient }}
       title={`${evidence.stepName} — ${evidence.time}`}
     >
+      {evidence.imageUrl && (
+        <img
+          src={evidence.imageUrl}
+          alt={`Preuve ${evidence.stepName}`}
+          loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      )}
       <span className="absolute inset-0 bg-[linear-gradient(transparent_45%,oklch(0_0_0/0.55))]" />
       <span className="absolute left-1.5 top-1.5 rounded-full bg-background/75 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider">
         {evidence.kind}
       </span>
+      {evidence.kind === "Vidéo" && (
+        <span className="absolute inset-0 grid place-items-center">
+          <span className="grid h-8 w-8 place-items-center rounded-full bg-background/70">
+            <Play className="h-4 w-4 text-gold" />
+          </span>
+        </span>
+      )}
       {suspicious && (
         <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-danger text-danger-foreground">
           <AlertTriangle className="h-3 w-3" />
@@ -41,6 +56,7 @@ export function EvidenceThumb({
         <span className="tabular">{evidence.time}</span>
       </span>
     </button>
+
   );
 }
 
