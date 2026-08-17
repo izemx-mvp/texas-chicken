@@ -208,15 +208,17 @@ function UsersPage() {
                       <tr key={m} className="border-t border-border/60">
                         <td className="py-2 font-medium">{m}</td>
                         {PERMISSIONS.map((p) => {
-                          const on = role.permissions[m]?.includes(p);
+                          const on = superRole || role.permissions[m]?.includes(p);
                           return (
                             <td key={p} className="py-1.5 text-center">
                               <button
+                                disabled={superRole}
                                 onClick={() => togglePerm(role, m, p)}
                                 aria-label={`${m} ${p}`}
                                 className={cn(
                                   "grid h-6 w-6 place-items-center rounded-md border transition-colors",
                                   on ? "border-success/50 bg-success/20 text-success" : "border-border text-muted-foreground",
+                                  superRole && "opacity-70",
                                 )}
                               >
                                 {on ? <Check className="h-3.5 w-3.5" /> : <X className="h-3 w-3 opacity-40" />}
@@ -230,7 +232,8 @@ function UsersPage() {
                 </table>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
