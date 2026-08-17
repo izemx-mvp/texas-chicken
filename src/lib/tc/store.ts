@@ -252,11 +252,20 @@ export function isProcessAvailableOn(p: Process, date: string) {
 
 /** Tâches planifiées pour une date donnée (dépend de la disponibilité du processus). */
 export function tasksForDate(date: string, s: State = state) {
+  const d = new Date(`${date}T12:00:00`);
+  const weekday = d.getDay(); // 0 = dimanche
+  const dayOfMonth = d.getDate();
   return orderedShiftTasks(s).filter((t) => {
     const p = s.processes.find((x) => x.id === t.processId);
-    return p ? isProcessAvailableOn(p, date) : true;
+    if (p && !isProcessAvailableOn(p, date)) return false;
+    // Chaque date possède réellement son propre jeu de tâches selon la fréquence.
+    if (t.frequency === "Hebdomadaire") return hash(t.processId) % 7 === weekday;
+    if (t.frequency === "Mensuel") return (hash(t.id) % 28) + 1 === dayOfMonth;
+    if (t.frequency === "À la demande") return hash(date + t.id) % 5 === 0;
+    return true;
   });
 }
+
 
 /** Clôture robuste d'une tâche : statut, résultat, horodatage. */
 export function finishTask(id: string, patch: Partial<ShiftTask> = {}) {
