@@ -162,11 +162,10 @@ function ReportRow({ r, open, onToggle }: { r: DayTaskReport; open: boolean; onT
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold">{r.task.name}</span>
           <span className="block truncate text-[11px] text-muted-foreground">
-            {r.task.processName} · {r.task.zone} · {r.stepsDone}/{r.stepsTotal} étapes
+            {r.task.zone} · {r.stepsDone}/{r.stepsTotal} étapes
           </span>
         </span>
         {r.fraud && <ShieldAlert className="h-4 w-4 shrink-0 text-destructive" />}
-        {r.evidenceRequiredIcon}
         {r.task.evidenceRequired && <Camera className="h-4 w-4 shrink-0 text-gold" />}
         <StatusPill status={r.status} />
       </button>
