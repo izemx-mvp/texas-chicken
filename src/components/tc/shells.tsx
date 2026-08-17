@@ -280,7 +280,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 border-b border-border bg-background/75 backdrop-blur-xl">
         <div className="mx-auto flex h-20 w-full max-w-[1600px] items-center gap-4 px-4 lg:px-6">
           <Link to="/admin" className="shrink-0" aria-label="Texas Chicken">
-            <TCLogo className="h-14 w-auto" />
+            <TCLogo className="[&_img]:h-14" />
           </Link>
 
           <nav className="hidden items-center gap-1 lg:flex">
@@ -382,7 +382,7 @@ export function ManagerShell({ children }: { children: ReactNode }) {
       <AnimatedBackground intensity="soft" />
       <header className="sticky top-0 z-30 border-b border-border bg-background/75 backdrop-blur-xl">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
-          <TCMark className="h-8 w-8" />
+          <TCMark className="h-10 w-10" />
           <div className="min-w-0 flex-1 leading-tight">
             <div className="truncate font-display text-sm font-bold uppercase tracking-wide">
               {restaurant?.name ?? "Restaurant Operations"}
