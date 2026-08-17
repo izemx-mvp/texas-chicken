@@ -7,7 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { EmptyState, StatusPill } from "@/components/tc/bits";
 import { EvidenceCapture } from "@/components/tc/evidence-capture";
-import { currentUser, finishTask, pushAlert, updateTask, useStore } from "@/lib/tc/store";
+import { currentUser, executionDetail, finishTask, pushAlert, updateTask, useStore } from "@/lib/tc/store";
+import { TaskDetailFilled } from "@/components/tc/task-detail-filled";
+import { TODAY } from "@/lib/tc/data";
 
 export const Route = createFileRoute("/app/task/$id")({
   head: () => ({
