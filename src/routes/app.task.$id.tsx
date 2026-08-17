@@ -7,7 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { EmptyState, StatusPill } from "@/components/tc/bits";
 import { EvidenceCapture } from "@/components/tc/evidence-capture";
-import { currentUser, finishTask, pushAlert, updateTask, useStore } from "@/lib/tc/store";
+import { currentUser, executionDetail, finishTask, pushAlert, updateTask, useStore } from "@/lib/tc/store";
+import { TaskDetailFilled } from "@/components/tc/task-detail-filled";
+import { TODAY } from "@/lib/tc/data";
 
 export const Route = createFileRoute("/app/task/$id")({
   head: () => ({
@@ -27,6 +29,11 @@ function TaskExecution() {
   const task = useStore((s) => s.shiftTasks.find((t) => t.id === id));
   const user = useStore(() => currentUser());
   const evidence = useStore((s) => s.evidence.find((e) => e.id === task?.evidenceId));
+  const exec = useStore((s) =>
+    task && task.status === "Terminé"
+      ? executionDetail(task.date ?? TODAY, task.id, currentUser()?.restaurantId ?? undefined, s)
+      : null,
+  );
 
   const [started, setStarted] = useState(false);
   const [running, setRunning] = useState(false);
@@ -98,6 +105,20 @@ function TaskExecution() {
     setTimeout(() => navigate({ to: "/app/process/$id", params: { id: task.processId } }), 700);
   };
 
+  if (exec)
+    return (
+      <div className="space-y-4">
+        <Link
+          to="/app/process/$id"
+          params={{ id: task.processId }}
+          className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground hover:text-gold"
+        >
+          <ArrowLeft className="h-4 w-4" /> Retour au processus
+        </Link>
+        <TaskDetailFilled exec={exec} />
+      </div>
+    );
+
   return (
     <div className="space-y-4">
       <Link
@@ -107,6 +128,7 @@ function TaskExecution() {
       >
         <ArrowLeft className="h-4 w-4" /> Retour au processus
       </Link>
+
 
       <div className="glass rounded-2xl p-5">
         <div className="flex flex-wrap items-center gap-2">
