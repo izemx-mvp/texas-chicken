@@ -9,6 +9,7 @@ import {
   shiftTasks as seedShiftTasks,
   standards as seedStandards,
   users as seedUsers,
+  TODAY as SEED_TODAY,
 } from "./data";
 import type {
   Alert,
