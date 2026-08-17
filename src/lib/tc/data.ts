@@ -477,20 +477,48 @@ export const standards: Standard[] = processes.flatMap((p, pi) =>
 );
 
 /* ---------------- evidence ---------------- */
-const GRADS = [
-  "from-amber-500/70 to-red-700/70",
-  "from-orange-400/70 to-rose-800/70",
-  "from-yellow-400/60 to-amber-700/70",
-  "from-red-500/70 to-neutral-900/80",
-  "from-lime-500/50 to-emerald-900/70",
-  "from-sky-500/50 to-indigo-900/70",
-];
+/**
+ * Rendu visuel contextuel d'une preuve : chaque zone a sa propre ambiance
+ * (inox froid de la chambre froide, chaleur de la cuisine, carrelage clair des
+ * sanitaires…) afin de ne jamais réutiliser une image générique.
+ */
+export const ZONE_GRADIENT: Record<Zone, string> = {
+  Cuisine:
+    "linear-gradient(150deg, oklch(0.78 0.15 68) 0%, oklch(0.42 0.14 38) 55%, oklch(0.22 0.05 40) 100%)",
+  Stockage:
+    "linear-gradient(150deg, oklch(0.70 0.07 92) 0%, oklch(0.42 0.06 80) 55%, oklch(0.20 0.03 70) 100%)",
+  "Chambre froide":
+    "linear-gradient(150deg, oklch(0.86 0.06 225) 0%, oklch(0.55 0.09 235) 55%, oklch(0.24 0.05 240) 100%)",
+  Salle:
+    "linear-gradient(150deg, oklch(0.82 0.09 60) 0%, oklch(0.52 0.13 30) 55%, oklch(0.24 0.06 32) 100%)",
+  Toilettes:
+    "linear-gradient(150deg, oklch(0.90 0.03 200) 0%, oklch(0.65 0.05 210) 55%, oklch(0.30 0.03 215) 100%)",
+  Terrasse:
+    "linear-gradient(150deg, oklch(0.88 0.11 85) 0%, oklch(0.62 0.12 60) 55%, oklch(0.30 0.06 50) 100%)",
+  Entrée:
+    "linear-gradient(150deg, oklch(0.80 0.14 45) 0%, oklch(0.48 0.18 28) 55%, oklch(0.22 0.07 30) 100%)",
+  Extérieur:
+    "linear-gradient(150deg, oklch(0.82 0.07 240) 0%, oklch(0.50 0.08 250) 55%, oklch(0.24 0.04 250) 100%)",
+  Équipements:
+    "linear-gradient(150deg, oklch(0.76 0.04 250) 0%, oklch(0.45 0.04 255) 55%, oklch(0.22 0.02 255) 100%)",
+};
+
 export const evidence: Evidence[] = [];
 for (let i = 1; i <= 220; i++) {
   const r = restaurants[i % restaurants.length];
   const p = processes[i % processes.length];
   const s = p.steps[i % p.steps.length];
   const statusRoll = rnd();
+  const status: Evidence["status"] =
+    statusRoll > 0.9
+      ? "Dupliquée"
+      : statusRoll > 0.83
+        ? "Rejetée"
+        : statusRoll > 0.78
+          ? "Suspecte"
+          : statusRoll > 0.75
+            ? "En analyse"
+            : "Valide";
   evidence.push({
     id: `e${i}`,
     ref: `EVD-${1000 + i}`,
@@ -499,23 +527,27 @@ for (let i = 1; i <= 220; i++) {
     userId: users[(i % 28) + 1]?.id ?? "u1",
     processId: p.id,
     stepName: s.name,
+    taskName: s.name,
+    zone: s.zone,
     date: dateMinus(int(0, 88)),
     time: `${pad(int(6, 23))}:${pad(int(0, 59))}`,
     aiScore: Math.round((0.55 + rnd() * 0.44) * 100),
     hash: `sha1:${Math.floor(rnd() * 1e16).toString(16)}`,
-    status:
-      statusRoll > 0.9
-        ? "Dupliquée"
-        : statusRoll > 0.83
-          ? "Rejetée"
-          : statusRoll > 0.78
-            ? "Suspecte"
-            : statusRoll > 0.75
-              ? "En analyse"
-              : "Valide",
-    gradient: GRADS[i % GRADS.length],
+    status,
+    gradient: ZONE_GRADIENT[s.zone],
+    ...(status === "Dupliquée" || status === "Suspecte"
+      ? {
+          similarity: status === "Dupliquée" ? 92 + int(0, 8) : 74 + int(0, 12),
+          previousEvidenceId: `e${Math.max(1, i - 7)}`,
+          note:
+            status === "Dupliquée"
+              ? "Empreinte identique à une preuve déjà utilisée."
+              : "Cadrage et luminosité très proches d'une preuve antérieure.",
+        }
+      : {}),
   });
 }
+
 
 /* ---------------- controls ---------------- */
 export const controls: Control[] = [];
