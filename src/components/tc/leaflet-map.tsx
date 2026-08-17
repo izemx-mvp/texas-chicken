@@ -83,13 +83,19 @@ export default function LeafletMap({ restaurants, stats, onSelect }: LeafletMapP
         animateAddingMarkers: false,
         iconCreateFunction: (c) => {
           const n = c.getChildCount();
-          const size = n < 5 ? 44 : n < 10 ? 52 : 60;
+          const size = n < 5 ? 52 : n < 10 ? 58 : 64;
+          // Le logo Texas Chicken reste l'élément visuel principal : le nombre
+          // n'est qu'un badge discret indiquant la présence de plusieurs restaurants.
           return leaflet.divIcon({
             className: "tc-cluster-wrap",
-            html: `<div class="tc-cluster" style="width:${size}px;height:${size}px"><span>${n}</span></div>`,
+            html: `<div class="tc-cluster" style="width:${size}px;height:${size}px">
+                     <img src="${texasLogo}" alt="Texas Chicken" />
+                     <span class="tc-cluster-badge">+${n}</span>
+                   </div>`,
             iconSize: [size, size],
           });
         },
+
       });
       clusterRef.current = cluster;
       map.addLayer(cluster);
