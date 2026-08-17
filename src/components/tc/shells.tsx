@@ -15,6 +15,8 @@ import {
   ListChecks,
   LogOut,
   Menu,
+  Users as UsersIcon,
+
   Search,
   ShieldCheck,
   Workflow,
