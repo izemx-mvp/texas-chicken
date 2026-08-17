@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Copy, Pencil, Plus, Power, Trash2, Workflow } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { DateFilter } from "@/components/tc/date-filter";
 import { SectionTitle, StatusPill } from "@/components/tc/bits";
 import { DataTable, type Column } from "@/components/tc/data-table";
 import { can, currentUser, remove, uid, upsert, useStore } from "@/lib/tc/store";
@@ -119,6 +120,39 @@ function AdminProcesses() {
           </Button>
         }
       />
+
+      <div className="glass space-y-3 rounded-2xl p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="font-display text-sm font-bold uppercase tracking-wide">Progression du jour</h3>
+            <p className="text-[11px] text-muted-foreground">
+              Processus disponibles et avancement réseau à la date active
+            </p>
+          </div>
+          <DateFilter />
+        </div>
+        {dayProcesses.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucun processus disponible à cette date.</p>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {dayProcesses.map((r) => {
+              const progress = futureDay ? 0 : r.progress;
+              return (
+                <div key={r.process.id} className="rounded-xl border border-border bg-secondary/25 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate text-xs font-semibold uppercase">{r.process.name}</span>
+                    <span className="tabular text-sm font-bold text-gold">{progress}%</span>
+                  </div>
+                  <ProgressBar value={progress} className="mt-2" />
+                  <p className="mt-1 text-[10px] text-muted-foreground">
+                    {futureDay ? `${r.tasks} tâches planifiées` : `${r.done}/${r.tasks} tâches · ${r.fraud} fraude(s)`}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       <DataTable
         rows={rows}
