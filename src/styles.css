@@ -401,6 +401,82 @@
   animation: tc-logo-march 46s linear infinite;
 }
 
+/* ---------------- Digital Territory ---------------- */
+@keyframes tc-territory {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-1.2%, 1.4%, 0) scale(1.035);
+  }
+}
+@utility animate-territory {
+  animation: tc-territory 46s ease-in-out infinite;
+}
+
+@keyframes tc-territory-trace {
+  0% {
+    stroke-dashoffset: 4200;
+    opacity: 0.35;
+  }
+  55% {
+    opacity: 0.9;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0.55;
+  }
+}
+@utility animate-territory-trace {
+  stroke-dasharray: 4200;
+  animation: tc-territory-trace 18s ease-in-out infinite alternate;
+}
+
+@keyframes tc-data-flow {
+  from {
+    stroke-dashoffset: 280;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@utility animate-data-flow {
+  animation: tc-data-flow 6s linear infinite;
+}
+
+@keyframes tc-node-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.92);
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+}
+@utility animate-node-pulse {
+  animation: tc-node-pulse 5.5s ease-in-out infinite;
+}
+
+@keyframes tc-sweep {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(400%);
+  }
+}
+@utility animate-sweep {
+  animation: tc-sweep 22s linear infinite;
+}
+
+
 /* ---------------- Carte satellite Leaflet ---------------- */
 .tc-map-shell .leaflet-container {
   background: oklch(0.18 0.02 260);
