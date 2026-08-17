@@ -27,6 +27,11 @@ function TaskExecution() {
   const task = useStore((s) => s.shiftTasks.find((t) => t.id === id));
   const user = useStore(() => currentUser());
   const evidence = useStore((s) => s.evidence.find((e) => e.id === task?.evidenceId));
+  const exec = useStore((s) =>
+    task && task.status === "Terminé"
+      ? executionDetail(task.date ?? TODAY, task.id, currentUser()?.restaurantId ?? undefined, s)
+      : null,
+  );
 
   const [started, setStarted] = useState(false);
   const [running, setRunning] = useState(false);
