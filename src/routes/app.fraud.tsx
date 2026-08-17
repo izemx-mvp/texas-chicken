@@ -60,6 +60,7 @@ function ManagerFraud() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [gallery, setGallery] = useState<Evidence[] | null>(null);
+  const [galleryIdx, setGalleryIdx] = useState(0);
 
   const stats = useMemo(() => fraudStats(list, TODAY), [list]);
   const filtered = filter === "Toutes" ? list : list.filter((f) => f.status === filter);
@@ -68,7 +69,10 @@ function ManagerFraud() {
     const items = [f.evidenceId, f.previousEvidenceId]
       .map((id) => evidences.find((e) => e.id === id))
       .filter(Boolean) as Evidence[];
-    if (items.length) setGallery(items);
+    if (items.length) {
+      setGalleryIdx(0);
+      setGallery(items);
+    }
   };
 
   return (
@@ -233,8 +237,8 @@ function ManagerFraud() {
       {gallery && (
         <EvidenceGallery
           items={gallery}
-          index={0}
-          onIndexChange={() => {}}
+          index={galleryIdx}
+          onIndexChange={setGalleryIdx}
           onClose={() => setGallery(null)}
           title="Comparaison anti-fraude"
         />

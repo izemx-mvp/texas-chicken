@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
+  ShieldAlert,
   Activity,
   BarChart3,
   Bell,
@@ -366,6 +367,7 @@ const MANAGER_NAV: { to: string; label: string; icon: typeof Home; exact?: boole
   { to: "/app", label: "Shift", icon: Home, exact: true },
   { to: "/app/processes", label: "Processus", icon: Workflow },
   { to: "/app/tasks", label: "Tâches", icon: ListChecks },
+  { to: "/app/fraud", label: "Fraude", icon: ShieldAlert },
   { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
 ];
 
