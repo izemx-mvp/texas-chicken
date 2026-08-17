@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Clock, Flame, ListChecks, Timer } from "lucide-react";
 import { ComplianceRing, KpiCard, ProgressBar, SectionTitle, StatusPill, SkeletonRows, useFakeLoading } from "@/components/tc/bits";
-import { currentUser, useStore } from "@/lib/tc/store";
+import { currentUser, nextShiftTask, useStore } from "@/lib/tc/store";
 
 export const Route = createFileRoute("/app/")({
   head: () => ({
@@ -31,6 +31,7 @@ function ShiftCommandCenter() {
   const user = useStore(() => currentUser());
   const restaurant = useStore((s) => s.restaurants.find((r) => r.id === user?.restaurantId));
   const tasks = useStore((s) => s.shiftTasks);
+  const next = useStore((s) => nextShiftTask(s));
   const processes = useStore((s) => s.processes);
   const alerts = useStore((s) => s.alerts.filter((a) => a.restaurantId === user?.restaurantId && !a.resolved));
   const evidence = useStore((s) => s.evidence.filter((e) => e.restaurantId === user?.restaurantId));
@@ -90,6 +91,36 @@ function ShiftCommandCenter() {
           </div>
         </div>
       </div>
+
+      {next && (
+        <Link
+          to="/app/task/$id"
+          params={{ id: next.id }}
+          className="glass panel-glow hover-lift block rounded-3xl border border-gold/45 p-5"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-gold">
+              Prochaine étape à effectuer
+            </span>
+            <StatusPill status={next.status} />
+          </div>
+          <div className="mt-2 flex items-center gap-3">
+            <span className="tabular grid h-14 w-20 place-items-center rounded-2xl bg-brand-gradient font-display text-lg font-bold text-brand-foreground">
+              {next.time}
+            </span>
+            <div className="min-w-0">
+              <h2 className="truncate font-display text-xl font-bold uppercase">{next.name}</h2>
+              <p className="truncate text-xs text-muted-foreground">
+                {processes.find((p) => p.id === next.processId)?.name} · {next.zone} · {next.role} · priorité{" "}
+                {next.priority}
+              </p>
+            </div>
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Sélectionnée sur l'ensemble du shift (retards et criticité prioritaires), tous processus confondus.
+          </p>
+        </Link>
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <KpiCard label="Terminées" value={done} tone="success" icon={<CheckCircle2 className="h-4 w-4" />} />

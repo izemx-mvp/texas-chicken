@@ -1,13 +1,13 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Camera, CheckCircle2, Pause, Play, ShieldCheck, Timer } from "lucide-react";
+import { ArrowLeft, Camera, CheckCircle2, ListOrdered, Pause, Play, PlayCircle, ShieldCheck, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { EmptyState, StatusPill } from "@/components/tc/bits";
 import { EvidenceCapture } from "@/components/tc/evidence-capture";
-import { currentUser, pushAlert, updateTask, useStore } from "@/lib/tc/store";
+import { currentUser, finishTask, pushAlert, updateTask, useStore } from "@/lib/tc/store";
 
 export const Route = createFileRoute("/app/task/$id")({
   head: () => ({
@@ -68,10 +68,17 @@ function TaskExecution() {
     if (task.type === "Valeur numérique" && !Number.isNaN(numeric) && numeric > 5) nonCompliant = true;
     if (task.type === "Score" && !Number.isNaN(numeric) && numeric < 70) nonCompliant = true;
 
-    updateTask(task.id, {
-      status: nonCompliant ? "Non conforme" : "Terminé",
-      result: answer || note || "Conforme",
-    });
+    const result = answer || note || (task.type === "Checklist" ? "Checklist complétée" : "Conforme");
+    if (nonCompliant) {
+      updateTask(task.id, {
+        status: "Non conforme",
+        result,
+        completedAt: new Date().toISOString().slice(0, 16).replace("T", " "),
+      });
+    } else {
+      finishTask(task.id, { result });
+    }
+    setRunning(false);
 
     if (nonCompliant) {
       pushAlert({
@@ -130,10 +137,42 @@ function TaskExecution() {
           <span className="mb-1 block text-[10px] uppercase tracking-widest text-gold">Instructions</span>
           {task.instructions}
         </div>
+
+        {task.guide && task.guide.length > 0 && (
+          <div className="mt-3 rounded-xl border border-border bg-secondary/20 p-3">
+            <div className="mb-2 flex items-center gap-2 text-[10px] uppercase tracking-widest text-gold">
+              <ListOrdered className="h-3.5 w-3.5" /> Étapes détaillées de la tâche
+            </div>
+            <ol className="space-y-1.5">
+              {task.guide.map((g, i) => (
+                <li key={i} className="flex gap-2 text-sm text-foreground/85">
+                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand/20 text-[10px] font-bold text-brand">
+                    {i + 1}
+                  </span>
+                  {g}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
+        {task.videoUrl && (
+          <div className="mt-3 overflow-hidden rounded-xl border border-border bg-secondary/20">
+            <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-[10px] uppercase tracking-widest text-gold">
+              <PlayCircle className="h-3.5 w-3.5" /> Vidéo tutorielle — comment exécuter cette tâche
+            </div>
+            <video src={task.videoUrl} controls preload="metadata" className="aspect-video w-full bg-black" />
+          </div>
+        )}
       </div>
 
       {!started ? (
-        <Button className="h-14 w-full text-base font-bold uppercase tracking-widest" onClick={() => { setStarted(true); setRunning(true); }}>
+        <Button className="h-14 w-full text-base font-bold uppercase tracking-widest" onClick={() => {
+            setStarted(true);
+            setRunning(true);
+            if (task.status !== "Terminé")
+              updateTask(task.id, { status: "En cours", startedAt: new Date().toISOString().slice(0, 16).replace("T", " ") });
+          }}>
           <Play className="mr-2 h-5 w-5" /> Commencer la tâche
         </Button>
       ) : (
