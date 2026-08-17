@@ -852,7 +852,7 @@ export function executionDetail(
     undefined;
   const managerName = manager ? `${manager.firstName} ${manager.lastName}` : "Manager restaurant";
 
-  const template = CHECKLIST[task.zone] ?? CHECKLIST.Cuisine ?? [];
+  const template = CHECKLIST[task.zone] ?? CHECKLIST['Cuisine'] ?? [];
   const base = hash(`${date}|${task.id}|exec`);
   const started = report.startedAt ?? task.time;
   const finished = report.completedAt;
