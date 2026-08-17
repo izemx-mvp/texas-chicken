@@ -391,10 +391,11 @@ function synthEvidence(
     roll < 74 ? "Valide" : roll < 84 ? "Suspecte" : roll < 92 ? "Dupliquée" : roll < 97 ? "Rejetée" : "En analyse";
   const labels = EV_STEP_LABEL[task.zone] ?? ["Preuve terrain"];
   const suspicious = status === "Dupliquée" || status === "Suspecte";
+  const kind: Evidence["kind"] = task.type === "Vidéo" ? "Vidéo" : idx === 2 && h % 5 === 0 ? "Vidéo" : "Photo";
   return {
     id: `ev-${date}-${task.id}-${idx}`,
     ref: `EVD-${date.replaceAll("-", "").slice(4)}-${(h % 900) + 100}`,
-    kind: task.type === "Vidéo" ? "Vidéo" : idx === 2 && h % 5 === 0 ? "Vidéo" : "Photo",
+    kind,
     restaurantId,
     userId,
     processId: task.processId,
@@ -408,6 +409,8 @@ function synthEvidence(
     hash: `sha1:${(h * (idx + 7)).toString(16)}`,
     status,
     gradient: ZONE_GRADIENT[task.zone],
+    imageUrl: status === "Rejetée" ? REJECTED_PHOTO : zonePhoto(task.zone, idx + (h % 3)),
+    ...(kind === "Vidéo" ? { videoUrl: evidenceVideo(h) } : {}),
     ...(suspicious
       ? {
           similarity: status === "Dupliquée" ? 93 + (h % 7) : 70 + (h % 18),
@@ -422,6 +425,7 @@ function synthEvidence(
         : {}),
   };
 }
+
 
 /** Preuves soumises pour une tâche à une date donnée (1 à 3 selon l'étape). */
 export function taskEvidence(date: string, task: ShiftTask, restaurantId: string, userId: string): Evidence[] {
