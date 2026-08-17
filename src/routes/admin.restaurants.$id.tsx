@@ -55,7 +55,7 @@ function RestaurantPage() {
   }));
   const zones = ["Cuisine", "Salle", "Stock", "Hygiène"].map((z, i) => ({
     zone: z,
-    controles: controls.filter((c) => c.zone === z).length || (i + 2) * 3,
+    controles: controls.filter((_, ci) => ci % 4 === i).length || (i + 2) * 3,
   }));
 
   return (
@@ -78,7 +78,7 @@ function RestaurantPage() {
           <ComplianceRing value={restaurant.compliance} />
         </div>
         <div className="relative mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiCard label="Tâches du jour" value={`${stats.done}/${stats.total}`} />
+          <KpiCard label="Tâches terminées" value={stats.done} suffix={`/${stats.total}`} />
           <KpiCard label="Preuves IA" value={evidence.length} icon={<Camera className="h-4 w-4" />} />
           <KpiCard label="Alertes ouvertes" value={alerts.filter((a) => !a.resolved).length} tone="warning" />
           <KpiCard label="Effectif" value={restaurant.staff} icon={<Users className="h-4 w-4" />} />
