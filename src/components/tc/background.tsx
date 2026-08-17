@@ -141,22 +141,22 @@ export function AnimatedBackground({
       <div
         className={cn(
           "animate-territory absolute inset-0 grid place-items-center [mask-image:radial-gradient(95%_85%_at_50%_45%,black,transparent)]",
-          soft ? "opacity-[0.5]" : "opacity-[0.85]",
+          soft ? "opacity-[0.55]" : "opacity-90",
         )}
       >
         <svg
           viewBox={`0 0 ${VB_W} ${VB_H}`}
           preserveAspectRatio="xMidYMid meet"
-          className="h-[125%] w-[125%] max-w-none"
+          className="h-[125%] w-[125%] max-w-none text-[oklch(0.52_0.2_30)] dark:text-[oklch(0.88_0.17_82)]"
         >
           <defs>
             <linearGradient id="tc-territory-fill" x1="0" y1="0" x2="0.4" y2="1">
-              <stop offset="0%" stopColor="oklch(0.86 0.17 82)" stopOpacity="0.10" />
-              <stop offset="100%" stopColor="oklch(0.62 0.23 28)" stopOpacity="0.14" />
+              <stop offset="0%" stopColor="currentColor" stopOpacity="0.07" />
+              <stop offset="100%" stopColor="currentColor" stopOpacity="0.13" />
             </linearGradient>
             <linearGradient id="tc-territory-stroke" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="oklch(0.86 0.17 82)" stopOpacity="0.75" />
-              <stop offset="100%" stopColor="oklch(0.62 0.23 28)" stopOpacity="0.7" />
+              <stop offset="0%" stopColor="currentColor" stopOpacity="0.55" />
+              <stop offset="100%" stopColor="currentColor" stopOpacity="0.85" />
             </linearGradient>
           </defs>
 
@@ -176,8 +176,8 @@ export function AnimatedBackground({
               key={i}
               d={l.d}
               fill="none"
-              stroke="oklch(0.86 0.17 82)"
-              strokeOpacity={soft ? 0.16 : 0.26}
+              stroke="currentColor"
+              strokeOpacity={soft ? 0.22 : 0.34}
               strokeWidth={1.2}
               strokeDasharray="6 22"
               className="animate-data-flow"
@@ -188,8 +188,9 @@ export function AnimatedBackground({
           {/* nœuds = villes du réseau */}
           {nodes.map((n) => (
             <g key={n.city} style={{ animationDelay: `${n.delay}s` }} className="animate-node-pulse">
-              <circle cx={n.x} cy={n.y} r={6 + n.count * 2.2} fill="oklch(0.62 0.23 28 / 16%)" />
-              <circle cx={n.x} cy={n.y} r={3 + n.count * 0.6} fill="oklch(0.88 0.17 82)" fillOpacity={0.85} />
+              <circle cx={n.x} cy={n.y} r={6 + n.count * 2.2} fill="currentColor"
+                fillOpacity={0.12} />
+              <circle cx={n.x} cy={n.y} r={3 + n.count * 0.6} fill="currentColor" fillOpacity={0.8} />
             </g>
           ))}
         </svg>
@@ -230,7 +231,7 @@ export function AnimatedBackground({
       <div className="animate-sweep absolute inset-y-0 -left-1/3 w-1/3 bg-[linear-gradient(90deg,transparent,oklch(0.86_0.17_82_/_7%),transparent)]" />
 
       {/* vignette */}
-      <div className="absolute inset-0 bg-[radial-gradient(100%_100%_at_50%_50%,transparent_38%,oklch(0.1_0.01_40_/_60%)_100%)] dark:bg-[radial-gradient(100%_100%_at_50%_50%,transparent_35%,oklch(0.1_0.01_40_/_78%)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(100%_100%_at_50%_50%,transparent_55%,oklch(0.1_0.01_40_/_16%)_100%)] dark:bg-[radial-gradient(100%_100%_at_50%_50%,transparent_35%,oklch(0.1_0.01_40_/_78%)_100%)]" />
     </div>
   );
 }
