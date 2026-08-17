@@ -94,10 +94,16 @@ export function AnimatedBackground({
     if (!ctx) return;
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let dark = document.documentElement.classList.contains("dark");
+    const themeObs = new MutationObserver(() => {
+      dark = document.documentElement.classList.contains("dark");
+    });
+    themeObs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     const lowPower = window.innerWidth < 640 || (navigator.hardwareConcurrency ?? 8) <= 4;
 
     /* ---------- données statiques ---------- */
     const stride = lowPower ? 2 : 1;
+    const dotScale = lowPower ? 1 : 1.25;
     const land: Vec3[] = [];
     for (let i = 0; i < LAND.length; i += 2 * stride) {
       land.push(toVec((LAND[i + 1] as number) / 10, (LAND[i] as number) / 10));
@@ -210,6 +216,7 @@ export function AnimatedBackground({
 
       /* étoiles */
       for (const s of stars) {
+        if (!dark) break;
         const tw = 0.35 + 0.35 * Math.sin(t * 0.8 + s.p * 9);
         ctx.globalAlpha = tw * 0.7;
         ctx.fillStyle = "#e9e2d6";
@@ -239,22 +246,83 @@ export function AnimatedBackground({
 
       if (globeA > 0.02) {
         /* atmosphère + océan */
-        const ocean = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.35, R * 0.1, cx, cy, R);
-        ocean.addColorStop(0, `rgba(18,38,58,${0.85 * globeA})`);
-        ocean.addColorStop(0.75, `rgba(8,16,28,${0.92 * globeA})`);
-        ocean.addColorStop(1, `rgba(4,8,14,${0.96 * globeA})`);
+        const ocean = ctx.createRadialGradient(cx - R * 0.32, cy - R * 0.38, R * 0.08, cx, cy, R);
+        if (dark) {
+          ocean.addColorStop(0, `rgba(26,58,86,${0.92 * globeA})`);
+          ocean.addColorStop(0.55, `rgba(12,30,50,${0.94 * globeA})`);
+          ocean.addColorStop(0.85, `rgba(6,14,26,${0.96 * globeA})`);
+          ocean.addColorStop(1, `rgba(3,7,13,${0.98 * globeA})`);
+        } else {
+          ocean.addColorStop(0, `rgba(96,164,214,${0.95 * globeA})`);
+          ocean.addColorStop(0.55, `rgba(42,106,160,${0.95 * globeA})`);
+          ocean.addColorStop(0.86, `rgba(20,62,102,${0.96 * globeA})`);
+          ocean.addColorStop(1, `rgba(10,34,60,${0.98 * globeA})`);
+        }
         ctx.fillStyle = ocean;
         ctx.beginPath();
         ctx.arc(cx, cy, R, 0, Math.PI * 2);
         ctx.fill();
 
-        const halo = ctx.createRadialGradient(cx, cy, R * 0.94, cx, cy, R * 1.22);
-        halo.addColorStop(0, `rgba(120,180,235,${0.22 * globeA})`);
-        halo.addColorStop(0.45, `rgba(90,140,210,${0.09 * globeA})`);
+        /* graticule : méridiens & parallèles */
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, R, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.lineWidth = 0.6;
+        ctx.strokeStyle = dark
+          ? `rgba(150,200,235,${0.1 * globeA})`
+          : `rgba(240,250,255,${0.18 * globeA})`;
+        for (let lat = -60; lat <= 60; lat += 30) {
+          ctx.beginPath();
+          let st = false;
+          for (let lng = -180; lng <= 180; lng += 6) {
+            const p = project(toVec(lat, lng));
+            if (p.z < 0) { st = false; continue; }
+            if (!st) { ctx.moveTo(p.sx, p.sy); st = true; } else ctx.lineTo(p.sx, p.sy);
+          }
+          ctx.stroke();
+        }
+        for (let lng = -180; lng < 180; lng += 30) {
+          ctx.beginPath();
+          let st = false;
+          for (let lat = -90; lat <= 90; lat += 4) {
+            const p = project(toVec(lat, lng));
+            if (p.z < 0) { st = false; continue; }
+            if (!st) { ctx.moveTo(p.sx, p.sy); st = true; } else ctx.lineTo(p.sx, p.sy);
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        /* terminateur jour/nuit + reflet spéculaire */
+        const sp = project({ x: sun.x, y: sun.y, z: sun.z });
+        if (sp.z > -0.2) {
+          const g = ctx.createRadialGradient(sp.sx, sp.sy, 0, sp.sx, sp.sy, R * 0.85);
+          g.addColorStop(0, `rgba(255,246,225,${(dark ? 0.18 : 0.3) * globeA})`);
+          g.addColorStop(1, "rgba(255,246,225,0)");
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(cx, cy, R, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.fillStyle = g;
+          ctx.fillRect(cx - R, cy - R, R * 2, R * 2);
+          ctx.restore();
+        }
+        const shade = ctx.createRadialGradient(cx + R * 0.35, cy + R * 0.4, R * 0.2, cx, cy, R);
+        shade.addColorStop(0, "rgba(0,0,0,0)");
+        shade.addColorStop(1, `rgba(0,0,0,${(dark ? 0.55 : 0.4) * globeA})`);
+        ctx.fillStyle = shade;
+        ctx.beginPath();
+        ctx.arc(cx, cy, R, 0, Math.PI * 2);
+        ctx.fill();
+
+        const halo = ctx.createRadialGradient(cx, cy, R * 0.93, cx, cy, R * 1.26);
+        halo.addColorStop(0, dark ? `rgba(120,180,235,${0.26 * globeA})` : `rgba(150,205,245,${0.42 * globeA})`);
+        halo.addColorStop(0.45, dark ? `rgba(90,140,210,${0.1 * globeA})` : `rgba(120,180,225,${0.16 * globeA})`);
         halo.addColorStop(1, "rgba(0,0,0,0)");
         ctx.fillStyle = halo;
         ctx.beginPath();
-        ctx.arc(cx, cy, R * 1.22, 0, Math.PI * 2);
+        ctx.arc(cx, cy, R * 1.26, 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -288,11 +356,13 @@ export function AnimatedBackground({
         if (morphT > 0.15) {
           ctx.fillStyle = i % 4 === 0 ? "#e8b23a" : "#d8452f";
         } else if (cityLight[i] && lit < 0.15) {
-          ctx.fillStyle = "#ffc978";
+          ctx.fillStyle = dark ? "#ffc978" : "#ffb347";
+        } else if (dark) {
+          ctx.fillStyle = lit > 0.35 ? "#b9cbb2" : lit > 0.12 ? "#7e9a86" : "#33505c";
         } else {
-          ctx.fillStyle = lit > 0.15 ? "#9fb4bf" : "#3f5a6b";
+          ctx.fillStyle = lit > 0.35 ? "#e7dcc0" : lit > 0.12 ? "#bfc79b" : "#5d7a72";
         }
-        const size = cityLight[i] && lit < 0.15 ? 1.5 : 1.2;
+        const size = (cityLight[i] && lit < 0.15 ? 1.6 : 1.35) * dotScale;
         ctx.fillRect(x, y, size, size);
       }
       ctx.globalAlpha = 1;
@@ -399,6 +469,7 @@ export function AnimatedBackground({
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
+      themeObs.disconnect();
     };
   }, [moroccoSites]);
 
@@ -409,7 +480,7 @@ export function AnimatedBackground({
     >
       {/* intensité : plus discret en light mode pour préserver la lisibilité */}
       <div
-        className="absolute inset-0 opacity-[calc(var(--tc-bg-i)*0.4)] dark:opacity-[var(--tc-bg-i)]"
+        className="absolute inset-0 opacity-[calc(var(--tc-bg-i)*0.8)] dark:opacity-[var(--tc-bg-i)]"
         style={{ "--tc-bg-i": opacity } as React.CSSProperties}
       >
         {/* espace profond */}
