@@ -310,7 +310,7 @@ export function AnimatedBackground({
         }
         const shade = ctx.createRadialGradient(cx + R * 0.35, cy + R * 0.4, R * 0.2, cx, cy, R);
         shade.addColorStop(0, "rgba(0,0,0,0)");
-        shade.addColorStop(1, `rgba(0,0,0,${(dark ? 0.55 : 0.4) * globeA})`);
+        shade.addColorStop(1, `rgba(0,0,0,${(dark ? 0.55 : 0.26) * globeA})`);
         ctx.fillStyle = shade;
         ctx.beginPath();
         ctx.arc(cx, cy, R, 0, Math.PI * 2);
