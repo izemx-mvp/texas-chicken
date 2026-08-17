@@ -401,7 +401,13 @@ function ReportRow({
   onToggle: () => void;
 }) {
   const [gallery, setGallery] = useState<number | null>(null);
+  const state = useStore((s) => s);
+  const detail = useMemo(
+    () => (open ? executionDetail(date, r.task.id, restaurantId, state) : null),
+    [open, date, r.task.id, restaurantId, state],
+  );
   const late = r.startedAt && r.startedAt > r.planned;
+
   return (
     <div className="rounded-2xl border border-border bg-secondary/25">
       <button className="flex w-full items-center gap-3 p-3 text-left" onClick={onToggle}>
