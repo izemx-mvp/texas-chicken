@@ -42,11 +42,21 @@ export function TaskDetailFilled({ exec, className }: { exec: ExecutionDetail; c
     <div className={cn("space-y-3", className)}>
       {/* identité de la tâche */}
       <div className="rounded-2xl border border-border bg-secondary/25 p-4">
+        {exec.process && (
+          <div className="mb-1.5 text-[10px] uppercase tracking-widest text-gold">
+            Processus {exec.process.name}
+            {(() => {
+              const i = exec.process!.steps.findIndex((s) => s.id === task.stepId);
+              return i >= 0 ? ` — étape ${i + 1}/${exec.process!.steps.length}` : "";
+            })()}
+          </div>
+        )}
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="font-display text-lg font-bold uppercase">{task.name}</h3>
           <StatusPill status={exec.status} />
         </div>
         <p className="mt-1 text-sm text-muted-foreground">{task.description}</p>
+
 
         <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
           {meta.map(([l, v]) => (
