@@ -642,7 +642,14 @@
 @media (prefers-reduced-motion: reduce) {
   .tc-clouds,
   .tc-cluster,
-  .tc-pin-ring {
+  .tc-pin-ring,
+  .animate-territory,
+  .animate-territory-trace,
+  .animate-data-flow,
+  .animate-node-pulse,
+  .animate-sweep,
+  .animate-ember,
+  .animate-float {
     animation: none;
   }
 }
