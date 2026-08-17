@@ -31,6 +31,8 @@ export interface Session {
 
 export interface State {
   session: Session | null;
+  /** Date active partagée par toutes les vues (shift, tâches, calendrier, processus). */
+  activeDate: string;
   restaurants: Restaurant[];
   users: User[];
   processes: Process[];
@@ -45,6 +47,7 @@ export interface State {
 
 let state: State = {
   session: null,
+  activeDate: SEED_TODAY,
   restaurants: seedRestaurants,
   users: seedUsers,
   processes: seedProcesses,
@@ -56,6 +59,7 @@ let state: State = {
   shiftTasks: seedShiftTasks,
   usedPhotoHashes: [],
 };
+
 
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
