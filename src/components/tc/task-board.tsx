@@ -22,6 +22,7 @@ import {
   dayKind,
   dayReport,
   dayStats,
+  executionDetail,
   longDateLabel,
   processDayReports,
   shiftDate,
@@ -435,6 +436,86 @@ function ReportRow({
           />
           <Info icon={<CheckCircle2 className="h-3.5 w-3.5" />} label="Clôture" value={r.completedAt ?? "—"} />
           <Info icon={<ListOrdered className="h-3.5 w-3.5" />} label="Résultat" value={r.result ?? "—"} />
+          {detail && detail.steps.length > 0 && (
+            <div className="rounded-xl border border-border bg-secondary/30 p-3 sm:col-span-2">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div className="text-[10px] uppercase tracking-widest text-gold">
+                  Résultats des étapes ({detail.kpi.done}/{detail.kpi.steps} validées)
+                </div>
+                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest">
+                  <span className="rounded-full border border-border px-2 py-0.5 text-muted-foreground">
+                    Conformité {detail.compliance} %
+                  </span>
+                  {detail.kpi.rejected > 0 && (
+                    <span className="rounded-full border border-destructive/50 px-2 py-0.5 text-destructive">
+                      {detail.kpi.rejected} preuve(s) rejetée(s)
+                    </span>
+                  )}
+                  {detail.kpi.fraud > 0 && (
+                    <span className="rounded-full border border-destructive/50 bg-destructive/10 px-2 py-0.5 text-destructive">
+                      Fraude détectée · {detail.kpi.fraud}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                {detail.steps.map((st) => (
+                  <div
+                    key={st.index}
+                    className={cn(
+                      "rounded-xl border border-border bg-background/40 p-2.5",
+                      (st.rejected || st.fraud) && "border-destructive/50 bg-destructive/5",
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="tabular text-[11px] font-bold text-gold">{st.time}</span>
+                      <span className="min-w-0 flex-1 truncate text-xs font-semibold">
+                        {st.index}. {st.name}
+                      </span>
+                      <span
+                        className={cn(
+                          "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase",
+                          st.status === "Validée"
+                            ? "border-emerald-500/50 text-emerald-500"
+                            : st.status === "Non conforme"
+                              ? "border-destructive/60 text-destructive"
+                              : "border-border text-muted-foreground",
+                        )}
+                      >
+                        {st.status}
+                      </span>
+                    </div>
+                    {st.question && (
+                      <p className="mt-1 text-[11px] text-muted-foreground">{st.question}</p>
+                    )}
+                    {st.answer !== undefined && (
+                      <p className="mt-0.5 text-[11px]">
+                        <span className="text-muted-foreground">Réponse saisie : </span>
+                        <span className="font-semibold">{String(st.answer)}</span>
+                      </p>
+                    )}
+                    {st.ai && (
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        IA ({st.aiScore ?? 0} %) : {st.ai}
+                      </p>
+                    )}
+                    {st.fraud && (
+                      <p className="mt-1 flex items-start gap-1.5 text-[11px] font-semibold text-destructive">
+                        <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        Fraude détectée sur cette étape — preuve dupliquée / suspecte.
+                      </p>
+                    )}
+                    {st.rejected && !st.fraud && (
+                      <p className="mt-1 flex items-start gap-1.5 text-[11px] text-destructive">
+                        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        Preuve rejetée par l'IA{st.replacement ? " — nouvelle preuve conforme soumise." : "."}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {r.evidences.length > 0 && (
             <div className="rounded-xl border border-border bg-secondary/30 p-3 sm:col-span-2">
               <div className="mb-2 flex items-center justify-between">
