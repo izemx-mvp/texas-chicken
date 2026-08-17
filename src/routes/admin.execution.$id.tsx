@@ -110,7 +110,8 @@ function ExecutionPage() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <KpiCard
           label="Étapes validées"
-          value={`${exec.kpi.done}/${exec.kpi.steps}`}
+          value={exec.kpi.done}
+          suffix={`/${exec.kpi.steps}`}
           tone="success"
           icon={<CheckCircle2 className="h-4 w-4" />}
         />
@@ -129,7 +130,8 @@ function ExecutionPage() {
         />
         <KpiCard
           label="Conformité"
-          value={`${exec.compliance}%`}
+          value={exec.compliance}
+          suffix="%"
           tone={exec.compliance >= 90 ? "success" : exec.compliance >= 70 ? "warning" : "brand"}
           icon={<ShieldCheck className="h-4 w-4" />}
         />
