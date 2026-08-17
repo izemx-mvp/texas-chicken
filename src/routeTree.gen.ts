@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminBuilderRouteImport } from './routes/admin.builder'
 import { Route as AdminProcessesRouteImport } from './routes/admin.processes'
 import { Route as AdminRestaurantsRouteImport } from './routes/admin.restaurants'
 import { Route as AppIndexRouteImport } from './routes/app.index'
@@ -48,6 +49,11 @@ const UnauthorizedRoute = UnauthorizedRouteImport.update({
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminBuilderRoute = AdminBuilderRouteImport.update({
+  id: '/builder',
+  path: '/builder',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminProcessesRoute = AdminProcessesRouteImport.update({
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/app': typeof AppRouteWithChildren
   '/unauthorized': typeof UnauthorizedRoute
+  '/admin/builder': typeof AdminBuilderRoute
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/restaurants': typeof AdminRestaurantsRoute
   '/app/alerts': typeof AppAlertsRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/unauthorized': typeof UnauthorizedRoute
+  '/admin/builder': typeof AdminBuilderRoute
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/restaurants': typeof AdminRestaurantsRoute
   '/app/alerts': typeof AppAlertsRoute
@@ -139,6 +147,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/app': typeof AppRouteWithChildren
   '/unauthorized': typeof UnauthorizedRoute
+  '/admin/builder': typeof AdminBuilderRoute
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/restaurants': typeof AdminRestaurantsRoute
   '/app/alerts': typeof AppAlertsRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/app'
     | '/unauthorized'
+    | '/admin/builder'
     | '/admin/processes'
     | '/admin/restaurants'
     | '/app/alerts'
@@ -173,6 +183,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/unauthorized'
+    | '/admin/builder'
     | '/admin/processes'
     | '/admin/restaurants'
     | '/app/alerts'
@@ -190,6 +201,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/app'
     | '/unauthorized'
+    | '/admin/builder'
     | '/admin/processes'
     | '/admin/restaurants'
     | '/app/alerts'
@@ -247,6 +259,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/builder': {
+      id: '/admin/builder'
+      path: '/builder'
+      fullPath: '/admin/builder'
+      preLoaderRoute: typeof AdminBuilderRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/processes': {
@@ -323,12 +342,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminBuilderRoute: typeof AdminBuilderRoute
   AdminProcessesRoute: typeof AdminProcessesRoute
   AdminRestaurantsRoute: typeof AdminRestaurantsRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminBuilderRoute: AdminBuilderRoute,
   AdminProcessesRoute: AdminProcessesRoute,
   AdminRestaurantsRoute: AdminRestaurantsRoute,
   AdminIndexRoute: AdminIndexRoute,

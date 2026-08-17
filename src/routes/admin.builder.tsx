@@ -66,8 +66,14 @@ function Builder() {
   };
 
   const save = () => {
-    if (!name.trim()) return toast.error("Le nom du processus est obligatoire");
-    if (targets.length === 0) return toast.error("Sélectionnez au moins un restaurant");
+    if (!name.trim()) {
+      toast.error("Le nom du processus est obligatoire");
+      return;
+    }
+    if (targets.length === 0) {
+      toast.error("Sélectionnez au moins un restaurant");
+      return;
+    }
     const p: Process = {
       id: uid("p"),
       name: name.trim(),
@@ -179,7 +185,10 @@ function Builder() {
                 <button
                   aria-label="Supprimer"
                   onClick={() => {
-                    if (steps.length === 1) return toast.error("Au moins une étape est requise");
+                    if (steps.length === 1) {
+                      toast.error("Au moins une étape est requise");
+                      return;
+                    }
                     setSteps(steps.filter((_, j) => j !== i));
                     setSel(0);
                   }}
