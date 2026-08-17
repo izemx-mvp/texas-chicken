@@ -54,18 +54,18 @@ function ManagerAnalytics() {
   const days = range === "7 jours" ? 7 : range === "30 jours" ? 30 : 90;
   const compliance = restaurant?.compliance ?? 88;
 
-  const trend = useMemo(
-    () =>
-      Array.from({ length: days > 30 ? 18 : days > 7 ? 15 : 7 }, (_, i, arr) => ({
-        label: `J-${(arr.length - i - 1) * Math.round(days / arr.length)}`,
+  const trend = useMemo(() => {
+    const points = days > 30 ? 18 : days > 7 ? 15 : 7;
+    const step = Math.max(1, Math.round(days / points));
+    return Array.from({ length: points }, (_, i) => ({
+        label: `J-${(points - i - 1) * step}`,
         conformite: Math.max(
           50,
-          Math.min(100, Math.round(compliance - 9 + i * (9 / arr.length) + Math.sin(i / 1.8) * 4)),
+          Math.min(100, Math.round(compliance - 9 + i * (9 / points) + Math.sin(i / 1.8) * 4)),
         ),
         retards: Math.max(0, Math.round(6 - i * 0.25 + Math.cos(i / 2) * 2)),
-      })),
-    [days, compliance],
-  );
+    }));
+  }, [days, compliance]);
 
   const done = tasks.filter((t) => t.status === "Terminé").length;
   const late = tasks.filter((t) => t.status === "En retard").length;

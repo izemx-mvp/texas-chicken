@@ -21,6 +21,7 @@ import { Route as AdminProcessesRouteImport } from './routes/admin.processes'
 import { Route as AdminRestaurantsRouteImport } from './routes/admin.restaurants'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppAlertsRouteImport } from './routes/app.alerts'
+import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppProcessesRouteImport } from './routes/app.processes'
 import { Route as AppTasksRouteImport } from './routes/app.tasks'
 import { Route as LoginAdminRouteImport } from './routes/login.admin'
@@ -88,6 +89,11 @@ const AppAlertsRoute = AppAlertsRouteImport.update({
   path: '/alerts',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppProcessesRoute = AppProcessesRouteImport.update({
   id: '/processes',
   path: '/processes',
@@ -130,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/restaurants': typeof AdminRestaurantsRoute
   '/app/alerts': typeof AppAlertsRoute
+  '/app/analytics': typeof AppAnalyticsRoute
   '/app/processes': typeof AppProcessesRoute
   '/app/tasks': typeof AppTasksRoute
   '/login/admin': typeof LoginAdminRoute
@@ -148,6 +155,7 @@ export interface FileRoutesByTo {
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/restaurants': typeof AdminRestaurantsRoute
   '/app/alerts': typeof AppAlertsRoute
+  '/app/analytics': typeof AppAnalyticsRoute
   '/app/processes': typeof AppProcessesRoute
   '/app/tasks': typeof AppTasksRoute
   '/login/admin': typeof LoginAdminRoute
@@ -169,6 +177,7 @@ export interface FileRoutesById {
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/restaurants': typeof AdminRestaurantsRoute
   '/app/alerts': typeof AppAlertsRoute
+  '/app/analytics': typeof AppAnalyticsRoute
   '/app/processes': typeof AppProcessesRoute
   '/app/tasks': typeof AppTasksRoute
   '/login/admin': typeof LoginAdminRoute
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/admin/processes'
     | '/admin/restaurants'
     | '/app/alerts'
+    | '/app/analytics'
     | '/app/processes'
     | '/app/tasks'
     | '/login/admin'
@@ -209,6 +219,7 @@ export interface FileRouteTypes {
     | '/admin/processes'
     | '/admin/restaurants'
     | '/app/alerts'
+    | '/app/analytics'
     | '/app/processes'
     | '/app/tasks'
     | '/login/admin'
@@ -229,6 +240,7 @@ export interface FileRouteTypes {
     | '/admin/processes'
     | '/admin/restaurants'
     | '/app/alerts'
+    | '/app/analytics'
     | '/app/processes'
     | '/app/tasks'
     | '/login/admin'
@@ -334,6 +346,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAlertsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/analytics': {
+      id: '/app/analytics'
+      path: '/analytics'
+      fullPath: '/app/analytics'
+      preLoaderRoute: typeof AppAnalyticsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/processes': {
       id: '/app/processes'
       path: '/processes'
@@ -401,6 +420,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface AppRouteChildren {
   AppAlertsRoute: typeof AppAlertsRoute
+  AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppProcessesRoute: typeof AppProcessesRoute
   AppTasksRoute: typeof AppTasksRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -410,6 +430,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAlertsRoute: AppAlertsRoute,
+  AppAnalyticsRoute: AppAnalyticsRoute,
   AppProcessesRoute: AppProcessesRoute,
   AppTasksRoute: AppTasksRoute,
   AppIndexRoute: AppIndexRoute,
