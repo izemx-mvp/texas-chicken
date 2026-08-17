@@ -407,33 +407,34 @@ export function AnimatedBackground({
       aria-hidden="true"
       className={cn("pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-background", className)}
     >
-      {/* espace profond */}
+      {/* intensité : plus discret en light mode pour préserver la lisibilité */}
       <div
-        className="absolute inset-0"
-        style={{
-          opacity,
-          background:
-            "radial-gradient(120% 90% at 50% 45%, oklch(0.20 0.03 250 / 55%) 0%, oklch(0.12 0.02 260 / 75%) 55%, oklch(0.08 0.01 265 / 92%) 100%)",
-        }}
-      />
-      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" style={{ opacity }} />
-
-      {/* logo officiel formé par les particules */}
-      <div
-        ref={logoRef}
-        className="absolute inset-0 grid place-items-center opacity-0 transition-none"
-        style={{ opacity: 0 }}
+        className="absolute inset-0 opacity-[calc(var(--tc-bg-i)*0.4)] dark:opacity-[var(--tc-bg-i)]"
+        style={{ "--tc-bg-i": opacity } as React.CSSProperties}
       >
-        <img
-          src={texasLogo}
-          alt=""
-          className="w-[62vmin] max-w-[620px] object-contain [filter:drop-shadow(0_0_40px_oklch(0.86_0.17_82_/_45%))_drop-shadow(0_0_10px_oklch(0.98_0_0_/_35%))]"
-          style={{ opacity }}
+        {/* espace profond */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(120% 90% at 50% 45%, oklch(0.20 0.03 250 / 55%) 0%, oklch(0.12 0.02 260 / 75%) 55%, oklch(0.08 0.01 265 / 92%) 100%)",
+          }}
         />
+        <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+
+        {/* logo officiel formé par les particules */}
+        <div ref={logoRef} className="absolute inset-0 grid place-items-center" style={{ opacity: 0 }}>
+          <img
+            src={texasLogo}
+            alt=""
+            className="w-[62vmin] max-w-[620px] object-contain [filter:drop-shadow(0_0_40px_oklch(0.86_0.17_82_/_45%))_drop-shadow(0_0_10px_oklch(0.98_0_0_/_35%))]"
+          />
+        </div>
+
+        {/* vignette */}
+        <div className="absolute inset-0 bg-[radial-gradient(100%_100%_at_50%_50%,transparent_45%,oklch(0.08_0.01_260_/_55%)_100%)]" />
       </div>
 
-      {/* vignette */}
-      <div className="absolute inset-0 bg-[radial-gradient(100%_100%_at_50%_50%,transparent_45%,oklch(0.08_0.01_260_/_55%)_100%)]" />
     </div>
   );
 }
