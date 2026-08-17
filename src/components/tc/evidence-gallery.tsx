@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, ChevronLeft, ChevronRight, Copy, ShieldCheck, X, ZoomIn, ZoomOut } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight, Copy, Play, ShieldCheck, X, ZoomIn, ZoomOut } from "lucide-react";
 import { StatusPill } from "@/components/tc/bits";
 import { cn } from "@/lib/utils";
 import type { Evidence } from "@/lib/tc/types";
