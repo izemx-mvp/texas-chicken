@@ -56,7 +56,7 @@ function Welcome() {
             <span className="block text-brand-gradient">Operational Excellence</span>
           </h1>
           <p
-            className="animate-rise mx-auto mt-5 max-w-2xl text-base text-muted-foreground"
+            className="animate-rise mx-auto mt-5 max-w-2xl rounded-2xl bg-background/55 px-4 py-2 text-base font-medium text-foreground/85 backdrop-blur-sm"
             style={{ animationDelay: "160ms" }}
           >
             Standards, processus, exécution terrain, preuves analysées par IA, contrôle anti-fraude et

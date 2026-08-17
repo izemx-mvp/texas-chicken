@@ -310,7 +310,7 @@ export function AnimatedBackground({
         }
         const shade = ctx.createRadialGradient(cx + R * 0.35, cy + R * 0.4, R * 0.2, cx, cy, R);
         shade.addColorStop(0, "rgba(0,0,0,0)");
-        shade.addColorStop(1, `rgba(0,0,0,${(dark ? 0.55 : 0.4) * globeA})`);
+        shade.addColorStop(1, `rgba(0,0,0,${(dark ? 0.55 : 0.26) * globeA})`);
         ctx.fillStyle = shade;
         ctx.beginPath();
         ctx.arc(cx, cy, R, 0, Math.PI * 2);
@@ -335,7 +335,7 @@ export function AnimatedBackground({
         let y = p.sy;
         let a = 0;
         const lit = Math.max(0, (land[i] as Vec3).x * sun.x + (land[i] as Vec3).y * sun.y + (land[i] as Vec3).z * sun.z);
-        const dayA = 0.28 + lit * 0.5;
+        const dayA = dark ? 0.28 + lit * 0.5 : 0.55 + lit * 0.45;
         if (front) a = dayA;
 
         if (morphT > 0 && logoPts.length) {
@@ -360,8 +360,9 @@ export function AnimatedBackground({
         } else if (dark) {
           ctx.fillStyle = lit > 0.35 ? "#b9cbb2" : lit > 0.12 ? "#7e9a86" : "#33505c";
         } else {
-          ctx.fillStyle = lit > 0.35 ? "#e7dcc0" : lit > 0.12 ? "#bfc79b" : "#5d7a72";
+          ctx.fillStyle = lit > 0.35 ? "#3f8f56" : lit > 0.12 ? "#2f7048" : "#1d4a44";
         }
+
         const size = (cityLight[i] && lit < 0.15 ? 1.6 : 1.35) * dotScale;
         ctx.fillRect(x, y, size, size);
       }
@@ -478,18 +479,14 @@ export function AnimatedBackground({
       aria-hidden="true"
       className={cn("pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-background", className)}
     >
-      {/* intensité : plus discret en light mode pour préserver la lisibilité */}
+      {/* intensité */}
       <div
-        className="absolute inset-0 opacity-[calc(var(--tc-bg-i)*0.8)] dark:opacity-[var(--tc-bg-i)]"
+        className="absolute inset-0 opacity-[var(--tc-bg-i)]"
         style={{ "--tc-bg-i": opacity } as React.CSSProperties}
       >
-        {/* espace profond */}
+        {/* ciel clair en light mode, espace profond en dark */}
         <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(120% 90% at 50% 45%, oklch(0.20 0.03 250 / 55%) 0%, oklch(0.12 0.02 260 / 75%) 55%, oklch(0.08 0.01 265 / 92%) 100%)",
-          }}
+          className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_45%,oklch(0.99_0.008_85)_0%,oklch(0.96_0.014_80)_55%,oklch(0.93_0.02_75)_100%)] dark:bg-[radial-gradient(120%_90%_at_50%_45%,oklch(0.20_0.03_250_/_55%)_0%,oklch(0.12_0.02_260_/_75%)_55%,oklch(0.08_0.01_265_/_92%)_100%)]"
         />
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
@@ -503,8 +500,9 @@ export function AnimatedBackground({
         </div>
 
         {/* vignette */}
-        <div className="absolute inset-0 bg-[radial-gradient(100%_100%_at_50%_50%,transparent_45%,oklch(0.08_0.01_260_/_55%)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(100%_100%_at_50%_50%,transparent_55%,oklch(0.85_0.03_75_/_45%)_100%)] dark:bg-[radial-gradient(100%_100%_at_50%_50%,transparent_45%,oklch(0.08_0.01_260_/_55%)_100%)]" />
       </div>
+
 
     </div>
   );
