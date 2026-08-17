@@ -87,6 +87,19 @@ export function AnimatedBackground({
     [],
   );
 
+  /** Champ de logos défilants (identique à la première version). */
+  const logoField = useMemo(
+    () =>
+      Array.from({ length: 64 }, (_, i) => ({
+        size: [44, 62, 80, 96][i % 4] as number,
+        opacity: intensity === "soft" ? 0.05 + (i % 3) * 0.015 : 0.07 + (i % 4) * 0.02,
+        shift: ((i * 53) % 90) - 45,
+      })),
+    [intensity],
+  );
+
+
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
