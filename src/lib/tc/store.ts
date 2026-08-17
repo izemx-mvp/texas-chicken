@@ -129,11 +129,49 @@ export function currentUser(): User | null {
   const s = state.session;
   return s ? (state.users.find((u) => u.id === s.userId) ?? null) : null;
 }
+/** Le Super Admin dispose automatiquement d'un CRUD complet sur toutes les interfaces. */
+export function isSuperAdmin(user: User | null) {
+  if (!user) return false;
+  if (user.role === "Super Admin") return true;
+  return state.roles.find((r) => r.id === user.roleId)?.name === "Super Admin";
+}
 export function can(user: User | null, module: string, perm: PermissionName) {
   if (!user) return false;
+  if (isSuperAdmin(user)) return true;
   const role = state.roles.find((r) => r.id === user.roleId);
   return !!role?.permissions[module]?.includes(perm);
 }
+
+/* -------------------- date active globale -------------------- */
+export const TODAY_DATE = SEED_TODAY;
+export function setActiveDate(date: string) {
+  setState({ activeDate: date });
+}
+export function useActiveDate(): [string, (d: string) => void] {
+  const date = useStore((s) => s.activeDate);
+  return [date, setActiveDate];
+}
+export function shiftDate(date: string, days: number) {
+  const d = new Date(`${date}T12:00:00`);
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+/** Libellé humain : « Aujourd'hui » uniquement pour la date réelle du jour. */
+export function dateLabel(date: string, today: string = SEED_TODAY) {
+  if (date === today) return "Aujourd'hui";
+  if (date === shiftDate(today, -1)) return "Hier";
+  if (date === shiftDate(today, 1)) return "Demain";
+  return new Date(`${date}T12:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+}
+export function longDateLabel(date: string) {
+  return new Date(`${date}T12:00:00`).toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 
 /* -------------------- generic CRUD -------------------- */
 type Collections = "restaurants" | "users" | "processes" | "standards" | "roles" | "controls" | "evidence" | "alerts";
