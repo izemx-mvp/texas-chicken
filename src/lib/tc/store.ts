@@ -96,11 +96,10 @@ export function hydrateSession() {
 }
 
 export function useStore<T>(selector: (s: State) => T): T {
-  return useSyncExternalStore(
-    subscribe,
-    () => selector(state),
-    () => selector(state),
-  );
+  // Subscribe to the whole (immutable) state object so the snapshot identity is
+  // stable; derive the selected value during render to avoid infinite loops.
+  const snapshot = useSyncExternalStore(subscribe, getState, getState);
+  return selector(snapshot);
 }
 
 /* -------------------- auth -------------------- */
