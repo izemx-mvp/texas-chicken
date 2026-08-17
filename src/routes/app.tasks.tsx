@@ -73,6 +73,8 @@ function ManagerTasks() {
 
       {mode === "calendar" && <TaskBoard title="Journée opérationnelle" />}
 
+      {mode === "list" && (
+        <>
       {next && (
         <Link
           to="/app/task/$id"
@@ -189,6 +191,8 @@ function ManagerTasks() {
             );
           })}
         </div>
+      )}
+        </>
       )}
     </div>
   );
