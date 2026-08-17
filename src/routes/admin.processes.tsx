@@ -4,9 +4,20 @@ import { Copy, Pencil, Plus, Power, Trash2, Workflow } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DateFilter } from "@/components/tc/date-filter";
-import { SectionTitle, StatusPill } from "@/components/tc/bits";
+import { ProgressBar, SectionTitle, StatusPill } from "@/components/tc/bits";
 import { DataTable, type Column } from "@/components/tc/data-table";
-import { can, currentUser, remove, uid, upsert, useStore } from "@/lib/tc/store";
+import {
+  can,
+  currentUser,
+  dayKind,
+  processDayReports,
+  remove,
+  uid,
+  useActiveDate,
+  upsert,
+  useStore,
+} from "@/lib/tc/store";
+import { TODAY } from "@/lib/tc/data";
 import type { Process } from "@/lib/tc/types";
 
 export const Route = createFileRoute("/admin/processes")({
@@ -23,7 +34,11 @@ export const Route = createFileRoute("/admin/processes")({
 
 function AdminProcesses() {
   const rows = useStore((s) => s.processes);
+  const state = useStore((s) => s);
   const user = useStore(() => currentUser());
+  const [activeDate] = useActiveDate();
+  const dayProcesses = processDayReports(activeDate, TODAY, state);
+  const futureDay = dayKind(activeDate, TODAY) === "future";
   const [detail, setDetail] = useState<Process | null>(null);
 
   const columns: Column<Process>[] = [
