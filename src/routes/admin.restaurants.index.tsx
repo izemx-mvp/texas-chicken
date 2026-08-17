@@ -114,7 +114,11 @@ function RestaurantsIndex() {
       header: "",
       render: (r) => (
         <div className="flex justify-end gap-1">
+          <Button size="sm" variant="outline" onClick={() => open(r)}>
+            <Eye className="mr-1.5 h-4 w-4" /> Voir détails
+          </Button>
           {editable && (
+
             <Button
               size="icon"
               variant="ghost"
