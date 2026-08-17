@@ -445,3 +445,92 @@ export function dayReport(date: string, today: string, s: State = state): DayTas
     };
   });
 }
+
+/* -------------------- agrégats de la journée -------------------- */
+export interface DayStats {
+  total: number;
+  done: number;
+  running: number;
+  late: number;
+  missed: number;
+  planned: number;
+  issues: number;
+  fraud: number;
+  evidenceRejected: number;
+  progress: number;
+  compliance: number;
+}
+
+export function dayStats(reports: DayTaskReport[]): DayStats {
+  const total = reports.length;
+  const done = reports.filter((r) => r.status === "Terminé").length;
+  const running = reports.filter((r) => r.status === "En cours").length;
+  const late = reports.filter((r) => r.status === "En retard").length;
+  const missed = reports.filter((r) => r.status === "Bloqué" || r.status === "Non conforme").length;
+  const planned = reports.filter((r) => r.status === "À faire").length;
+  const fraud = reports.filter((r) => r.fraud).length;
+  const evidenceRejected = reports.filter((r) => r.evidenceRejected).length;
+  return {
+    total,
+    done,
+    running,
+    late,
+    missed,
+    planned,
+    issues: missed + evidenceRejected + fraud,
+    fraud,
+    evidenceRejected,
+    progress: Math.round((done / Math.max(1, total)) * 100),
+    compliance: Math.round(((done - missed * 0.5 - evidenceRejected * 0.5) / Math.max(1, total)) * 100),
+  };
+}
+
+export interface ProcessDayReport {
+  process: Process;
+  reports: DayTaskReport[];
+  tasks: number;
+  done: number;
+  remaining: number;
+  steps: number;
+  stepsDone: number;
+  fraud: number;
+  evidence: number;
+  progress: number;
+  compliance: number;
+  duration: number;
+}
+
+/** Niveau de complétion de chaque processus pour la date active. */
+export function processDayReports(date: string, today: string, s: State = state): ProcessDayReport[] {
+  const reports = dayReport(date, today, s);
+  const byProcess = new Map<string, DayTaskReport[]>();
+  for (const r of reports) {
+    const list = byProcess.get(r.task.processId) ?? [];
+    list.push(r);
+    byProcess.set(r.task.processId, list);
+  }
+  const out: ProcessDayReport[] = [];
+  for (const [pid, list] of byProcess) {
+    const process = s.processes.find((p) => p.id === pid);
+    if (!process) continue;
+    const steps = list.reduce((a, r) => a + r.stepsTotal, 0);
+    const stepsDone = list.reduce((a, r) => a + r.stepsDone, 0);
+    const done = list.filter((r) => r.status === "Terminé").length;
+    const st = dayStats(list);
+    out.push({
+      process,
+      reports: list,
+      tasks: list.length,
+      done,
+      remaining: list.length - done,
+      steps,
+      stepsDone,
+      fraud: st.fraud,
+      evidence: list.filter((r) => !!r.evidence).length,
+      progress: Math.round((stepsDone / Math.max(1, steps)) * 100),
+      compliance: st.compliance,
+      duration: list.reduce((a, r) => a + r.task.duration, 0),
+    });
+  }
+  return out.sort((a, b) => a.process.name.localeCompare(b.process.name));
+}
