@@ -177,13 +177,17 @@ function UsersPage() {
         />
       ) : (
         <div className="space-y-4">
-          {roles.map((role) => (
+          {roles.map((role) => {
+            const superRole = /super/i.test(role.name) || role.id === "role-super";
+            return (
             <div key={role.id} className="glass rounded-3xl p-5">
               <div className="mb-3 flex items-center gap-2">
                 <Shield className="h-4 w-4 text-gold" />
                 <div>
                   <div className="font-display text-sm font-bold uppercase">{role.name}</div>
-                  <div className="text-xs text-muted-foreground">{role.description}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {superRole ? "Accès total automatique à toutes les interfaces et actions" : role.description}
+                  </div>
                 </div>
                 {role.system && <span className="ml-auto text-[10px] uppercase tracking-widest text-gold">Système</span>}
               </div>
