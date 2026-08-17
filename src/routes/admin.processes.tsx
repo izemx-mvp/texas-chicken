@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Copy, Plus, Power, Trash2, Workflow } from "lucide-react";
+import { Copy, Pencil, Plus, Power, Trash2, Workflow } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { SectionTitle, StatusPill } from "@/components/tc/bits";
@@ -66,6 +66,14 @@ function AdminProcesses() {
             </Button>
           )}
           {can(user, "Processus", "Modifier") && (
+            <Button size="icon" variant="ghost" aria-label="Modifier" asChild>
+              <Link to="/admin/builder" search={{ process: p.id }} onClick={(e) => e.stopPropagation()}>
+                <Pencil className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+          {can(user, "Processus", "Modifier") && (
+
             <Button
               size="icon"
               variant="ghost"

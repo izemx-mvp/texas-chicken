@@ -158,6 +158,8 @@ export interface User {
   lastName: string;
   email: string;
   restaurantId: ID | null;
+  /** Restaurants supplémentaires autorisés pour un manager multi-sites. */
+  restaurantIds?: ID[];
   role: UserRole;
   status: "Actif" | "Inactif";
   lastLogin: string;

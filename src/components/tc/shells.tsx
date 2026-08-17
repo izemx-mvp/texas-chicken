@@ -15,6 +15,8 @@ import {
   ListChecks,
   LogOut,
   Menu,
+  Users as UsersIcon,
+
   Search,
   ShieldCheck,
   Workflow,
@@ -40,8 +42,9 @@ export const ADMIN_NAV: NavItem[] = [
   { to: "/admin", label: "Command Center", module: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/restaurants", label: "Restaurants", module: "Restaurants", icon: Building2 },
   { to: "/admin/processes", label: "Processus & Contrôles", module: "Processus", icon: Workflow },
-  { to: "/admin/builder", label: "Process Builder", module: "Processus", icon: ListChecks },
+  { to: "/admin/users", label: "Utilisateurs", module: "Utilisateurs", icon: UsersIcon },
 ];
+
 
 /* ---------------- global search ---------------- */
 function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -274,67 +277,88 @@ export function AdminShell({ children }: { children: ReactNode }) {
       <AnimatedBackground />
       <GlobalSearch open={search} onClose={() => setSearch(false)} />
 
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-40 w-[264px] border-r border-sidebar-border bg-sidebar backdrop-blur-2xl transition-transform duration-300 lg:translate-x-0",
-          mobileNav ? "translate-x-0" : "-translate-x-full",
-        )}
-      >
-        <div className="flex h-16 items-center justify-between px-4">
-          <Link to="/admin">
-            <TCLogo />
+      <header className="sticky top-0 z-30 border-b border-border bg-background/75 backdrop-blur-xl">
+        <div className="mx-auto flex h-20 w-full max-w-[1600px] items-center gap-4 px-4 lg:px-6">
+          <Link to="/admin" className="shrink-0" aria-label="Texas Chicken">
+            <TCLogo className="[&_img]:h-14" />
           </Link>
-          <button className="lg:hidden" onClick={() => setMobileNav(false)} aria-label="Fermer">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <nav className="space-y-1 overflow-y-auto px-3 pb-28 pt-2" style={{ maxHeight: "calc(100vh - 4rem)" }}>
-          {nav.map((n) => {
-            const active = n.exact ? pathname === n.to : pathname.startsWith(n.to);
-            return (
-              <Link
-                key={n.to}
-                to={n.to as "/"}
-                onClick={() => setMobileNav(false)}
-                className={cn(
-                  "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all",
-                  active
-                    ? "bg-brand/15 text-foreground"
-                    : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
-                )}
-              >
-                {active && <span className="absolute inset-y-2 left-0 w-1 rounded-full bg-brand-gradient" />}
-                <n.icon className={cn("h-4 w-4 transition-colors", active ? "text-gold" : "group-hover:text-gold")} />
-                <span className="truncate">{n.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-      </aside>
 
-      <div className="lg:pl-[264px]">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/70 px-4 backdrop-blur-xl">
-          <button className="lg:hidden" onClick={() => setMobileNav(true)} aria-label="Menu">
-            <Menu className="h-5 w-5" />
-          </button>
-          <button
-            onClick={() => setSearch(true)}
-            className="flex h-10 flex-1 max-w-md items-center gap-2 rounded-xl border border-border bg-secondary/40 px-3 text-sm text-muted-foreground transition-colors hover:border-gold/40"
-          >
-            <Search className="h-4 w-4" />
-            Recherche globale
-            <kbd className="ml-auto hidden rounded border border-border px-1.5 text-[10px] sm:block">⌘K</kbd>
-          </button>
+          <nav className="hidden items-center gap-1 lg:flex">
+            {nav.map((n) => {
+              const active = n.exact ? pathname === n.to : pathname.startsWith(n.to);
+              return (
+                <Link
+                  key={n.to}
+                  to={n.to as "/"}
+                  className={cn(
+                    "group relative flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-all",
+                    active ? "bg-brand/15 text-foreground" : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
+                  )}
+                >
+                  <n.icon className={cn("h-4 w-4", active ? "text-gold" : "group-hover:text-gold")} />
+                  <span className="whitespace-nowrap">{n.label}</span>
+                  {active && <span className="absolute inset-x-3 -bottom-0.5 h-0.5 rounded-full bg-brand-gradient" />}
+                </Link>
+              );
+            })}
+          </nav>
+
           <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => setSearch(true)}
+              className="hidden h-10 w-56 items-center gap-2 rounded-xl border border-border bg-secondary/40 px-3 text-sm text-muted-foreground transition-colors hover:border-gold/40 xl:flex"
+            >
+              <Search className="h-4 w-4" />
+              Recherche
+              <kbd className="ml-auto rounded border border-border px-1.5 text-[10px]">⌘K</kbd>
+            </button>
+            <button
+              onClick={() => setSearch(true)}
+              className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-secondary/40 xl:hidden"
+              aria-label="Recherche globale"
+            >
+              <Search className="h-4 w-4" />
+            </button>
             <NotificationBell />
             <ThemeToggle />
             <UserMenu />
+            <button
+              className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-secondary/40 lg:hidden"
+              onClick={() => setMobileNav((o) => !o)}
+              aria-label="Menu"
+            >
+              {mobileNav ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
-        </header>
-        <main className="animate-rise mx-auto w-full max-w-[1600px] p-4 lg:p-6">{children}</main>
-      </div>
+        </div>
+
+        {mobileNav && (
+          <nav className="animate-rise grid gap-1 border-t border-border px-4 py-3 lg:hidden">
+            {nav.map((n) => {
+              const active = n.exact ? pathname === n.to : pathname.startsWith(n.to);
+              return (
+                <Link
+                  key={n.to}
+                  to={n.to as "/"}
+                  onClick={() => setMobileNav(false)}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm",
+                    active ? "bg-brand/15 text-foreground" : "text-muted-foreground",
+                  )}
+                >
+                  <n.icon className={cn("h-4 w-4", active && "text-gold")} />
+                  {n.label}
+                </Link>
+              );
+            })}
+          </nav>
+        )}
+      </header>
+
+      <main className="animate-rise mx-auto w-full max-w-[1600px] p-4 lg:p-6">{children}</main>
     </div>
   );
+
 }
 
 /* ---------------- manager shell ---------------- */
@@ -358,7 +382,7 @@ export function ManagerShell({ children }: { children: ReactNode }) {
       <AnimatedBackground intensity="soft" />
       <header className="sticky top-0 z-30 border-b border-border bg-background/75 backdrop-blur-xl">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
-          <TCMark className="h-8 w-8" />
+          <TCMark className="h-10 w-10" />
           <div className="min-w-0 flex-1 leading-tight">
             <div className="truncate font-display text-sm font-bold uppercase tracking-wide">
               {restaurant?.name ?? "Restaurant Operations"}

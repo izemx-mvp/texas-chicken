@@ -240,3 +240,156 @@ export function kpis(s: State = state) {
     nonCompliance: s.controls.filter((c) => c.status === "Non conforme").length,
   };
 }
+
+/* -------------------- statistiques par restaurant -------------------- */
+function hash(s: string) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h);
+}
+
+export interface RestaurantStats {
+  total: number;
+  done: number;
+  late: number;
+  remaining: number;
+  progress: number;
+  compliance: number;
+  steps: number;
+  stepsKo: number;
+  evidenceOk: number;
+  fraud: number;
+  avgDuration: number;
+}
+
+/** Statistiques du jour pour un restaurant : réelles pour le restaurant du shift, dérivées (déterministes) sinon. */
+export function restaurantStats(restaurantId: string, s: State = state): RestaurantStats {
+  const controls = s.controls.filter((c) => c.restaurantId === restaurantId);
+  const evidence = s.evidence.filter((e) => e.restaurantId === restaurantId);
+  const rest = s.restaurants.find((r) => r.id === restaurantId);
+  const compliance = rest?.compliance ?? 90;
+  const live = s.shiftTasks;
+  const isShiftRestaurant = s.restaurants[0]?.id === restaurantId;
+
+  let total: number;
+  let done: number;
+  let late: number;
+  if (isShiftRestaurant && live.length) {
+    total = live.length;
+    done = live.filter((t) => t.status === "Terminé").length;
+    late = live.filter((t) => t.status === "En retard").length;
+  } else {
+    const h = hash(restaurantId);
+    total = 24 + (h % 9);
+    done = Math.round((total * Math.min(100, compliance + (h % 7) - 3)) / 100);
+    late = h % 4;
+  }
+  const steps = total * 4;
+  const stepsKo = controls.filter((c) => c.status === "Non conforme").length + (late || 0);
+  const fraud = evidence.filter((e) => e.status === "Dupliquée" || e.status === "Suspecte" || e.status === "Rejetée").length;
+  return {
+    total,
+    done,
+    late,
+    remaining: Math.max(0, total - done),
+    progress: Math.round((done / Math.max(1, total)) * 100),
+    compliance,
+    steps,
+    stepsKo,
+    evidenceOk: evidence.filter((e) => e.status === "Valide").length,
+    fraud,
+    avgDuration: Math.round(controls.reduce((a, c) => a + c.duration, 0) / Math.max(1, controls.length)) || 18,
+  };
+}
+
+/* -------------------- journée opérationnelle -------------------- */
+export type DayKind = "past" | "today" | "future";
+
+export interface DayTaskReport {
+  task: ShiftTask;
+  planned: string;
+  startedAt?: string;
+  completedAt?: string;
+  status: ShiftTask["status"];
+  stepsDone: number;
+  stepsTotal: number;
+  evidence?: Evidence;
+  evidenceRejected: boolean;
+  fraud: boolean;
+  comment?: string;
+  result?: string;
+}
+
+export function dayKind(date: string, today: string): DayKind {
+  return date < today ? "past" : date > today ? "future" : "today";
+}
+
+function addMinutes(time: string, min: number) {
+  const [h = "0", m = "0"] = time.split(":");
+  const total = Number(h) * 60 + Number(m) + min;
+  return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
+/** Rapport opérationnel d'une journée : historique réel (passé), état live (aujourd'hui), plan (futur). */
+export function dayReport(date: string, today: string, s: State = state): DayTaskReport[] {
+  const tasks = tasksForDate(date, s);
+  const kind = dayKind(date, today);
+  return tasks.map((task, i) => {
+    if (kind === "today") {
+      const ev = s.evidence.find((e) => e.id === task.evidenceId);
+      return {
+        task,
+        planned: task.time,
+        startedAt: task.startedAt,
+        completedAt: task.completedAt,
+        status: task.status,
+        stepsDone: task.status === "Terminé" ? 4 : task.status === "En cours" ? 2 : 0,
+        stepsTotal: 4,
+        evidence: ev,
+        evidenceRejected: ev?.status === "Rejetée",
+        fraud: ev?.status === "Dupliquée" || ev?.status === "Suspecte",
+        result: task.result,
+      };
+    }
+    if (kind === "future") {
+      return {
+        task,
+        planned: task.time,
+        status: "À faire",
+        stepsDone: 0,
+        stepsTotal: 4,
+        evidenceRejected: false,
+        fraud: false,
+      };
+    }
+    const h = hash(date + task.id + i);
+    const roll = h % 100;
+    const status: ShiftTask["status"] = roll < 82 ? "Terminé" : roll < 90 ? "En retard" : roll < 96 ? "Non conforme" : "Bloqué";
+    const delay = roll < 82 ? h % 4 : 6 + (h % 22);
+    const evidence = task.evidenceRequired
+      ? s.evidence[(h + i) % Math.max(1, s.evidence.length)]
+      : undefined;
+    return {
+      task,
+      planned: task.time,
+      startedAt: addMinutes(task.time, delay),
+      completedAt: addMinutes(task.time, delay + task.duration + (h % 7)),
+      status,
+      stepsDone: status === "Terminé" ? 4 : 2 + (h % 2),
+      stepsTotal: 4,
+      evidence,
+      evidenceRejected: evidence?.status === "Rejetée",
+      fraud: evidence?.status === "Dupliquée" || evidence?.status === "Suspecte",
+      comment:
+        status === "Non conforme"
+          ? "Écart constaté — action corrective enregistrée par le responsable."
+          : status === "En retard"
+            ? "Démarrage tardif lié à l'affluence du service."
+            : undefined,
+      result: status === "Terminé" ? "Conforme" : status,
+    };
+  });
+}

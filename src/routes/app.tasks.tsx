@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Camera, ChevronRight, Clock, Search, Workflow } from "lucide-react";
+import { CalendarDays, Camera, ChevronRight, Clock, ListOrdered, Search, Workflow } from "lucide-react";
+import { TaskBoard } from "@/components/tc/task-board";
 import { Input } from "@/components/ui/input";
 import { EmptyState, SectionTitle, StatusPill } from "@/components/tc/bits";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,7 @@ function ManagerTasks() {
   const [status, setStatus] = useState("Toutes");
   const [group, setGroup] = useState("Toutes zones");
   const [q, setQ] = useState("");
+  const [mode, setMode] = useState<"list" | "calendar">("list");
 
   const list = tasks.filter(
     (t) =>
@@ -53,6 +55,26 @@ function ManagerTasks() {
         subtitle="Ordre chronologique global — toutes les étapes de tous les processus"
       />
 
+      <div className="flex rounded-xl border border-border p-0.5">
+        {(["list", "calendar"] as const).map((m) => (
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors",
+              mode === m ? "bg-brand/20 text-foreground" : "text-muted-foreground",
+            )}
+          >
+            {m === "list" ? <ListOrdered className="h-4 w-4" /> : <CalendarDays className="h-4 w-4" />}
+            {m === "list" ? "Liste" : "Calendrier"}
+          </button>
+        ))}
+      </div>
+
+      {mode === "calendar" && <TaskBoard title="Journée opérationnelle" />}
+
+      {mode === "list" && (
+        <>
       {next && (
         <Link
           to="/app/task/$id"
@@ -169,6 +191,8 @@ function ManagerTasks() {
             );
           })}
         </div>
+      )}
+        </>
       )}
     </div>
   );
