@@ -161,6 +161,15 @@ export function AnimatedBackground({
           </defs>
 
           <path d={outlinePath} fill="url(#tc-territory-fill)" />
+          {/* contour permanent (visible même sans animation) */}
+          <path
+            d={outlinePath}
+            fill="none"
+            stroke="currentColor"
+            strokeOpacity={0.3}
+            strokeWidth={2}
+            strokeLinejoin="round"
+          />
           <path
             d={outlinePath}
             fill="none"
