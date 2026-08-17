@@ -179,7 +179,7 @@ function RestaurantPage() {
         </div>
       ) : (
         <div className="glass rounded-3xl p-5">
-          <TaskBoard title={`Tâches — ${restaurant.name}`} />
+          <TaskBoard title={`Tâches — ${restaurant.name}`} restaurantId={restaurant.id} />
         </div>
       )}
     </div>

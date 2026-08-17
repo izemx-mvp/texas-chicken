@@ -13,6 +13,7 @@ import {
   Workflow,
 } from "lucide-react";
 import { StatusPill } from "./bits";
+import { EvidenceGallery, EvidenceThumb } from "./evidence-gallery";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
@@ -43,7 +44,15 @@ export type BoardMode = "list" | "calendar" | "process";
  * Vue opérationnelle partagée Admin / Manager : Liste, Calendrier et Processus,
  * toutes branchées sur la date active globale.
  */
-export function TaskBoard({ title = "Tâches", defaultMode = "list" }: { title?: string; defaultMode?: BoardMode }) {
+export function TaskBoard({
+  title = "Tâches",
+  defaultMode = "list",
+  restaurantId,
+}: {
+  title?: string;
+  defaultMode?: BoardMode;
+  restaurantId?: string;
+}) {
   const state = useStore((s) => s);
   const [date, setDate] = useActiveDate();
   const [mode, setMode] = useState<BoardMode>(defaultMode);
@@ -55,8 +64,11 @@ export function TaskBoard({ title = "Tâches", defaultMode = "list" }: { title?:
   const [priority, setPriority] = useState("Toutes priorités");
   const [processId, setProcessId] = useState("Tous processus");
 
-  const allReports = useMemo(() => dayReport(date, TODAY, state), [date, state]);
-  const procReports = useMemo(() => processDayReports(date, TODAY, state), [date, state]);
+  const allReports = useMemo(() => dayReport(date, TODAY, state, restaurantId), [date, state, restaurantId]);
+  const procReports = useMemo(
+    () => processDayReports(date, TODAY, state, restaurantId),
+    [date, state, restaurantId],
+  );
   const kind = dayKind(date, TODAY);
 
   const reports = useMemo(
@@ -208,12 +220,15 @@ export function TaskBoard({ title = "Tâches", defaultMode = "list" }: { title?:
           <div className="mt-1 grid grid-cols-7 gap-1">
             {monthDays.map((d, i) => {
               if (!d) return <div key={`e${i}`} />;
-              const count = dayReport(d, TODAY, state).length;
+              const count = dayReport(d, TODAY, state, restaurantId).length;
               const k = dayKind(d, TODAY);
               return (
                 <button
                   key={d}
-                  onClick={() => setDate(d)}
+                  onClick={() => {
+                    setDate(d);
+                    setMode("list");
+                  }}
                   className={cn(
                     "aspect-square rounded-lg border text-xs transition-colors hover:border-gold/50",
                     d === date ? "border-gold bg-brand/20 font-bold" : "border-border bg-secondary/25",
@@ -370,6 +385,7 @@ function ProcessRow({
 }
 
 function ReportRow({ r, open, onToggle }: { r: DayTaskReport; open: boolean; onToggle: () => void }) {
+  const [gallery, setGallery] = useState<number | null>(null);
   const late = r.startedAt && r.startedAt > r.planned;
   return (
     <div className="rounded-2xl border border-border bg-secondary/25">
@@ -398,24 +414,39 @@ function ReportRow({ r, open, onToggle }: { r: DayTaskReport; open: boolean; onT
           />
           <Info icon={<CheckCircle2 className="h-3.5 w-3.5" />} label="Clôture" value={r.completedAt ?? "—"} />
           <Info icon={<ListOrdered className="h-3.5 w-3.5" />} label="Résultat" value={r.result ?? "—"} />
-          {r.evidence && (
+          {r.evidences.length > 0 && (
             <div className="rounded-xl border border-border bg-secondary/30 p-3 sm:col-span-2">
-              <div className="mb-1 text-[10px] uppercase tracking-widest text-gold">Preuve photo</div>
-              <div className="flex items-center gap-3">
-                <span className="h-10 w-10 rounded-lg" style={{ background: r.evidence.gradient }} />
-                <div className="min-w-0 flex-1 text-xs">
-                  <div className="font-semibold">{r.evidence.ref}</div>
-                  <div className="text-muted-foreground">
-                    score IA {r.evidence.aiScore}% · {r.evidence.date} {r.evidence.time}
-                  </div>
+              <div className="mb-2 flex items-center justify-between">
+                <div className="text-[10px] uppercase tracking-widest text-gold">
+                  Preuves soumises ({r.evidences.length})
                 </div>
-                <StatusPill status={r.evidence.status} />
+                <button
+                  onClick={() => setGallery(0)}
+                  className="rounded-lg border border-border px-2 py-1 text-[11px] font-semibold"
+                >
+                  Voir les preuves
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {r.evidences.map((e, i) => (
+                  <EvidenceThumb key={e.id} evidence={e} onClick={() => setGallery(i)} />
+                ))}
               </div>
               {(r.evidenceRejected || r.fraud) && (
                 <p className="mt-2 flex items-start gap-1.5 text-[11px] text-destructive">
                   <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  Preuve non retenue par l'IA — la conformité du jour a été impactée et une alerte a été remontée au siège.
+                  Preuve non retenue par l'IA — la conformité du jour a été impactée et une alerte anti-fraude a été
+                  remontée au siège.
                 </p>
+              )}
+              {gallery !== null && (
+                <EvidenceGallery
+                  items={r.evidences}
+                  index={gallery}
+                  onIndexChange={setGallery}
+                  onClose={() => setGallery(null)}
+                  title={r.task.name}
+                />
               )}
             </div>
           )}

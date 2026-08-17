@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import { ProgressBar, SectionTitle, StatusPill } from "@/components/tc/bits";
+import { DateFilter } from "@/components/tc/date-filter";
 import { dateLabel, dayKind, processDayReports, useActiveDate, useStore } from "@/lib/tc/store";
 import { TODAY } from "@/lib/tc/data";
 
@@ -27,6 +28,7 @@ function ManagerProcesses() {
   return (
     <div>
       <SectionTitle title="Processus" subtitle={`Workflows disponibles · ${dateLabel(date, TODAY)}`} />
+      <DateFilter className="mb-4" />
       <div className="space-y-3">
         {reports.length === 0 && (
           <p className="glass rounded-2xl p-6 text-center text-sm text-muted-foreground">
