@@ -366,7 +366,6 @@ const MANAGER_NAV: { to: string; label: string; icon: typeof Home; exact?: boole
   { to: "/app", label: "Shift", icon: Home, exact: true },
   { to: "/app/processes", label: "Processus", icon: Workflow },
   { to: "/app/tasks", label: "Tâches", icon: ListChecks },
-  { to: "/app/calendar", label: "Calendrier", icon: CalendarDays },
   { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
 ];
 
