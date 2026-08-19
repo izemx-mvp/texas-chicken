@@ -409,10 +409,10 @@ function ReportRow({
     [open, date, r.task.id, restaurantId, state],
   );
   const late = r.startedAt && r.startedAt > r.planned;
+  const pending = !restaurantId && (r.status === "À faire" || r.status === "En cours" || r.status === "En retard");
 
-  return (
-    <div className="rounded-2xl border border-border bg-secondary/25">
-      <button className="flex w-full items-center gap-3 p-3 text-left" onClick={onToggle}>
+  const rowInner = (
+    <>
         <span className="tabular grid h-11 w-16 shrink-0 place-items-center rounded-xl border border-border bg-secondary/50 font-display text-xs font-bold text-gold">
           {r.planned}
         </span>
@@ -425,8 +425,25 @@ function ReportRow({
         {r.fraud && <ShieldAlert className="h-4 w-4 shrink-0 text-destructive" />}
         {r.task.evidenceRequired && <Camera className="h-4 w-4 shrink-0 text-gold" />}
         <StatusPill status={r.status} />
-      </button>
-      {open && (
+    </>
+  );
+
+  return (
+    <div className="rounded-2xl border border-border bg-secondary/25">
+      {pending ? (
+        <Link
+          to="/app/task/$id"
+          params={{ id: r.task.id }}
+          className="flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-secondary/40"
+        >
+          {rowInner}
+        </Link>
+      ) : (
+        <button className="flex w-full items-center gap-3 p-3 text-left" onClick={onToggle}>
+          {rowInner}
+        </button>
+      )}
+      {open && !pending && (
         <div className="grid gap-2 border-t border-border p-3 sm:grid-cols-2">
           <Info icon={<Clock className="h-3.5 w-3.5" />} label="Heure planifiée" value={r.planned} />
           <Info
