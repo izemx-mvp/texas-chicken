@@ -266,10 +266,10 @@ export function AnimatedBackground({
           ocean.addColorStop(0.85, `rgba(6,14,26,${0.96 * globeA})`);
           ocean.addColorStop(1, `rgba(3,7,13,${0.98 * globeA})`);
         } else {
-          ocean.addColorStop(0, `rgba(96,164,214,${0.95 * globeA})`);
-          ocean.addColorStop(0.55, `rgba(42,106,160,${0.95 * globeA})`);
-          ocean.addColorStop(0.86, `rgba(20,62,102,${0.96 * globeA})`);
-          ocean.addColorStop(1, `rgba(10,34,60,${0.98 * globeA})`);
+          ocean.addColorStop(0, `rgba(255,214,150,${0.97 * globeA})`);
+          ocean.addColorStop(0.55, `rgba(238,168,96,${0.97 * globeA})`);
+          ocean.addColorStop(0.86, `rgba(206,116,62,${0.97 * globeA})`);
+          ocean.addColorStop(1, `rgba(160,72,40,${0.98 * globeA})`);
         }
         ctx.fillStyle = ocean;
         ctx.beginPath();
@@ -284,7 +284,7 @@ export function AnimatedBackground({
         ctx.lineWidth = 0.6;
         ctx.strokeStyle = dark
           ? `rgba(150,200,235,${0.1 * globeA})`
-          : `rgba(240,250,255,${0.18 * globeA})`;
+          : `rgba(90,38,16,${0.20 * globeA})`;
         for (let lat = -60; lat <= 60; lat += 30) {
           ctx.beginPath();
           let st = false;
@@ -348,7 +348,7 @@ export function AnimatedBackground({
         let y = p.sy;
         let a = 0;
         const lit = Math.max(0, (land[i] as Vec3).x * sun.x + (land[i] as Vec3).y * sun.y + (land[i] as Vec3).z * sun.z);
-        const dayA = dark ? 0.28 + lit * 0.5 : 0.55 + lit * 0.45;
+        const dayA = dark ? 0.42 + lit * 0.55 : 0.75 + lit * 0.25;
         if (front) a = dayA;
 
         if (morphT > 0 && logoPts.length) {
@@ -371,12 +371,12 @@ export function AnimatedBackground({
         } else if (cityLight[i] && lit < 0.15) {
           ctx.fillStyle = dark ? "#ffc978" : "#ffb347";
         } else if (dark) {
-          ctx.fillStyle = lit > 0.35 ? "#b9cbb2" : lit > 0.12 ? "#7e9a86" : "#33505c";
+          ctx.fillStyle = lit > 0.35 ? "#e2f3cf" : lit > 0.12 ? "#a7cfa2" : "#4a7382";
         } else {
-          ctx.fillStyle = lit > 0.35 ? "#3f8f56" : lit > 0.12 ? "#2f7048" : "#1d4a44";
+          ctx.fillStyle = lit > 0.35 ? "#14562f" : lit > 0.12 ? "#0d3f24" : "#08281a";
         }
 
-        const size = (cityLight[i] && lit < 0.15 ? 1.6 : 1.35) * dotScale;
+        const size = (cityLight[i] && lit < 0.15 ? 1.7 : 1.55) * dotScale;
         ctx.fillRect(x, y, size, size);
       }
       ctx.globalAlpha = 1;
@@ -499,7 +499,7 @@ export function AnimatedBackground({
       >
         {/* ciel clair en light mode, espace profond en dark */}
         <div
-          className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_45%,oklch(0.99_0.008_85)_0%,oklch(0.96_0.014_80)_55%,oklch(0.93_0.02_75)_100%)] dark:bg-[radial-gradient(120%_90%_at_50%_45%,oklch(0.20_0.03_250_/_55%)_0%,oklch(0.12_0.02_260_/_75%)_55%,oklch(0.08_0.01_265_/_92%)_100%)]"
+          className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_45%,oklch(0.99_0.012_85)_0%,oklch(0.96_0.03_70)_55%,oklch(0.93_0.045_55)_100%)] dark:bg-[radial-gradient(120%_90%_at_50%_45%,oklch(0.20_0.03_250_/_55%)_0%,oklch(0.12_0.02_260_/_75%)_55%,oklch(0.08_0.01_265_/_92%)_100%)]"
         />
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
