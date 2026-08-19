@@ -628,18 +628,14 @@ for (let i = 1; i <= 128; i++) {
 /* ---------------- shift tasks (manager scenario) ---------------- */
 const SHIFT_PROCESSES = ["p1", "p3", "p4", "p5", "p7", "p2"];
 export const shiftTasks: ShiftTask[] = [];
+// heure « courante » du shift simulé : tout ce qui précède est traité, la suite reste à faire
+export const SHIFT_NOW = "11:30";
 {
   let n = 0;
   for (const pid of SHIFT_PROCESSES) {
     const p = processes.find((x) => x.id === pid)!;
-    p.steps.forEach((s, i) => {
+    p.steps.forEach((s) => {
       n++;
-      let status: ShiftTask["status"] = "À faire";
-      if (pid === "p1") status = "Terminé";
-      else if (pid === "p3") status = i < 4 ? "Terminé" : i === 4 ? "En cours" : "À faire";
-      else if (pid === "p4") status = i < 3 ? "Terminé" : "À faire";
-      else if (pid === "p5") status = i < 2 ? "Terminé" : i === 2 ? "En retard" : "À faire";
-      else if (pid === "p7") status = i === 0 ? "En retard" : "À faire";
       shiftTasks.push({
         id: `t${n}`,
         processId: pid,
@@ -655,7 +651,7 @@ export const shiftTasks: ShiftTask[] = [];
         priority: s.priority,
         type: s.type,
         evidenceRequired: s.evidenceRequired,
-        status,
+        status: "À faire",
         date: TODAY,
         guide: s.guide,
         videoUrl: s.videoUrl,
@@ -666,6 +662,25 @@ export const shiftTasks: ShiftTask[] = [];
 
 // ordre chronologique global du shift (toutes tâches, tous processus confondus)
 shiftTasks.sort((a, b) => (a.time === b.time ? a.id.localeCompare(b.id) : a.time.localeCompare(b.time)));
+
+// statuts cohérents avec la chronologie : passé = traité, présent = en cours, futur = à faire
+{
+  let currentAssigned = false;
+  shiftTasks.forEach((t, i) => {
+    if (t.time < SHIFT_NOW) {
+      // quelques exceptions réalistes dans le passé
+      t.status = i % 11 === 7 ? "Non conforme" : i % 9 === 5 ? "En retard" : "Terminé";
+      t.startedAt = `${TODAY} ${t.time}`;
+      t.completedAt = `${TODAY} ${t.time}`;
+    } else if (!currentAssigned) {
+      t.status = "En cours";
+      t.startedAt = `${TODAY} ${t.time}`;
+      currentAssigned = true;
+    } else {
+      t.status = "À faire";
+    }
+  });
+}
 
 /* ---------------- history / trends ---------------- */
 export const complianceHistory = Array.from({ length: 26 }, (_, i) => {
