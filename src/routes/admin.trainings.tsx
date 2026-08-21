@@ -23,6 +23,8 @@ import { KpiCard, SectionTitle, StatusPill } from "@/components/tc/bits";
 import { DataTable, type Column } from "@/components/tc/data-table";
 import { TCSelect } from "@/components/tc/select";
 import { UserAvatar } from "@/components/tc/avatar";
+import { DocumentUpload, ImageUpload, VideoUpload } from "@/components/tc/upload";
+
 import { MemberPicker } from "@/components/tc/member-picker";
 import { cn } from "@/lib/utils";
 import {
