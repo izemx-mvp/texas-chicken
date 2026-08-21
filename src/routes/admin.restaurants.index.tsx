@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { can, currentUser, remove, restaurantStats, uid, upsert, useStore } from "@/lib/tc/store";
 import { CITY_COORDS } from "@/lib/tc/data";
 import type { Restaurant } from "@/lib/tc/types";
+import { TCSelect } from "@/components/tc/select";
 
 export const Route = createFileRoute("/admin/restaurants/")({
   head: () => ({
@@ -265,14 +266,14 @@ function RestaurantsIndex() {
                     <Input value={draft.code} onChange={(e) => patch({ code: e.target.value.toUpperCase() })} placeholder="TC-CAS-18" />
                   </Field>
                   <Field label="Statut">
-                    <select
-                      className="h-10 w-full rounded-md border border-border bg-secondary/40 px-3 text-sm"
+                    <TCSelect
                       value={draft.status}
-                      onChange={(e) => patch({ status: e.target.value as Restaurant["status"] })}
-                    >
-                      <option>Actif</option>
-                      <option>Inactif</option>
-                    </select>
+                      onChange={(v) => patch({ status: v as Restaurant["status"] })}
+                      options={[
+                        { value: "Actif", label: "Actif", description: "Restaurant en exploitation" },
+                        { value: "Inactif", label: "Inactif", description: "Fermé ou en travaux" },
+                      ]}
+                    />
                   </Field>
                 </>
               )}
@@ -280,18 +281,15 @@ function RestaurantsIndex() {
               {wizardStep === 1 && (
                 <>
                   <Field label="Ville">
-                    <select
-                      className="h-10 w-full rounded-md border border-border bg-secondary/40 px-3 text-sm"
+                    <TCSelect
                       value={draft.city}
-                      onChange={(e) => {
-                        const c = CITY_COORDS[e.target.value];
-                        patch({ city: e.target.value, lat: c?.[0] ?? draft.lat, lng: c?.[1] ?? draft.lng });
+                      searchable
+                      onChange={(v) => {
+                        const c = CITY_COORDS[v];
+                        patch({ city: v, lat: c?.[0] ?? draft.lat, lng: c?.[1] ?? draft.lng });
                       }}
-                    >
-                      {Object.keys(CITY_COORDS).map((c) => (
-                        <option key={c}>{c}</option>
-                      ))}
-                    </select>
+                      options={Object.keys(CITY_COORDS).map((c) => ({ value: c, label: c, description: "Coordonnées GPS pré-remplies" }))}
+                    />
                   </Field>
                   <Field label="Adresse complète">
                     <Textarea value={draft.address} onChange={(e) => patch({ address: e.target.value })} placeholder="12 Boulevard Zerktouni, Casablanca" />
@@ -310,20 +308,15 @@ function RestaurantsIndex() {
               {wizardStep === 2 && (
                 <>
                   <Field label="Responsable restaurant">
-                    <select
-                      className="h-10 w-full rounded-md border border-border bg-secondary/40 px-3 text-sm"
+                    <TCSelect
                       value={draft.managerId}
-                      onChange={(e) => patch({ managerId: e.target.value })}
-                    >
-                      <option value="">— Sélectionner —</option>
-                      {users
+                      onChange={(v) => patch({ managerId: v })}
+                      placeholder="— Sélectionner —"
+                      searchable
+                      options={users
                         .filter((u) => u.role === "Manager" || u.role === "Responsable restaurant")
-                        .map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.firstName} {u.lastName}
-                          </option>
-                        ))}
-                    </select>
+                        .map((u) => ({ value: u.id, label: `${u.firstName} ${u.lastName}`, description: u.email, hint: u.role }))}
+                    />
                   </Field>
                   <div className="grid gap-3 sm:grid-cols-3">
                     <Field label="Effectif">

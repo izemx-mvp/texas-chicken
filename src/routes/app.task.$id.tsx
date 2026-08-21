@@ -10,6 +10,7 @@ import { EvidenceCapture } from "@/components/tc/evidence-capture";
 import { currentUser, executionDetail, finishTask, pushAlert, updateTask, useStore } from "@/lib/tc/store";
 import { TaskDetailFilled } from "@/components/tc/task-detail-filled";
 import { TODAY } from "@/lib/tc/data";
+import { TCSelect } from "@/components/tc/select";
 
 export const Route = createFileRoute("/app/task/$id")({
   head: () => ({
@@ -237,16 +238,17 @@ function TaskExecution() {
             )}
 
             {task.type === "Sélection" && (
-              <select
+              <TCSelect
                 value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                className="h-11 w-full rounded-md border border-border bg-secondary/40 px-3 text-sm"
-              >
-                <option value="">Sélectionner...</option>
-                {["Conforme", "Écart mineur", "Écart majeur"].map((o) => (
-                  <option key={o}>{o}</option>
-                ))}
-              </select>
+                onChange={setAnswer}
+                className="h-11"
+                placeholder="Sélectionner un verdict…"
+                options={[
+                  { value: "Conforme", label: "Conforme", description: "Standard Texas Chicken respecté", swatch: "hsl(var(--success))" },
+                  { value: "Écart mineur", label: "Écart mineur", description: "Correction immédiate possible", swatch: "hsl(var(--warning))" },
+                  { value: "Écart majeur", label: "Écart majeur", description: "Escalade manager requise", swatch: "hsl(var(--destructive))" },
+                ]}
+              />
             )}
 
             {(task.type === "Valeur numérique" || task.type === "Score") && (

@@ -10,6 +10,7 @@ import { SectionTitle } from "@/components/tc/bits";
 import { cn } from "@/lib/utils";
 import { getState, uid, upsert, useStore } from "@/lib/tc/store";
 import {
+import { TCSelect } from "@/components/tc/select";
   ZONES,
   type AvailabilityType,
   type Priority,
@@ -227,11 +228,7 @@ function Builder() {
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex : Ouverture restaurant" />
             </Field>
             <Field label="Catégorie">
-              <select className="h-10 w-full rounded-md border border-border bg-secondary/40 px-3 text-sm" value={category} onChange={(e) => setCategory(e.target.value)}>
-                {CATEGORIES.map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
-              </select>
+              <TCSelect value={category} onChange={setCategory} options={CATEGORIES.map((c) => ({ value: c, label: c }))} />
             </Field>
             <div className="lg:col-span-2">
               <Field label="Description">
@@ -411,11 +408,7 @@ function Builder() {
                       <Input value={current.name} onChange={(e) => patch({ name: e.target.value })} />
                     </Field>
                     <Field label="Zone">
-                      <select className="h-10 w-full rounded-md border border-border bg-secondary/40 px-3 text-sm" value={current.zone} onChange={(e) => patch({ zone: e.target.value as Zone })}>
-                        {ZONES.map((z) => (
-                          <option key={z}>{z}</option>
-                        ))}
-                      </select>
+                      <TCSelect value={current.zone} onChange={(v) => patch({ zone: v as Zone })} options={ZONES.map((z) => ({ value: z, label: z }))} />
                     </Field>
                     <Field label="Heure planifiée">
                       <Input type="time" value={current.time} onChange={(e) => patch({ time: e.target.value })} />
@@ -424,18 +417,10 @@ function Builder() {
                       <Input type="number" value={current.duration} onChange={(e) => patch({ duration: Number(e.target.value) })} />
                     </Field>
                     <Field label="Type de saisie">
-                      <select className="h-10 w-full rounded-md border border-border bg-secondary/40 px-3 text-sm" value={current.type} onChange={(e) => patch({ type: e.target.value as StepType })}>
-                        {TYPES.map((t) => (
-                          <option key={t}>{t}</option>
-                        ))}
-                      </select>
+                      <TCSelect value={current.type} onChange={(v) => patch({ type: v as StepType })} options={TYPES.map((t) => ({ value: t, label: t }))} />
                     </Field>
                     <Field label="Priorité">
-                      <select className="h-10 w-full rounded-md border border-border bg-secondary/40 px-3 text-sm" value={current.priority} onChange={(e) => patch({ priority: e.target.value as Priority })}>
-                        {PRIOS.map((p) => (
-                          <option key={p}>{p}</option>
-                        ))}
-                      </select>
+                      <TCSelect value={current.priority} onChange={(v) => patch({ priority: v as Priority })} options={PRIOS.map((p) => ({ value: p, label: p }))} />
                     </Field>
                     <Field label="Critère de conformité">
                       <Input value={current.criteria} onChange={(e) => patch({ criteria: e.target.value })} placeholder="Ex : température ≤ 4°C" />

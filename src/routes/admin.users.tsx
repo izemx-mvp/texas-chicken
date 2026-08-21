@@ -9,6 +9,7 @@ import { DataTable, type Column } from "@/components/tc/data-table";
 import { cn } from "@/lib/utils";
 import { can, currentUser, remove, uid, upsert, useStore } from "@/lib/tc/store";
 import { MODULES, PERMISSIONS, type PermissionName, type Role, type User, type UserRole } from "@/lib/tc/types";
+import { TCSelect } from "@/components/tc/select";
 
 export const Route = createFileRoute("/admin/users")({
   head: () => ({
@@ -263,52 +264,33 @@ function UsersPage() {
                 <Input value={draft.password ?? ""} onChange={(e) => patch({ password: e.target.value })} />
               </Field>
               <Field label="Rôle métier">
-                <select
-                  className="h-10 w-full rounded-md border border-border bg-secondary/40 px-3 text-sm"
-                  value={draft.role}
-                  onChange={(e) => patch({ role: e.target.value as UserRole })}
-                >
-                  {ROLES.map((r) => (
-                    <option key={r}>{r}</option>
-                  ))}
-                </select>
+                <TCSelect value={draft.role} onChange={(v) => patch({ role: v as UserRole })} searchable options={ROLES.map((r) => ({ value: r, label: r }))} />
               </Field>
               <Field label="Rôle de permissions">
-                <select
-                  className="h-10 w-full rounded-md border border-border bg-secondary/40 px-3 text-sm"
+                <TCSelect
                   value={draft.roleId}
-                  onChange={(e) => patch({ roleId: e.target.value })}
-                >
-                  {roles.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => patch({ roleId: v })}
+                  searchable
+                  options={roles.map((r) => ({ value: r.id, label: r.name, description: r.description }))}
+                />
               </Field>
               <Field label="Restaurant principal">
-                <select
-                  className="h-10 w-full rounded-md border border-border bg-secondary/40 px-3 text-sm"
+                <TCSelect
                   value={draft.restaurantId ?? ""}
-                  onChange={(e) => patch({ restaurantId: e.target.value || null })}
-                >
-                  <option value="">Siège / réseau</option>
-                  {restaurants.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => patch({ restaurantId: v || null })}
+                  searchable
+                  options={[{ value: "", label: "Siège / réseau", description: "Accès transverse" }, ...restaurants.map((r) => ({ value: r.id, label: r.name, description: r.city, group: "Restaurants" }))]}
+                />
               </Field>
               <Field label="Statut">
-                <select
-                  className="h-10 w-full rounded-md border border-border bg-secondary/40 px-3 text-sm"
+                <TCSelect
                   value={draft.status}
-                  onChange={(e) => patch({ status: e.target.value as User["status"] })}
-                >
-                  <option>Actif</option>
-                  <option>Inactif</option>
-                </select>
+                  onChange={(v) => patch({ status: v as User["status"] })}
+                  options={[
+                    { value: "Actif", label: "Actif", description: "Compte opérationnel" },
+                    { value: "Inactif", label: "Inactif", description: "Accès suspendu" },
+                  ]}
+                />
               </Field>
             </div>
 

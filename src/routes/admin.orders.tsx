@@ -9,6 +9,7 @@ import { DataTable, type Column } from "@/components/tc/data-table";
 import { cn } from "@/lib/utils";
 import { createOrder, currentUser, deliveryStats, orderTotal, setOrderStatus, useStore } from "@/lib/tc/store";
 import { ORDER_FLOW, type OrderLine, type PurchaseOrder } from "@/lib/tc/ops";
+import { TCSelect } from "@/components/tc/select";
 
 export const Route = createFileRoute("/admin/orders")({
   head: () => ({
@@ -325,17 +326,12 @@ function OrderWizard({ onClose, createdBy }: { onClose: () => void; createdBy: s
                 <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">
                   Restaurant destinataire
                 </span>
-                <select
-                  className="h-10 w-full rounded-md border border-border bg-secondary/40 px-3 text-sm"
+                <TCSelect
                   value={restaurantId}
-                  onChange={(e) => setRestaurantId(e.target.value)}
-                >
-                  {state.restaurants.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setRestaurantId}
+                  searchable
+                  options={state.restaurants.map((r) => ({ value: r.id, label: r.name, description: `${r.city} · ${r.code}`, group: r.city }))}
+                />
               </label>
               <label className="block">
                 <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">
