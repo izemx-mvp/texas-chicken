@@ -704,57 +704,8 @@ function TrainingsAdminPage() {
                 </div>
               )}
             </div>
+        </TCModal>
 
-            <div className="mt-6 flex items-center justify-between gap-2">
-              <Button variant="ghost" onClick={() => (step === 0 ? setDraft(null) : setStep((s) => s - 1))}>
-                {step === 0 ? (
-                  "Annuler"
-                ) : (
-                  <>
-                    <ArrowLeft className="mr-1.5 h-4 w-4" /> Retour
-                  </>
-                )}
-              </Button>
-              <div className="flex gap-2">
-                {step === EDIT_STEPS.length - 1 && (
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      if (!draft.title.trim()) {
-                        toast.error("Le titre est obligatoire");
-                        return;
-                      }
-                      upsertTraining({ ...draft, id: draft.id || uid("tr"), status: "Brouillon" });
-                      toast.success("Brouillon enregistré");
-                      setDraft(null);
-                    }}
-                  >
-                    Enregistrer en brouillon
-                  </Button>
-                )}
-                {step < EDIT_STEPS.length - 1 ? (
-                  <Button onClick={() => setStep((s) => Math.min(EDIT_STEPS.length - 1, s + 1))}>
-                    Continuer <ArrowRight className="ml-1.5 h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={() => {
-                      if (!draft.title.trim()) {
-                        toast.error("Le titre est obligatoire");
-                        return;
-                      }
-                      upsertTraining({ ...draft, id: draft.id || uid("tr"), status: "Publiée" });
-                      toast.success(draft.id ? "Formation mise à jour" : "Formation publiée");
-                      setDraft(null);
-                    }}
-                  >
-                    <Check className="mr-1.5 h-4 w-4" /> Publier
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );
