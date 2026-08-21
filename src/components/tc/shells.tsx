@@ -226,7 +226,16 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
               <div className="mt-1 text-[10px] uppercase tracking-widest text-gold">{user?.role}</div>
             </div>
             <div className="p-2">
-              <MenuRow icon={<UserIcon className="h-4 w-4" />} label="Mon profil" onClick={() => { setOpen(false); toast.info("Profil utilisateur", { description: `${user?.firstName} ${user?.lastName} — score ${user?.score}%` }); }} />
+              <MenuRow
+                icon={<UserIcon className="h-4 w-4" />}
+                label="Mon profil"
+                onClick={() => {
+                  setOpen(false);
+                  const admin = window.location.pathname.startsWith("/admin");
+                  navigate({ to: admin ? "/admin/profile" : "/app/profile" });
+                }}
+              />
+
               <MenuRow icon={<Settings className="h-4 w-4" />} label="Paramètres" onClick={() => { setOpen(false); toast.info("Paramètres du compte", { description: "Préférences, langue et notifications." }); }} />
               <MenuRow
                 icon={<LogOut className="h-4 w-4 text-destructive" />}
@@ -377,6 +386,7 @@ const MANAGER_NAV: { to: string; label: string; icon: typeof Home; exact?: boole
   { to: "/app/trainings", label: "Formations", icon: GraduationCap },
   { to: "/app/deliveries", label: "Livraisons", icon: Truck },
   { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/app/profile", label: "Profil", icon: UserIcon },
 ];
 
 export function ManagerShell({ children }: { children: ReactNode }) {

@@ -20,6 +20,7 @@ import { Route as AdminEvidenceRouteImport } from './routes/admin.evidence'
 import { Route as AdminGroupsRouteImport } from './routes/admin.groups'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminProcessesRouteImport } from './routes/admin.processes'
+import { Route as AdminProfileRouteImport } from './routes/admin.profile'
 import { Route as AdminRestaurantsRouteImport } from './routes/admin.restaurants'
 import { Route as AdminTrainingsRouteImport } from './routes/admin.trainings'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
@@ -29,6 +30,7 @@ import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppChatRouteImport } from './routes/app.chat'
 import { Route as AppDeliveriesRouteImport } from './routes/app.deliveries'
 import { Route as AppProcessesRouteImport } from './routes/app.processes'
+import { Route as AppProfileRouteImport } from './routes/app.profile'
 import { Route as AppTasksRouteImport } from './routes/app.tasks'
 import { Route as LoginAdminRouteImport } from './routes/login.admin'
 import { Route as LoginManagerRouteImport } from './routes/login.manager'
@@ -95,6 +97,11 @@ const AdminProcessesRoute = AdminProcessesRouteImport.update({
   path: '/processes',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminProfileRoute = AdminProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminRestaurantsRoute = AdminRestaurantsRouteImport.update({
   id: '/restaurants',
   path: '/restaurants',
@@ -138,6 +145,11 @@ const AppDeliveriesRoute = AppDeliveriesRouteImport.update({
 const AppProcessesRoute = AppProcessesRouteImport.update({
   id: '/processes',
   path: '/processes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => AppRoute,
 } as any)
 const AppTasksRoute = AppTasksRouteImport.update({
@@ -202,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/admin/groups': typeof AdminGroupsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/processes': typeof AdminProcessesRoute
+  '/admin/profile': typeof AdminProfileRoute
   '/admin/restaurants': typeof AdminRestaurantsRouteWithChildren
   '/admin/trainings': typeof AdminTrainingsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -210,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/app/chat': typeof AppChatRoute
   '/app/deliveries': typeof AppDeliveriesRoute
   '/app/processes': typeof AppProcessesRoute
+  '/app/profile': typeof AppProfileRoute
   '/app/tasks': typeof AppTasksRoute
   '/login/admin': typeof LoginAdminRoute
   '/login/manager': typeof LoginManagerRoute
@@ -232,6 +246,7 @@ export interface FileRoutesByTo {
   '/admin/groups': typeof AdminGroupsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/processes': typeof AdminProcessesRoute
+  '/admin/profile': typeof AdminProfileRoute
   '/admin/trainings': typeof AdminTrainingsRoute
   '/admin/users': typeof AdminUsersRoute
   '/app/alerts': typeof AppAlertsRoute
@@ -239,6 +254,7 @@ export interface FileRoutesByTo {
   '/app/chat': typeof AppChatRoute
   '/app/deliveries': typeof AppDeliveriesRoute
   '/app/processes': typeof AppProcessesRoute
+  '/app/profile': typeof AppProfileRoute
   '/app/tasks': typeof AppTasksRoute
   '/login/admin': typeof LoginAdminRoute
   '/login/manager': typeof LoginManagerRoute
@@ -264,6 +280,7 @@ export interface FileRoutesById {
   '/admin/groups': typeof AdminGroupsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/processes': typeof AdminProcessesRoute
+  '/admin/profile': typeof AdminProfileRoute
   '/admin/restaurants': typeof AdminRestaurantsRouteWithChildren
   '/admin/trainings': typeof AdminTrainingsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -272,6 +289,7 @@ export interface FileRoutesById {
   '/app/chat': typeof AppChatRoute
   '/app/deliveries': typeof AppDeliveriesRoute
   '/app/processes': typeof AppProcessesRoute
+  '/app/profile': typeof AppProfileRoute
   '/app/tasks': typeof AppTasksRoute
   '/login/admin': typeof LoginAdminRoute
   '/login/manager': typeof LoginManagerRoute
@@ -298,6 +316,7 @@ export interface FileRouteTypes {
     | '/admin/groups'
     | '/admin/orders'
     | '/admin/processes'
+    | '/admin/profile'
     | '/admin/restaurants'
     | '/admin/trainings'
     | '/admin/users'
@@ -306,6 +325,7 @@ export interface FileRouteTypes {
     | '/app/chat'
     | '/app/deliveries'
     | '/app/processes'
+    | '/app/profile'
     | '/app/tasks'
     | '/login/admin'
     | '/login/manager'
@@ -328,6 +348,7 @@ export interface FileRouteTypes {
     | '/admin/groups'
     | '/admin/orders'
     | '/admin/processes'
+    | '/admin/profile'
     | '/admin/trainings'
     | '/admin/users'
     | '/app/alerts'
@@ -335,6 +356,7 @@ export interface FileRouteTypes {
     | '/app/chat'
     | '/app/deliveries'
     | '/app/processes'
+    | '/app/profile'
     | '/app/tasks'
     | '/login/admin'
     | '/login/manager'
@@ -359,6 +381,7 @@ export interface FileRouteTypes {
     | '/admin/groups'
     | '/admin/orders'
     | '/admin/processes'
+    | '/admin/profile'
     | '/admin/restaurants'
     | '/admin/trainings'
     | '/admin/users'
@@ -367,6 +390,7 @@ export interface FileRouteTypes {
     | '/app/chat'
     | '/app/deliveries'
     | '/app/processes'
+    | '/app/profile'
     | '/app/tasks'
     | '/login/admin'
     | '/login/manager'
@@ -469,6 +493,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProcessesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/profile': {
+      id: '/admin/profile'
+      path: '/profile'
+      fullPath: '/admin/profile'
+      preLoaderRoute: typeof AdminProfileRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/restaurants': {
       id: '/admin/restaurants'
       path: '/restaurants'
@@ -530,6 +561,13 @@ declare module '@tanstack/react-router' {
       path: '/processes'
       fullPath: '/app/processes'
       preLoaderRoute: typeof AppProcessesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/profile': {
+      id: '/app/profile'
+      path: '/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/tasks': {
@@ -625,6 +663,7 @@ interface AdminRouteChildren {
   AdminGroupsRoute: typeof AdminGroupsRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
   AdminProcessesRoute: typeof AdminProcessesRoute
+  AdminProfileRoute: typeof AdminProfileRoute
   AdminRestaurantsRoute: typeof AdminRestaurantsRouteWithChildren
   AdminTrainingsRoute: typeof AdminTrainingsRoute
   AdminUsersRoute: typeof AdminUsersRoute
@@ -639,6 +678,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminGroupsRoute: AdminGroupsRoute,
   AdminOrdersRoute: AdminOrdersRoute,
   AdminProcessesRoute: AdminProcessesRoute,
+  AdminProfileRoute: AdminProfileRoute,
   AdminRestaurantsRoute: AdminRestaurantsRouteWithChildren,
   AdminTrainingsRoute: AdminTrainingsRoute,
   AdminUsersRoute: AdminUsersRoute,
@@ -654,6 +694,7 @@ interface AppRouteChildren {
   AppChatRoute: typeof AppChatRoute
   AppDeliveriesRoute: typeof AppDeliveriesRoute
   AppProcessesRoute: typeof AppProcessesRoute
+  AppProfileRoute: typeof AppProfileRoute
   AppTasksRoute: typeof AppTasksRoute
   AppIndexRoute: typeof AppIndexRoute
   AppProcessIdRoute: typeof AppProcessIdRoute
@@ -668,6 +709,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppChatRoute: AppChatRoute,
   AppDeliveriesRoute: AppDeliveriesRoute,
   AppProcessesRoute: AppProcessesRoute,
+  AppProfileRoute: AppProfileRoute,
   AppTasksRoute: AppTasksRoute,
   AppIndexRoute: AppIndexRoute,
   AppProcessIdRoute: AppProcessIdRoute,
