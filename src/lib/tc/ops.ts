@@ -6,6 +6,14 @@
 import { restaurants, users, TODAY, REF_DATE } from "./data";
 import type { ID } from "./types";
 import { GROUP_PHOTOS } from "./people";
+import coverFoodSafety from "@/assets/trainings/food-safety.jpg";
+import coverKitchen from "@/assets/trainings/kitchen.jpg";
+import coverProduct from "@/assets/trainings/product.jpg";
+import coverService from "@/assets/trainings/service.jpg";
+import coverCleaning from "@/assets/trainings/cleaning.jpg";
+import coverDrive from "@/assets/trainings/drive.jpg";
+import coverManagement from "@/assets/trainings/management.jpg";
+
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const shift = (days: number) => {
