@@ -347,6 +347,27 @@ export const groupCast = CASTS;
 
 export type TrainingLevel = "Débutant" | "Intermédiaire" | "Avancé";
 
+/** Type de contenu pédagogique attachable à un module OU à une étape. */
+export type TrainingMediaKind = "video" | "image" | "document" | "text";
+
+/**
+ * Contenu pédagogique. Les vidéos, images et documents proviennent toujours
+ * d'un import de fichier (jamais d'une URL saisie par l'utilisateur).
+ */
+export interface TrainingMedia {
+  id: ID;
+  kind: TrainingMediaKind;
+  title: string;
+  /** URL locale/objet issue de l'upload (ou asset packagé pour les mock data). */
+  url?: string;
+  /** Corps de texte pour kind = "text". */
+  body?: string;
+  fileName?: string;
+  fileType?: string;
+  size?: number;
+  duration?: number;
+}
+
 export interface TrainingStep {
   id: ID;
   title: string;
@@ -365,14 +386,25 @@ export interface TrainingStep {
   document?: { name: string; type: string; url?: string };
   /** Illustration de l'étape. */
   image?: string;
+  /** Contenus multiples de l'étape (vidéos, images, documents, textes). */
+  media?: TrainingMedia[];
+  /** Instructions détaillées de l'étape. */
+  instructions?: string;
 }
 
 
 export interface TrainingModule {
   id: ID;
   title: string;
+  /** Description / introduction du module. */
+  description?: string;
+  /** Contenus directement rattachés au module (indépendants des étapes). */
+  media?: TrainingMedia[];
+  /** Instructions générales du module. */
+  instructions?: string;
   steps: TrainingStep[];
 }
+
 
 export interface TrainingQuiz {
   question: string;
