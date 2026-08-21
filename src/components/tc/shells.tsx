@@ -49,6 +49,7 @@ export const ADMIN_NAV: NavItem[] = [
   { to: "/admin", label: "Command Center", module: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/restaurants", label: "Restaurants", module: "Restaurants", icon: Building2 },
   { to: "/admin/processes", label: "Processus & Contrôles", module: "Processus", icon: Workflow },
+  { to: "/admin/trainings", label: "Formations", module: "Formations", icon: GraduationCap },
   { to: "/admin/groups", label: "Groupes", module: "Groupes", icon: MessagesSquare },
   { to: "/admin/orders", label: "Commandes", module: "Commandes", icon: PackageSearch },
   { to: "/admin/users", label: "Utilisateurs", module: "Utilisateurs", icon: UsersIcon },
