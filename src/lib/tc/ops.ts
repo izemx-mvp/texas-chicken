@@ -559,6 +559,20 @@ const TRAINING_DEFS: {
   },
 ];
 
+/** Photo de couverture par catégorie de formation. */
+const COVER_BY_CATEGORY: Record<string, string> = {
+  "Hygiène & Sécurité": coverFoodSafety,
+  Cuisine: coverKitchen,
+  Produit: coverProduct,
+  Service: coverService,
+  Caisse: coverService,
+  Drive: coverDrive,
+  Opérations: coverManagement,
+  Management: coverManagement,
+};
+
+const STEP_IMAGES = [coverKitchen, coverProduct, coverFoodSafety, coverService, coverCleaning, coverDrive];
+
 export const trainings: Training[] = TRAINING_DEFS.map((d, i) => {
   let stepN = 0;
   const modules: TrainingModule[] = d.modules.map((m, mi) => ({
@@ -572,11 +586,25 @@ export const trainings: Training[] = TRAINING_DEFS.map((d, i) => {
         content: `${title} — standard Texas Chicken. Suivez la démonstration vidéo, puis reproduisez le geste sur votre poste. Le formateur ou le Shift Leader valide la bonne exécution avant de passer à l'étape suivante.`,
         videoUrl: VIDEOS[(i + si) % VIDEOS.length]!,
         duration: 4 + ((si + mi) % 5),
+        objective: `À la fin de cette étape, vous savez exécuter « ${title} » seul(e), au rythme du service et conformément au standard ${d.category}.`,
+        procedure: [
+          `Préparer le poste et le matériel nécessaire à « ${title} ».`,
+          "Réaliser le geste en suivant exactement l'ordre montré dans la vidéo.",
+          "Contrôler le résultat (visuel, température, propreté ou temps selon le cas).",
+          "Faire valider par le Shift Leader lors de la première exécution.",
+        ],
         tips: [
           "Respecter scrupuleusement l'ordre des opérations.",
           "Vérifier le matériel avant de commencer.",
+          "En cas de doute, se référer à la fiche standard avant d'agir.",
+        ],
+        mistakes: [
+          "Sauter le contrôle final pour gagner du temps.",
+          "Utiliser un matériel non nettoyé ou non vérifié.",
         ],
         warnings: si % 2 === 0 ? ["Toute non-conformité doit être signalée immédiatement au Shift Leader."] : [],
+        document: { name: `${title} — fiche geste.pdf`, type: "PDF" },
+        image: STEP_IMAGES[(i + si + mi) % STEP_IMAGES.length]!,
       };
     }),
   }));
@@ -591,11 +619,19 @@ export const trainings: Training[] = TRAINING_DEFS.map((d, i) => {
     duration,
     mandatory: d.mandatory,
     cover: AVATARS[i % AVATARS.length]!,
+    coverPhoto: COVER_BY_CATEGORY[d.category] ?? coverKitchen,
+    objectives: [
+      `Maîtriser les standards Texas Chicken de « ${d.title} ».`,
+      "Exécuter les gestes clés en autonomie pendant le service.",
+      "Identifier et corriger les non-conformités les plus fréquentes.",
+    ],
+    prerequisites: d.level === "Débutant" ? ["Aucun prérequis"] : ["Food Safety Basics validée", "1 mois d'expérience en poste"],
     mainVideo: VIDEOS[i % VIDEOS.length]!,
     documents: [
       { name: `${d.title} — fiche standard.pdf`, type: "PDF" },
       { name: `${d.title} — checklist formateur.pdf`, type: "PDF" },
     ],
+
     rules: [
       "La formation doit être suivie dans l'ordre des modules.",
       "Chaque étape validée est enregistrée dans le dossier du collaborateur.",
