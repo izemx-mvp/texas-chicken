@@ -383,7 +383,11 @@ export interface Training {
   mandatory: boolean;
   cover: string; // dégradé (repli) ou URL d'image
   coverPhoto?: string;
-  mainVideo: string;
+  /** Objectifs pédagogiques globaux. */
+  objectives?: string[];
+  /** Prérequis avant de démarrer la formation. */
+  prerequisites?: string[];
+
   documents: { name: string; type: string }[];
   rules: string[];
   modules: TrainingModule[];
