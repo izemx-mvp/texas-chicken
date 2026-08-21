@@ -613,13 +613,75 @@ const COVER_BY_CATEGORY: Record<string, string> = {
 
 const STEP_IMAGES = [coverKitchen, coverProduct, coverFoodSafety, coverService, coverCleaning, coverDrive];
 
+/** Fabrique un contenu pédagogique mock (issu d'un « import de fichier »). */
+const mkMedia = (
+  id: string,
+  kind: TrainingMediaKind,
+  title: string,
+  opts: Partial<TrainingMedia> = {},
+): TrainingMedia => ({
+  id,
+  kind,
+  title,
+  ...(kind === "video"
+    ? { fileName: `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.mp4`, fileType: "MP4", size: 24_800_000, duration: 96 }
+    : {}),
+  ...(kind === "image" ? { fileName: `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.jpg`, fileType: "JPG", size: 480_000 } : {}),
+  ...(kind === "document" ? { fileName: `${title}.pdf`, fileType: "PDF", size: 1_240_000 } : {}),
+  ...opts,
+});
+
 export const trainings: Training[] = TRAINING_DEFS.map((d, i) => {
   let stepN = 0;
   const modules: TrainingModule[] = d.modules.map((m, mi) => ({
     id: `tr${i + 1}-m${mi + 1}`,
     title: m[0],
+    description: `Contenu de référence du module « ${m[0]} » : à consulter avant de démarrer les étapes.`,
+    instructions:
+      "Visionnez d'abord les contenus du module, puis déroulez les étapes dans l'ordre. Chaque étape doit être validée par le Shift Leader lors de la première exécution.",
+    media: [
+      mkMedia(`tr${i + 1}-m${mi + 1}-v1`, "video", `${m[0]} — Introduction`, {
+        url: VIDEOS[(i + mi) % VIDEOS.length]!,
+      }),
+      ...(mi % 2 === 0
+        ? [
+            mkMedia(`tr${i + 1}-m${mi + 1}-v2`, "video", `${m[0]} — Démonstration terrain`, {
+              url: VIDEOS[(i + mi + 1) % VIDEOS.length]!,
+              duration: 142,
+            }),
+          ]
+        : []),
+      mkMedia(`tr${i + 1}-m${mi + 1}-d1`, "document", `${m[0]} — Standard Texas Chicken`),
+      mkMedia(`tr${i + 1}-m${mi + 1}-i1`, "image", `${m[0]} — Visuel de référence`, {
+        url: STEP_IMAGES[(i + mi) % STEP_IMAGES.length]!,
+      }),
+    ],
     steps: m[1].map((title, si) => {
       stepN++;
+      const media: TrainingMedia[] = [
+        mkMedia(`tr${i + 1}-s${stepN}-v1`, "video", `${title} — Démonstration`, {
+          url: VIDEOS[(i + si) % VIDEOS.length]!,
+        }),
+        ...(si % 2 === 1
+          ? [
+              mkMedia(`tr${i + 1}-s${stepN}-v2`, "video", `${title} — Cas particuliers`, {
+                url: VIDEOS[(i + si + 2) % VIDEOS.length]!,
+                duration: 74,
+              }),
+            ]
+          : []),
+        mkMedia(`tr${i + 1}-s${stepN}-i1`, "image", `${title} — Geste conforme`, {
+          url: STEP_IMAGES[(i + si + mi) % STEP_IMAGES.length]!,
+        }),
+        ...(si % 3 === 0
+          ? [
+              mkMedia(`tr${i + 1}-s${stepN}-i2`, "image", `${title} — Erreur à éviter`, {
+                url: STEP_IMAGES[(i + si + mi + 3) % STEP_IMAGES.length]!,
+              }),
+            ]
+          : []),
+        ...(si % 2 === 0 ? [mkMedia(`tr${i + 1}-s${stepN}-d1`, "document", `${title} — Fiche geste`)] : []),
+      ];
       return {
         id: `tr${i + 1}-s${stepN}`,
         title,
@@ -627,6 +689,8 @@ export const trainings: Training[] = TRAINING_DEFS.map((d, i) => {
         videoUrl: VIDEOS[(i + si) % VIDEOS.length]!,
         duration: 4 + ((si + mi) % 5),
         objective: `À la fin de cette étape, vous savez exécuter « ${title} » seul(e), au rythme du service et conformément au standard ${d.category}.`,
+        instructions: `Reproduire « ${title} » en conditions réelles, sous supervision, jusqu'à obtenir un résultat conforme deux fois de suite.`,
+        media,
         procedure: [
           `Préparer le poste et le matériel nécessaire à « ${title} ».`,
           "Réaliser le geste en suivant exactement l'ordre montré dans la vidéo.",
@@ -648,6 +712,7 @@ export const trainings: Training[] = TRAINING_DEFS.map((d, i) => {
       };
     }),
   }));
+
   const duration = modules.reduce((a, m) => a + m.steps.reduce((b, s) => b + s.duration, 0), 0);
   return {
     id: `tr${i + 1}`,
