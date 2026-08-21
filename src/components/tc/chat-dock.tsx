@@ -129,7 +129,7 @@ export function ChatDock() {
 
   const active = groups.find((g) => g.id === groupId) ?? null;
   const canEdit =
-    !!active && (can(me, "chat", "update") || (active.adminIds ?? [active.adminId]).includes(me?.id ?? ""));
+    !!active && (can(me, "chat", "Modifier") || (active.adminIds ?? [active.adminId]).includes(me?.id ?? ""));
   const msgs = active ? messagesOf(active.id, state) : [];
 
   useEffect(() => {
