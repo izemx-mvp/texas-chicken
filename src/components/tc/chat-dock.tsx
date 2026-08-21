@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
+  can,
   currentUser,
   groupsForUser,
   markGroupRead,
@@ -27,8 +28,16 @@ import {
   unreadCount,
   useStore,
 } from "@/lib/tc/store";
-import type { ChatAttachment } from "@/lib/tc/ops";
+import { toast } from "sonner";
+import { upsertGroup, useStore as _useStore } from "@/lib/tc/store";
+import type { ChatAttachment, ChatGroup } from "@/lib/tc/ops";
 import { GroupAvatar, UserAvatar } from "./avatar";
+import { TCModal } from "./modal";
+import { PhotoUpload } from "./upload";
+import { MemberPicker } from "./member-picker";
+import { TCSelect } from "./select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 /* ------------------------ état global du dock ------------------------ */
 type DockState = { open: boolean; groupId: string | null };
@@ -112,6 +121,8 @@ export function ChatDock() {
   const [pending, setPending] = useState<ChatAttachment[]>([]);
   const [emoji, setEmoji] = useState(false);
   const [members, setMembers] = useState(false);
+  const [details, setDetails] = useState(false);
+  const [editGroup, setEditGroup] = useState<ChatGroup | null>(null);
   const [mentionOpen, setMentionOpen] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -195,13 +206,20 @@ export function ChatDock() {
                 <button onClick={() => setDock({ groupId: null })} aria-label="Retour" className="text-gold">
                   <ArrowLeft className="h-4 w-4" />
                 </button>
-                <GroupAvatar avatar={active.avatar} name={active.name} size={32} rounded="rounded-lg" />
-                <div className="min-w-0 flex-1 leading-tight">
-                  <div className="truncate text-sm font-semibold">{active.name}</div>
-                  <div className="truncate text-[10px] text-muted-foreground">
-                    {active.memberIds.length} membres · {active.type}
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setDetails(true)}
+                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                  aria-label="Détails du groupe"
+                >
+                  <GroupAvatar avatar={active.avatar} name={active.name} size={32} rounded="rounded-lg" />
+                  <span className="min-w-0 flex-1 leading-tight">
+                    <span className="block truncate text-sm font-semibold">{active.name}</span>
+                    <span className="block truncate text-[10px] text-muted-foreground">
+                      {active.memberIds.length} membres · {active.type}
+                    </span>
+                  </span>
+                </button>
                 <button onClick={() => setMembers((m) => !m)} aria-label="Membres" className="text-muted-foreground hover:text-gold">
                   <Users className="h-4 w-4" />
                 </button>
