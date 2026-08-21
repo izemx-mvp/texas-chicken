@@ -1071,7 +1071,17 @@ function nowStamp() {
   return `${state.activeDate} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-export function sendMessage(groupId: string, userId: string, text: string) {
+export function sendMessage(
+  groupId: string,
+  userId: string,
+  text: string,
+  attachments?: { name: string; kind: "Image" | "Document"; url?: string }[],
+) {
+  const mentions = (text.match(/@([\p{L}\-']+)/gu) ?? [])
+    .map((m) => m.slice(1).toLowerCase())
+    .flatMap((n) =>
+      state.users.filter((u) => u.firstName.toLowerCase() === n || u.lastName.toLowerCase() === n).map((u) => u.id),
+    );
   const msg: ChatMessage = {
     id: uid("m"),
     groupId,
@@ -1079,10 +1089,13 @@ export function sendMessage(groupId: string, userId: string, text: string) {
     text: text.trim(),
     at: nowStamp(),
     readBy: [userId],
+    ...(attachments && attachments.length ? { attachments } : {}),
+    ...(mentions.length ? { mentions } : {}),
   };
   setState((s) => ({ chatMessages: [...s.chatMessages, msg] }));
   return msg;
 }
+
 
 export function markGroupRead(groupId: string, userId: string) {
   setState((s) => ({
