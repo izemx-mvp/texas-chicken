@@ -60,6 +60,8 @@ export interface ChatGroup {
   avatar: string; // dégradé CSS
   memberIds: ID[];
   adminId: ID;
+  /** Administrateurs additionnels du groupe. */
+  adminIds?: ID[];
   createdAt: string;
   status: "Actif" | "Inactif";
 }
