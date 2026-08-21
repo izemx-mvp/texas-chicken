@@ -21,6 +21,7 @@ import {
   trainingProgress as seedTrainingProgress,
   suppliers as seedSuppliers,
   purchaseOrders as seedPurchaseOrders,
+  assigneesOf,
 } from "./ops";
 import type {
   ChatGroup,
