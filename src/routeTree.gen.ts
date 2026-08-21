@@ -21,6 +21,7 @@ import { Route as AdminGroupsRouteImport } from './routes/admin.groups'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminProcessesRouteImport } from './routes/admin.processes'
 import { Route as AdminRestaurantsRouteImport } from './routes/admin.restaurants'
+import { Route as AdminTrainingsRouteImport } from './routes/admin.trainings'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppAlertsRouteImport } from './routes/app.alerts'
@@ -97,6 +98,11 @@ const AdminProcessesRoute = AdminProcessesRouteImport.update({
 const AdminRestaurantsRoute = AdminRestaurantsRouteImport.update({
   id: '/restaurants',
   path: '/restaurants',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminTrainingsRoute = AdminTrainingsRouteImport.update({
+  id: '/trainings',
+  path: '/trainings',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
@@ -197,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/restaurants': typeof AdminRestaurantsRouteWithChildren
+  '/admin/trainings': typeof AdminTrainingsRoute
   '/admin/users': typeof AdminUsersRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/analytics': typeof AppAnalyticsRoute
@@ -225,6 +232,7 @@ export interface FileRoutesByTo {
   '/admin/groups': typeof AdminGroupsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/processes': typeof AdminProcessesRoute
+  '/admin/trainings': typeof AdminTrainingsRoute
   '/admin/users': typeof AdminUsersRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/analytics': typeof AppAnalyticsRoute
@@ -257,6 +265,7 @@ export interface FileRoutesById {
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/restaurants': typeof AdminRestaurantsRouteWithChildren
+  '/admin/trainings': typeof AdminTrainingsRoute
   '/admin/users': typeof AdminUsersRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/analytics': typeof AppAnalyticsRoute
@@ -290,6 +299,7 @@ export interface FileRouteTypes {
     | '/admin/orders'
     | '/admin/processes'
     | '/admin/restaurants'
+    | '/admin/trainings'
     | '/admin/users'
     | '/app/alerts'
     | '/app/analytics'
@@ -318,6 +328,7 @@ export interface FileRouteTypes {
     | '/admin/groups'
     | '/admin/orders'
     | '/admin/processes'
+    | '/admin/trainings'
     | '/admin/users'
     | '/app/alerts'
     | '/app/analytics'
@@ -349,6 +360,7 @@ export interface FileRouteTypes {
     | '/admin/orders'
     | '/admin/processes'
     | '/admin/restaurants'
+    | '/admin/trainings'
     | '/admin/users'
     | '/app/alerts'
     | '/app/analytics'
@@ -462,6 +474,13 @@ declare module '@tanstack/react-router' {
       path: '/restaurants'
       fullPath: '/admin/restaurants'
       preLoaderRoute: typeof AdminRestaurantsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/trainings': {
+      id: '/admin/trainings'
+      path: '/trainings'
+      fullPath: '/admin/trainings'
+      preLoaderRoute: typeof AdminTrainingsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/users': {
@@ -607,6 +626,7 @@ interface AdminRouteChildren {
   AdminOrdersRoute: typeof AdminOrdersRoute
   AdminProcessesRoute: typeof AdminProcessesRoute
   AdminRestaurantsRoute: typeof AdminRestaurantsRouteWithChildren
+  AdminTrainingsRoute: typeof AdminTrainingsRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminExecutionIdRoute: typeof AdminExecutionIdRoute
@@ -620,6 +640,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminOrdersRoute: AdminOrdersRoute,
   AdminProcessesRoute: AdminProcessesRoute,
   AdminRestaurantsRoute: AdminRestaurantsRouteWithChildren,
+  AdminTrainingsRoute: AdminTrainingsRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminExecutionIdRoute: AdminExecutionIdRoute,
