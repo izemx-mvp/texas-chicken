@@ -323,7 +323,8 @@ function TrainingsAdminPage() {
               )}
             </div>
           </div>
-        </div>
+        </TCModal>
+
       )}
 
       {/* ---------------- création / édition ---------------- */}
