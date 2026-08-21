@@ -226,27 +226,39 @@ function GroupsPage() {
                       ]}
                     />
                   </label>
-                  <div className="sm:col-span-2">
-                    <span className="mb-2 block text-[10px] uppercase tracking-widest text-muted-foreground">
+                  <div className="sm:col-span-2 space-y-3">
+                    <span className="block text-[10px] uppercase tracking-widest text-muted-foreground">
                       Photo du groupe
                     </span>
-                    <div className="flex flex-wrap gap-2">
-                      {GROUP_PHOTO_LIBRARY.map((p) => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => patch({ avatar: p.url })}
-                          className={cn(
-                            "overflow-hidden rounded-xl border-2 transition-all",
-                            draft.avatar === p.url ? "border-gold" : "border-transparent opacity-70 hover:opacity-100",
-                          )}
-                          title={p.label}
-                        >
-                          <img src={p.url} alt={p.label} loading="lazy" width={96} height={64} className="h-16 w-24 object-cover" />
-                        </button>
-                      ))}
+                    <PhotoUpload
+                      value={draft.avatar}
+                      onChange={(url) => patch({ avatar: url ?? "" })}
+                      label="Photo du groupe"
+                      hint="JPG ou PNG — carré recommandé"
+                    />
+                    <div>
+                      <span className="mb-1.5 block text-[10px] uppercase tracking-widest text-muted-foreground">
+                        Ou partir d'une photo suggérée
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {GROUP_PHOTO_LIBRARY.map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => patch({ avatar: p.url })}
+                            className={cn(
+                              "overflow-hidden rounded-xl border-2 transition-all",
+                              draft.avatar === p.url ? "border-gold" : "border-transparent opacity-70 hover:opacity-100",
+                            )}
+                            title={p.label}
+                          >
+                            <img src={p.url} alt={p.label} loading="lazy" width={96} height={64} className="h-16 w-24 object-cover" />
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
+
                 </div>
               )}
 
