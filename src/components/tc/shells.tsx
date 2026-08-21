@@ -386,6 +386,7 @@ const MANAGER_NAV: { to: string; label: string; icon: typeof Home; exact?: boole
   { to: "/app/trainings", label: "Formations", icon: GraduationCap },
   { to: "/app/deliveries", label: "Livraisons", icon: Truck },
   { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/app/profile", label: "Profil", icon: UserIcon },
 ];
 
 export function ManagerShell({ children }: { children: ReactNode }) {
