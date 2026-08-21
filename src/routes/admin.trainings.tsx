@@ -256,19 +256,21 @@ function TrainingsAdminPage() {
 
       {/* ---------------- suivi détaillé ---------------- */}
       {detail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="glass animate-rise max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="font-display text-xl font-bold uppercase">{detail.training.title}</h2>
-                <p className="text-xs text-muted-foreground">
-                  {detail.training.category} · {detail.totalSteps} étapes · {detail.assigned} collaborateurs assignés
-                </p>
-              </div>
-              <button onClick={() => setViewId(null)} aria-label="Fermer">
-                <X className="h-5 w-5" />
-              </button>
+        <TCModal
+          title={detail.training.title}
+          subtitle={`${detail.training.category} · ${detail.totalSteps} étapes · ${detail.assigned} collaborateurs assignés`}
+          onClose={() => setViewId(null)}
+          size="xl"
+          footer={
+            <div className="flex justify-end">
+              <Button variant="ghost" onClick={() => setViewId(null)}>
+                Fermer
+              </Button>
             </div>
+          }
+        >
+          <div className="space-y-4">
+
 
             <div className="mt-4 grid gap-2 sm:grid-cols-4">
               {[
