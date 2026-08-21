@@ -23,7 +23,7 @@ import { KpiCard, SectionTitle, StatusPill } from "@/components/tc/bits";
 import { DataTable, type Column } from "@/components/tc/data-table";
 import { TCSelect } from "@/components/tc/select";
 import { UserAvatar } from "@/components/tc/avatar";
-import { DocumentUpload, ImageUpload, VideoUpload } from "@/components/tc/upload";
+import { DocumentUpload, ImageUpload, MediaUploader, VideoUpload } from "@/components/tc/upload";
 
 import { MemberPicker } from "@/components/tc/member-picker";
 import { cn } from "@/lib/utils";
@@ -38,7 +38,7 @@ import {
   useStore,
   type TrainingAdminStats,
 } from "@/lib/tc/store";
-import type { Training, TrainingLevel } from "@/lib/tc/ops";
+import type { Training, TrainingLevel, TrainingModule, TrainingStep } from "@/lib/tc/ops";
 
 export const Route = createFileRoute("/admin/trainings")({
   head: () => ({
@@ -711,6 +711,153 @@ function TrainingsAdminPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ===================== Éditeur de module & d'étapes ===================== */
+
+function ModuleEditor({
+  module: m,
+  index,
+  count,
+  onChange,
+  onMove,
+  onRemove,
+}: {
+  module: TrainingModule;
+  index: number;
+  count: number;
+  onChange: (m: TrainingModule) => void;
+  onMove: (dir: -1 | 1) => void;
+  onRemove: () => void;
+}) {
+  const [openStep, setOpenStep] = useState<string | null>(null);
+
+  const setStep = (si: number, patchStep: Partial<TrainingStep>) => {
+    const steps = [...m.steps];
+    steps[si] = { ...steps[si]!, ...patchStep };
+    onChange({ ...m, steps });
+  };
+
+  return (
+    <div className="rounded-2xl border border-border p-3">
+      <div className="flex items-center gap-2">
+        <span className="shrink-0 text-[10px] uppercase tracking-widest text-gold">
+          Module {String(index + 1).padStart(2, "0")}
+        </span>
+        <Input value={m.title} onChange={(e) => onChange({ ...m, title: e.target.value })} />
+        <Button size="icon" variant="ghost" aria-label="Monter" disabled={index === 0} onClick={() => onMove(-1)}>
+          <ChevronUp className="h-4 w-4" />
+        </Button>
+        <Button size="icon" variant="ghost" aria-label="Descendre" disabled={index === count - 1} onClick={() => onMove(1)}>
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+        <Button size="icon" variant="ghost" aria-label="Supprimer le module" onClick={onRemove}>
+          <Trash2 className="h-4 w-4 text-destructive" />
+        </Button>
+      </div>
+
+      <label className="mt-2 block">
+        <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">
+          Instructions du module
+        </span>
+        <textarea
+          value={m.instructions ?? ""}
+          onChange={(e) => onChange({ ...m, instructions: e.target.value })}
+          rows={2}
+          className="w-full rounded-xl border border-border bg-secondary/40 px-3 py-2 text-sm outline-none"
+        />
+      </label>
+
+      <div className="mt-2">
+        <MediaUploader
+          value={m.media ?? []}
+          onChange={(media) => onChange({ ...m, media })}
+          title="Contenu du module (vidéos, documents, images, texte)"
+        />
+      </div>
+
+      <div className="mt-3 space-y-2 pl-1">
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+          Étapes du module ({m.steps.length})
+        </div>
+        {m.steps.map((st, si) => (
+          <div key={st.id} className="rounded-xl border border-border">
+            <div className="flex items-center gap-2 p-2">
+              <span className="w-8 shrink-0 text-[10px] uppercase tracking-widest text-gold">
+                {String(si + 1).padStart(2, "0")}
+              </span>
+              <Input value={st.title} onChange={(e) => setStep(si, { title: e.target.value })} />
+              <Input
+                type="number"
+                className="w-20"
+                value={st.duration}
+                onChange={(e) => setStep(si, { duration: Number(e.target.value) || 0 })}
+              />
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setOpenStep((v) => (v === st.id ? null : st.id))}
+              >
+                {openStep === st.id ? "Fermer" : "Contenu"}
+                <span className="ml-1.5 text-[10px] text-gold">{(st.media ?? []).length}</span>
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label="Supprimer l'étape"
+                onClick={() => onChange({ ...m, steps: m.steps.filter((x) => x.id !== st.id) })}
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+            {openStep === st.id && (
+              <div className="space-y-2 border-t border-border p-3">
+                <label className="block">
+                  <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">
+                    Instructions de l'étape
+                  </span>
+                  <textarea
+                    value={st.instructions ?? st.content ?? ""}
+                    onChange={(e) => setStep(si, { instructions: e.target.value })}
+                    rows={3}
+                    className="w-full rounded-xl border border-border bg-secondary/40 px-3 py-2 text-sm outline-none"
+                  />
+                </label>
+                <MediaUploader
+                  value={st.media ?? []}
+                  onChange={(media) => setStep(si, { media })}
+                  title="Contenu de l'étape (vidéos, documents, images, texte)"
+                />
+              </div>
+            )}
+          </div>
+        ))}
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() =>
+            onChange({
+              ...m,
+              steps: [
+                ...m.steps,
+                {
+                  id: uid("s"),
+                  title: `Étape ${m.steps.length + 1}`,
+                  content: "",
+                  duration: 5,
+                  tips: [],
+                  warnings: [],
+                  media: [],
+                },
+              ],
+            })
+          }
+        >
+          <Plus className="mr-1.5 h-4 w-4" /> Ajouter une étape
+        </Button>
+      </div>
     </div>
   );
 }
