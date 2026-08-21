@@ -510,122 +510,24 @@ function TrainingsAdminPage() {
               {step === 3 && (
                 <div className="space-y-3">
                   {draft.modules.map((m, mi) => (
-                    <div key={m.id} className="rounded-2xl border border-border p-3">
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={m.title}
-                          onChange={(e) => {
-                            const modules = [...draft.modules];
-                            modules[mi] = { ...m, title: e.target.value };
-                            patch({ modules });
-                          }}
-                        />
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          aria-label="Monter"
-                          disabled={mi === 0}
-                          onClick={() => {
-                            const modules = [...draft.modules];
-                            const [x] = modules.splice(mi, 1);
-                            modules.splice(mi - 1, 0, x!);
-                            patch({ modules });
-                          }}
-                        >
-                          <ChevronUp className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          aria-label="Descendre"
-                          disabled={mi === draft.modules.length - 1}
-                          onClick={() => {
-                            const modules = [...draft.modules];
-                            const [x] = modules.splice(mi, 1);
-                            modules.splice(mi + 1, 0, x!);
-                            patch({ modules });
-                          }}
-                        >
-                          <ChevronDown className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          aria-label="Supprimer le module"
-                          onClick={() => patch({ modules: draft.modules.filter((x) => x.id !== m.id) })}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-
-                      <div className="mt-2 space-y-1.5 pl-2">
-                        {m.steps.map((st, si) => (
-                          <div key={st.id} className="flex items-center gap-2">
-                            <span className="w-8 shrink-0 text-[10px] uppercase tracking-widest text-gold">
-                              {String(si + 1).padStart(2, "0")}
-                            </span>
-                            <Input
-                              value={st.title}
-                              onChange={(e) => {
-                                const modules = [...draft.modules];
-                                const steps = [...m.steps];
-                                steps[si] = { ...st, title: e.target.value };
-                                modules[mi] = { ...m, steps };
-                                patch({ modules });
-                              }}
-                            />
-                            <Input
-                              type="number"
-                              className="w-20"
-                              value={st.duration}
-                              onChange={(e) => {
-                                const modules = [...draft.modules];
-                                const steps = [...m.steps];
-                                steps[si] = { ...st, duration: Number(e.target.value) || 0 };
-                                modules[mi] = { ...m, steps };
-                                patch({ modules });
-                              }}
-                            />
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              aria-label="Supprimer la leçon"
-                              onClick={() => {
-                                const modules = [...draft.modules];
-                                modules[mi] = { ...m, steps: m.steps.filter((x) => x.id !== st.id) };
-                                patch({ modules });
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        ))}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            const modules = [...draft.modules];
-                            modules[mi] = {
-                              ...m,
-                              steps: [
-                                ...m.steps,
-                                {
-                                  id: uid("s"),
-                                  title: `Leçon ${m.steps.length + 1}`,
-                                  content: "",
-                                  duration: 5,
-                                  tips: [],
-                                  warnings: [],
-                                },
-                              ],
-                            };
-                            patch({ modules });
-                          }}
-                        >
-                          <Plus className="mr-1.5 h-4 w-4" /> Ajouter une leçon
-                        </Button>
-                      </div>
-                    </div>
+                    <ModuleEditor
+                      key={m.id}
+                      module={m}
+                      index={mi}
+                      count={draft.modules.length}
+                      onChange={(next) => {
+                        const modules = [...draft.modules];
+                        modules[mi] = next;
+                        patch({ modules });
+                      }}
+                      onMove={(dir) => {
+                        const modules = [...draft.modules];
+                        const [x] = modules.splice(mi, 1);
+                        modules.splice(mi + dir, 0, x!);
+                        patch({ modules });
+                      }}
+                      onRemove={() => patch({ modules: draft.modules.filter((x) => x.id !== m.id) })}
+                    />
                   ))}
                   <Button
                     variant="ghost"
@@ -633,7 +535,7 @@ function TrainingsAdminPage() {
                       patch({
                         modules: [
                           ...draft.modules,
-                          { id: uid("m"), title: `Module ${draft.modules.length + 1}`, steps: [] },
+                          { id: uid("m"), title: `Module ${draft.modules.length + 1}`, steps: [], media: [] },
                         ],
                       })
                     }
@@ -642,6 +544,7 @@ function TrainingsAdminPage() {
                   </Button>
                 </div>
               )}
+
 
               {step === 4 && (
                 <div className="space-y-3">
