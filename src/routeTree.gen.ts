@@ -29,6 +29,7 @@ import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppChatRouteImport } from './routes/app.chat'
 import { Route as AppDeliveriesRouteImport } from './routes/app.deliveries'
 import { Route as AppProcessesRouteImport } from './routes/app.processes'
+import { Route as AppProfileRouteImport } from './routes/app.profile'
 import { Route as AppTasksRouteImport } from './routes/app.tasks'
 import { Route as LoginAdminRouteImport } from './routes/login.admin'
 import { Route as LoginManagerRouteImport } from './routes/login.manager'
@@ -140,6 +141,11 @@ const AppProcessesRoute = AppProcessesRouteImport.update({
   path: '/processes',
   getParentRoute: () => AppRoute,
 } as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppTasksRoute = AppTasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
@@ -210,6 +216,7 @@ export interface FileRoutesByFullPath {
   '/app/chat': typeof AppChatRoute
   '/app/deliveries': typeof AppDeliveriesRoute
   '/app/processes': typeof AppProcessesRoute
+  '/app/profile': typeof AppProfileRoute
   '/app/tasks': typeof AppTasksRoute
   '/login/admin': typeof LoginAdminRoute
   '/login/manager': typeof LoginManagerRoute
@@ -239,6 +246,7 @@ export interface FileRoutesByTo {
   '/app/chat': typeof AppChatRoute
   '/app/deliveries': typeof AppDeliveriesRoute
   '/app/processes': typeof AppProcessesRoute
+  '/app/profile': typeof AppProfileRoute
   '/app/tasks': typeof AppTasksRoute
   '/login/admin': typeof LoginAdminRoute
   '/login/manager': typeof LoginManagerRoute
@@ -272,6 +280,7 @@ export interface FileRoutesById {
   '/app/chat': typeof AppChatRoute
   '/app/deliveries': typeof AppDeliveriesRoute
   '/app/processes': typeof AppProcessesRoute
+  '/app/profile': typeof AppProfileRoute
   '/app/tasks': typeof AppTasksRoute
   '/login/admin': typeof LoginAdminRoute
   '/login/manager': typeof LoginManagerRoute
@@ -306,6 +315,7 @@ export interface FileRouteTypes {
     | '/app/chat'
     | '/app/deliveries'
     | '/app/processes'
+    | '/app/profile'
     | '/app/tasks'
     | '/login/admin'
     | '/login/manager'
@@ -335,6 +345,7 @@ export interface FileRouteTypes {
     | '/app/chat'
     | '/app/deliveries'
     | '/app/processes'
+    | '/app/profile'
     | '/app/tasks'
     | '/login/admin'
     | '/login/manager'
@@ -367,6 +378,7 @@ export interface FileRouteTypes {
     | '/app/chat'
     | '/app/deliveries'
     | '/app/processes'
+    | '/app/profile'
     | '/app/tasks'
     | '/login/admin'
     | '/login/manager'
@@ -532,6 +544,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProcessesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/profile': {
+      id: '/app/profile'
+      path: '/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/tasks': {
       id: '/app/tasks'
       path: '/tasks'
@@ -654,6 +673,7 @@ interface AppRouteChildren {
   AppChatRoute: typeof AppChatRoute
   AppDeliveriesRoute: typeof AppDeliveriesRoute
   AppProcessesRoute: typeof AppProcessesRoute
+  AppProfileRoute: typeof AppProfileRoute
   AppTasksRoute: typeof AppTasksRoute
   AppIndexRoute: typeof AppIndexRoute
   AppProcessIdRoute: typeof AppProcessIdRoute
@@ -668,6 +688,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppChatRoute: AppChatRoute,
   AppDeliveriesRoute: AppDeliveriesRoute,
   AppProcessesRoute: AppProcessesRoute,
+  AppProfileRoute: AppProfileRoute,
   AppTasksRoute: AppTasksRoute,
   AppIndexRoute: AppIndexRoute,
   AppProcessIdRoute: AppProcessIdRoute,
