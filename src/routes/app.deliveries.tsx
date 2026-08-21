@@ -8,6 +8,7 @@ import { SectionTitle, StatusPill } from "@/components/tc/bits";
 import { cn } from "@/lib/utils";
 import { currentUser, deliveryStats, orderTotal, ordersFor, receiveOrder, useStore } from "@/lib/tc/store";
 import type { PurchaseOrder } from "@/lib/tc/ops";
+import { ChatContextButton } from "@/components/tc/chat-dock";
 
 export const Route = createFileRoute("/app/deliveries")({
   head: () => ({
@@ -48,7 +49,10 @@ function DeliveriesPage() {
 
   return (
     <div className="space-y-4">
-      <SectionTitle title="Livraisons" subtitle="Commandes fournisseurs de votre restaurant" />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <SectionTitle title="Livraisons" subtitle="Commandes fournisseurs de votre restaurant" />
+        <ChatContextButton label="Discuter livraisons" target={{ match: "logistique" }} />
+      </div>
 
       <div className="grid grid-cols-4 gap-2">
         {[
