@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Check, MessageSquare, Pencil, Plus, Power, Trash2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, MessageSquare, Pencil, Plus, Power, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,10 @@ import { DataTable, type Column } from "@/components/tc/data-table";
 import { cn } from "@/lib/utils";
 import { messagesOf, removeGroup, toggleGroupStatus, uid, upsertGroup, useStore } from "@/lib/tc/store";
 import { GROUP_TYPES, type ChatGroup, type GroupType } from "@/lib/tc/ops";
+import { GROUP_PHOTO_LIBRARY } from "@/lib/tc/people";
 import { TCSelect } from "@/components/tc/select";
+import { GroupAvatar, UserAvatar } from "@/components/tc/avatar";
+import { MemberPicker } from "@/components/tc/member-picker";
 
 export const Route = createFileRoute("/admin/groups")({
   head: () => ({
@@ -29,17 +32,12 @@ export const Route = createFileRoute("/admin/groups")({
   component: GroupsPage,
 });
 
-const AVATARS = [
-  "linear-gradient(135deg,#d8452f,#f0a32f)",
-  "linear-gradient(135deg,#2f6fd8,#39c2c9)",
-  "linear-gradient(135deg,#8e44ad,#e8b23a)",
-  "linear-gradient(135deg,#1f8a54,#a8d94a)",
-  "linear-gradient(135deg,#34495e,#5f8fb0)",
-];
+const STEPS = ["Informations", "Membres", "Administrateurs", "Vérification", "Créer"];
 
 function GroupsPage() {
   const state = useStore((s) => s);
   const [draft, setDraft] = useState<ChatGroup | null>(null);
+  const [step, setStep] = useState(0);
 
   const empty = (): ChatGroup => ({
     id: "",
@@ -47,12 +45,18 @@ function GroupsPage() {
     description: "",
     type: "Groupe restaurant",
     restaurantId: state.restaurants[0]?.id ?? null,
-    avatar: AVATARS[state.chatGroups.length % AVATARS.length]!,
+    avatar: GROUP_PHOTO_LIBRARY[state.chatGroups.length % GROUP_PHOTO_LIBRARY.length]!.url,
     memberIds: [],
     adminId: state.users[0]?.id ?? "",
+    adminIds: state.users[0] ? [state.users[0].id] : [],
     createdAt: state.activeDate,
     status: "Actif",
   });
+
+  const open = (g: ChatGroup | null) => {
+    setDraft(g ?? empty());
+    setStep(0);
+  };
 
   const columns: Column<ChatGroup>[] = [
     {
@@ -61,8 +65,8 @@ function GroupsPage() {
       sortable: true,
       value: (g) => g.name,
       render: (g) => (
-        <div className="flex items-center gap-2">
-          <span className="h-8 w-8 shrink-0 rounded-lg" style={{ background: g.avatar }} />
+        <div className="flex items-center gap-2.5">
+          <GroupAvatar avatar={g.avatar} name={g.name} size={38} rounded="rounded-lg" />
           <div>
             <div className="font-semibold">{g.name}</div>
             <div className="text-[11px] text-muted-foreground">{g.description}</div>
@@ -76,7 +80,22 @@ function GroupsPage() {
       header: "Restaurant",
       value: (g) => state.restaurants.find((r) => r.id === g.restaurantId)?.name ?? "Réseau",
     },
-    { key: "members", header: "Membres", sortable: true, value: (g) => g.memberIds.length },
+    {
+      key: "members",
+      header: "Membres",
+      sortable: true,
+      value: (g) => g.memberIds.length,
+      render: (g) => (
+        <div className="flex items-center">
+          {g.memberIds.slice(0, 4).map((id) => (
+            <span key={id} className="-ml-2 first:ml-0">
+              <UserAvatar user={state.users.find((u) => u.id === id)} size={24} rounded="rounded-full" />
+            </span>
+          ))}
+          <span className="ml-2 text-xs text-muted-foreground">{g.memberIds.length}</span>
+        </div>
+      ),
+    },
     { key: "messages", header: "Messages", sortable: true, value: (g) => messagesOf(g.id, state).length },
     { key: "status", header: "Statut", value: (g) => g.status, render: (g) => <StatusPill status={g.status} /> },
     {
@@ -87,7 +106,7 @@ function GroupsPage() {
           <Button size="icon" variant="ghost" aria-label="Activer" onClick={() => toggleGroupStatus(g.id)}>
             <Power className="h-4 w-4" />
           </Button>
-          <Button size="icon" variant="ghost" aria-label="Modifier" onClick={() => setDraft({ ...g })}>
+          <Button size="icon" variant="ghost" aria-label="Modifier" onClick={() => open({ ...g })}>
             <Pencil className="h-4 w-4" />
           </Button>
           <Button
@@ -108,13 +127,34 @@ function GroupsPage() {
 
   const patch = (p: Partial<ChatGroup>) => setDraft((d) => (d ? { ...d, ...p } : d));
 
+  const save = () => {
+    if (!draft) return;
+    if (!draft.name.trim()) {
+      toast.error("Le nom du groupe est obligatoire");
+      setStep(0);
+      return;
+    }
+    const admins = draft.adminIds?.length ? draft.adminIds : [draft.adminId].filter(Boolean);
+    upsertGroup({
+      ...draft,
+      id: draft.id || uid("g"),
+      adminId: admins[0] ?? draft.adminId,
+      adminIds: admins,
+      memberIds: Array.from(new Set([...draft.memberIds, ...admins])),
+    });
+    toast.success(draft.id ? "Groupe mis à jour" : "Groupe créé");
+    setDraft(null);
+  };
+
+  const admins = (draft?.adminIds?.length ? draft.adminIds : draft ? [draft.adminId] : []).filter(Boolean);
+
   return (
     <div className="space-y-5">
       <SectionTitle
         title="Groupes de communication"
         subtitle={`${state.chatGroups.length} groupes · ${state.chatMessages.length} messages échangés`}
         action={
-          <Button onClick={() => setDraft(empty())}>
+          <Button onClick={() => open(null)}>
             <Plus className="mr-1.5 h-4 w-4" /> Nouveau groupe
           </Button>
         }
@@ -124,106 +164,181 @@ function GroupsPage() {
 
       {draft && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="glass animate-rise max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl p-6">
+          <div className="glass animate-rise max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl p-6">
             <div className="flex items-start justify-between">
-              <h2 className="font-display text-xl font-bold uppercase">
-                {draft.id ? "Modifier le groupe" : "Nouveau groupe"}
-              </h2>
+              <div>
+                <h2 className="font-display text-xl font-bold uppercase">
+                  {draft.id ? "Modifier le groupe" : "Nouveau groupe"}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Étape {String(step + 1).padStart(2, "0")} — {STEPS[step]}
+                </p>
+              </div>
               <button onClick={() => setDraft(null)} aria-label="Fermer">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className="block sm:col-span-2">
-                <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">Nom</span>
-                <Input value={draft.name} onChange={(e) => patch({ name: e.target.value })} />
-              </label>
-              <label className="block sm:col-span-2">
-                <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">Description</span>
-                <Input value={draft.description} onChange={(e) => patch({ description: e.target.value })} />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">Type</span>
-                <TCSelect value={draft.type} onChange={(v) => patch({ type: v as GroupType })} options={GROUP_TYPES.map((t) => ({ value: t, label: t }))} />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">Restaurant</span>
-                <TCSelect
-                  value={draft.restaurantId ?? ""}
-                  onChange={(v) => patch({ restaurantId: v || null })}
-                  searchable
-                  options={[{ value: "", label: "Réseau / siège", description: "Groupe transverse" }, ...state.restaurants.map((r) => ({ value: r.id, label: r.name, description: r.city, group: "Restaurants" }))]}
-                />
-              </label>
-              <label className="block sm:col-span-2">
-                <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Administrateur du groupe
-                </span>
-                <TCSelect
-                  value={draft.adminId}
-                  onChange={(v) => patch({ adminId: v })}
-                  searchable
-                  options={state.users.map((u) => ({ value: u.id, label: `${u.firstName} ${u.lastName}`, description: u.email, hint: u.role, group: u.role }))}
-                />
-              </label>
+            {/* stepper */}
+            <div className="mt-4 flex items-center gap-1">
+              {STEPS.map((s, i) => (
+                <button
+                  key={s}
+                  onClick={() => setStep(i)}
+                  className={cn(
+                    "flex-1 rounded-full px-2 py-1.5 text-[10px] uppercase tracking-widest transition-colors",
+                    i === step ? "bg-brand/20 text-foreground" : i < step ? "bg-success/15 text-success" : "bg-secondary/50 text-muted-foreground",
+                  )}
+                >
+                  {String(i + 1).padStart(2, "0")} · {s}
+                </button>
+              ))}
             </div>
 
-            <div className="mt-4">
-              <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">
-                Membres ({draft.memberIds.length})
-              </div>
-              <div className="grid max-h-52 gap-1 overflow-y-auto rounded-2xl border border-border p-2 sm:grid-cols-2">
-                {state.users.map((u) => {
-                  const on = draft.memberIds.includes(u.id);
-                  return (
-                    <button
-                      key={u.id}
-                      onClick={() =>
-                        patch({
-                          memberIds: on ? draft.memberIds.filter((x) => x !== u.id) : [...draft.memberIds, u.id],
-                        })
-                      }
-                      className={cn(
-                        "flex items-center gap-2 rounded-xl px-3 py-2 text-left text-xs transition-colors",
-                        on ? "bg-brand/15 text-foreground" : "text-muted-foreground hover:bg-secondary/50",
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "grid h-4 w-4 shrink-0 place-items-center rounded border",
-                          on ? "border-success/60 bg-success/25 text-success" : "border-border",
-                        )}
-                      >
-                        {on && <Check className="h-3 w-3" />}
-                      </span>
-                      <span className="truncate">
-                        {u.firstName} {u.lastName}
-                      </span>
-                      <span className="ml-auto shrink-0 text-[10px]">{u.role}</span>
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="mt-5 min-h-72">
+              {step === 0 && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block sm:col-span-2">
+                    <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">Nom</span>
+                    <Input value={draft.name} onChange={(e) => patch({ name: e.target.value })} placeholder="Restaurant Casablanca — Équipe" />
+                  </label>
+                  <label className="block sm:col-span-2">
+                    <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">Description</span>
+                    <Input value={draft.description} onChange={(e) => patch({ description: e.target.value })} />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">Type</span>
+                    <TCSelect
+                      value={draft.type}
+                      onChange={(v) => patch({ type: v as GroupType })}
+                      options={GROUP_TYPES.map((t) => ({ value: t, label: t }))}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">Restaurant</span>
+                    <TCSelect
+                      value={draft.restaurantId ?? ""}
+                      onChange={(v) => patch({ restaurantId: v || null })}
+                      searchable
+                      options={[
+                        { value: "", label: "Réseau / siège", description: "Groupe transverse" },
+                        ...state.restaurants.map((r) => ({ value: r.id, label: r.name, description: r.city, group: "Restaurants" })),
+                      ]}
+                    />
+                  </label>
+                  <div className="sm:col-span-2">
+                    <span className="mb-2 block text-[10px] uppercase tracking-widest text-muted-foreground">
+                      Photo du groupe
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {GROUP_PHOTO_LIBRARY.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => patch({ avatar: p.url })}
+                          className={cn(
+                            "overflow-hidden rounded-xl border-2 transition-all",
+                            draft.avatar === p.url ? "border-gold" : "border-transparent opacity-70 hover:opacity-100",
+                          )}
+                          title={p.label}
+                        >
+                          <img src={p.url} alt={p.label} loading="lazy" width={96} height={64} className="h-16 w-24 object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {step === 1 && (
+                <MemberPicker value={draft.memberIds} onChange={(ids) => patch({ memberIds: ids })} />
+              )}
+
+              {step === 2 && (
+                <MemberPicker
+                  title="Administrateurs"
+                  value={admins}
+                  onChange={(ids) => patch({ adminIds: ids, adminId: ids[0] ?? draft.adminId })}
+                />
+              )}
+
+              {step >= 3 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 rounded-2xl border border-border bg-secondary/30 p-4">
+                    <GroupAvatar avatar={draft.avatar} name={draft.name} size={72} rounded="rounded-2xl" />
+                    <div className="min-w-0">
+                      <div className="font-display text-lg font-bold uppercase">{draft.name || "Sans nom"}</div>
+                      <div className="text-xs text-muted-foreground">{draft.description || "Aucune description"}</div>
+                      <div className="mt-1 text-[10px] uppercase tracking-widest text-gold">
+                        {draft.type} · {state.restaurants.find((r) => r.id === draft.restaurantId)?.name ?? "Réseau / siège"}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-border p-3">
+                      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                        Membres ({draft.memberIds.length})
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {draft.memberIds.slice(0, 12).map((id) => {
+                          const u = state.users.find((x) => x.id === id);
+                          return (
+                            <span key={id} className="flex items-center gap-1.5 rounded-full bg-secondary/60 py-1 pl-1 pr-2 text-[11px]">
+                              <UserAvatar user={u} size={18} rounded="rounded-full" />
+                              {u?.firstName} {u?.lastName}
+                            </span>
+                          );
+                        })}
+                        {draft.memberIds.length === 0 && <span className="text-xs text-muted-foreground">Aucun membre</span>}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-border p-3">
+                      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                        Administrateurs ({admins.length})
+                      </div>
+                      <div className="mt-2 space-y-1.5">
+                        {admins.map((id) => {
+                          const u = state.users.find((x) => x.id === id);
+                          return (
+                            <div key={id} className="flex items-center gap-2 text-xs">
+                              <UserAvatar user={u} size={24} presence rounded="rounded-full" />
+                              <span>
+                                {u?.firstName} {u?.lastName}
+                              </span>
+                              <span className="ml-auto text-[10px] uppercase text-gold">{u?.role}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="mt-6 flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setDraft(null)}>
-                Annuler
+            <div className="mt-6 flex items-center justify-between gap-2">
+              <Button variant="ghost" onClick={() => (step === 0 ? setDraft(null) : setStep((s) => s - 1))}>
+                {step === 0 ? (
+                  "Annuler"
+                ) : (
+                  <>
+                    <ArrowLeft className="mr-1.5 h-4 w-4" /> Retour
+                  </>
+                )}
               </Button>
-              <Button
-                onClick={() => {
-                  if (!draft.name.trim()) {
-                    toast.error("Le nom du groupe est obligatoire");
-                    return;
-                  }
-                  upsertGroup({ ...draft, id: draft.id || uid("g") });
-                  toast.success(draft.id ? "Groupe mis à jour" : "Groupe créé");
-                  setDraft(null);
-                }}
-              >
-                <MessageSquare className="mr-1.5 h-4 w-4" /> Enregistrer
-              </Button>
+              {step < STEPS.length - 1 ? (
+                <Button onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))}>
+                  Continuer <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Button>
+              ) : (
+                <Button onClick={save}>
+                  <Check className="mr-1.5 h-4 w-4" />
+                  {draft.id ? "Enregistrer le groupe" : "Créer le groupe"}
+                </Button>
+              )}
+            </div>
+            <div className="mt-2 flex items-center justify-end gap-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+              <MessageSquare className="h-3 w-3 text-gold" /> {draft.memberIds.length} membres · {admins.length} admin(s)
             </div>
           </div>
         </div>
