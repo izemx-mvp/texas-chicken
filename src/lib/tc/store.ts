@@ -21,6 +21,7 @@ import {
   trainingProgress as seedTrainingProgress,
   suppliers as seedSuppliers,
   purchaseOrders as seedPurchaseOrders,
+  assigneesOf,
 } from "./ops";
 import type {
   ChatGroup,
@@ -1191,6 +1192,110 @@ export function toggleTrainingStep(trainingId: string, userId: string, stepId: s
         : [...s.trainingProgress, entry],
     };
   });
+}
+
+/* ---------------- administration des formations ---------------- */
+
+export interface TrainingAssignee {
+  user: User;
+  restaurantName: string;
+  percent: number;
+  status: "Terminé" | "En cours" | "En retard" | "Non démarré";
+  lastActivity?: string;
+  dueDate?: string;
+}
+
+export interface TrainingAdminStats {
+  training: Training;
+  totalSteps: number;
+  assigned: number;
+  started: number;
+  completed: number;
+  late: number;
+  notStarted: number;
+  avgPercent: number;
+  assignees: TrainingAssignee[];
+}
+
+export function trainingAdminStats(trainingId: string, s: State = state): TrainingAdminStats | null {
+  const training = s.trainings.find((t) => t.id === trainingId);
+  if (!training) return null;
+  const totalSteps = trainingSteps(training).length;
+  const assignees: TrainingAssignee[] = assigneesOf(training, s.users).map((user) => {
+    const prog = s.trainingProgress.find((p) => p.trainingId === training.id && p.userId === user.id);
+    const done = prog?.completedStepIds.length ?? 0;
+    const percent = totalSteps ? Math.round((done / totalSteps) * 100) : 0;
+    const overdue = !!prog?.dueDate && prog.dueDate < s.activeDate && percent < 100;
+    return {
+      user,
+      restaurantName: s.restaurants.find((r) => r.id === user.restaurantId)?.name ?? "Réseau",
+      percent,
+      status: percent >= 100 ? "Terminé" : overdue ? "En retard" : percent > 0 ? "En cours" : "Non démarré",
+      lastActivity: prog?.lastActivity,
+      dueDate: prog?.dueDate,
+    };
+  });
+  const completed = assignees.filter((a) => a.status === "Terminé").length;
+  const late = assignees.filter((a) => a.status === "En retard").length;
+  const started = assignees.filter((a) => a.status === "En cours").length;
+  const notStarted = assignees.filter((a) => a.status === "Non démarré").length;
+  return {
+    training,
+    totalSteps,
+    assigned: assignees.length,
+    started,
+    completed,
+    late,
+    notStarted,
+    avgPercent: assignees.length ? Math.round(assignees.reduce((a, x) => a + x.percent, 0) / assignees.length) : 0,
+    assignees,
+  };
+}
+
+export function allTrainingStats(s: State = state): TrainingAdminStats[] {
+  return s.trainings.map((t) => trainingAdminStats(t.id, s)).filter((x): x is TrainingAdminStats => !!x);
+}
+
+export function upsertTraining(t: Training) {
+  setState((s) => ({
+    trainings: s.trainings.some((x) => x.id === t.id)
+      ? s.trainings.map((x) => (x.id === t.id ? t : x))
+      : [t, ...s.trainings],
+  }));
+}
+
+export function removeTraining(id: string) {
+  setState((s) => ({
+    trainings: s.trainings.filter((t) => t.id !== id),
+    trainingProgress: s.trainingProgress.filter((p) => p.trainingId !== id),
+  }));
+}
+
+export function toggleTrainingStatus(id: string) {
+  setState((s) => ({
+    trainings: s.trainings.map((t) =>
+      t.id === id ? { ...t, status: t.status === "Publiée" ? "Brouillon" : "Publiée" } : t,
+    ),
+  }));
+}
+
+export function duplicateTraining(id: string) {
+  const src = state.trainings.find((t) => t.id === id);
+  if (!src) return;
+  const nid = uid("tr");
+  const copy: Training = {
+    ...src,
+    id: nid,
+    title: `${src.title} (copie)`,
+    status: "Brouillon",
+    createdAt: state.activeDate,
+    modules: src.modules.map((m, mi) => ({
+      ...m,
+      id: `${nid}-m${mi + 1}`,
+      steps: m.steps.map((st, si) => ({ ...st, id: `${nid}-m${mi + 1}-s${si + 1}` })),
+    })),
+  };
+  upsertTraining(copy);
 }
 
 /* ========================= APPROVISIONNEMENT ========================= */

@@ -14,6 +14,7 @@ import {
   unreadCount,
   useStore,
 } from "@/lib/tc/store";
+import { GroupAvatar, UserAvatar } from "@/components/tc/avatar";
 
 export const Route = createFileRoute("/app/chat")({
   head: () => ({
@@ -71,7 +72,7 @@ function ChatPage() {
         </button>
 
         <div className="glass flex items-center gap-3 rounded-2xl p-3">
-          <span className="h-11 w-11 shrink-0 rounded-xl" style={{ background: active.avatar }} />
+          <GroupAvatar avatar={active.avatar} name={active.name} size={44} />
           <div className="min-w-0 flex-1">
             <div className="truncate font-display text-sm font-bold uppercase">{active.name}</div>
             <div className="truncate text-[11px] text-muted-foreground">
@@ -89,10 +90,7 @@ function ChatPage() {
               const u = state.users.find((x) => x.id === id);
               return (
                 <div key={id} className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-xs">
-                  <span className="grid h-7 w-7 place-items-center rounded-lg bg-brand-gradient text-[10px] font-bold text-brand-foreground">
-                    {u?.firstName?.[0]}
-                    {u?.lastName?.[0]}
-                  </span>
+                  <UserAvatar user={u} size={28} presence rounded="rounded-lg" />
                   <span className="truncate">
                     {userName(id)}
                     {id === active.adminId && <span className="ml-1 text-[10px] uppercase text-gold">admin</span>}
@@ -170,7 +168,7 @@ function ChatPage() {
               onClick={() => setActiveId(g.id)}
               className="glass flex w-full items-center gap-3 rounded-2xl p-3 text-left transition-colors hover:border-gold/40"
             >
-              <span className="h-11 w-11 shrink-0 rounded-xl" style={{ background: g.avatar }} />
+              <GroupAvatar avatar={g.avatar} name={g.name} size={44} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="truncate font-semibold">{g.name}</span>

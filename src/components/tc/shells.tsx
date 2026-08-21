@@ -35,6 +35,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { Input } from "@/components/ui/input";
 import { can, currentUser, logout, useStore } from "@/lib/tc/store";
 import { StatusPill } from "./bits";
+import { UserAvatar } from "./avatar";
 
 export interface NavItem {
   to: string;
@@ -48,6 +49,7 @@ export const ADMIN_NAV: NavItem[] = [
   { to: "/admin", label: "Command Center", module: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/restaurants", label: "Restaurants", module: "Restaurants", icon: Building2 },
   { to: "/admin/processes", label: "Processus & Contrôles", module: "Processus", icon: Workflow },
+  { to: "/admin/trainings", label: "Formations", module: "Formations", icon: GraduationCap },
   { to: "/admin/groups", label: "Groupes", module: "Groupes", icon: MessagesSquare },
   { to: "/admin/orders", label: "Commandes", module: "Commandes", icon: PackageSearch },
   { to: "/admin/users", label: "Utilisateurs", module: "Utilisateurs", icon: UsersIcon },
@@ -193,7 +195,6 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const user = useStore(() => currentUser());
-  const initials = `${user?.firstName?.[0] ?? ""}${user?.lastName?.[0] ?? ""}`;
 
   return (
     <div className="relative">
@@ -202,9 +203,7 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
         className="flex items-center gap-2 rounded-xl border border-border bg-secondary/40 p-1 pr-2 transition-colors hover:border-gold/50"
         aria-label="Menu utilisateur"
       >
-        <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-gradient font-display text-sm font-bold text-brand-foreground">
-          {initials}
-        </span>
+        <UserAvatar user={user ?? undefined} size={32} presence rounded="rounded-lg" />
         {!compact && (
           <span className="hidden leading-tight sm:block">
             <span className="block text-xs font-semibold">
@@ -376,7 +375,6 @@ const MANAGER_NAV: { to: string; label: string; icon: typeof Home; exact?: boole
   { to: "/app", label: "Shift", icon: Home, exact: true },
   { to: "/app/tasks", label: "Tâches", icon: ListChecks },
   { to: "/app/trainings", label: "Formations", icon: GraduationCap },
-  { to: "/app/chat", label: "Chat", icon: MessagesSquare },
   { to: "/app/deliveries", label: "Livraisons", icon: Truck },
   { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
 ];

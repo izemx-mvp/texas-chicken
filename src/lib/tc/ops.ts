@@ -5,6 +5,7 @@
  */
 import { restaurants, users, TODAY, REF_DATE } from "./data";
 import type { ID } from "./types";
+import { GROUP_PHOTOS } from "./people";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const shift = (days: number) => {
@@ -59,6 +60,8 @@ export interface ChatGroup {
   avatar: string; // dégradé CSS
   memberIds: ID[];
   adminId: ID;
+  /** Administrateurs additionnels du groupe. */
+  adminIds?: ID[];
   createdAt: string;
   status: "Actif" | "Inactif";
 }
@@ -77,18 +80,30 @@ const managerUser = users.find((u) => u.id === "u1")!;
 const adminUser = users.find((u) => u.id === "u0")!;
 const staffOf = (rid: ID) => users.filter((u) => u.restaurantId === rid).map((u) => u.id);
 
-const GROUP_DEFS: [string, string, GroupType, ID | null][] = [
-  ["Restaurant Casablanca — Équipe", "Coordination quotidienne de l'équipe du restaurant", "Groupe restaurant", "r1"],
-  ["Restaurant Rabat — Équipe", "Shift, ouverture / fermeture et incidents", "Groupe restaurant", "r2"],
-  ["Managers Maroc", "Échanges entre responsables de restaurants du réseau", "Groupe managers", null],
-  ["Direction Opérations", "Pilotage réseau, standards et performance", "Groupe administration", null],
-  ["Cuisine & Operations", "Standards produit, cuisson, qualité et hygiène", "Groupe opérationnel", null],
-  ["Maintenance", "Pannes équipements, interventions et suivi technique", "Groupe opérationnel", null],
-  ["Région Grand Casablanca", "Coordination régionale multi-restaurants", "Groupe régional", null],
-  ["Administration", "Comptes, permissions, approvisionnement et reporting", "Groupe administration", null],
+/** Trouve un collaborateur par rôle (et restaurant), de façon déterministe. */
+const byRole = (role: string, rid?: ID | null, nth = 0): ID => {
+  const pool = users.filter((u) => u.role === role && (rid ? u.restaurantId === rid : true));
+  return (pool[nth % Math.max(pool.length, 1)] ?? users[nth % users.length]!).id;
+};
+
+const GROUP_DEFS: [string, string, GroupType, ID | null, string][] = [
+  [
+    "Restaurant Casablanca — Équipe",
+    "Coordination quotidienne de l'équipe du restaurant",
+    "Groupe restaurant",
+    "r1",
+    GROUP_PHOTOS.teamCasablanca,
+  ],
+  ["Restaurant Rabat — Équipe", "Shift, ouverture / fermeture et incidents", "Groupe restaurant", "r2", GROUP_PHOTOS.teamRabat],
+  ["Managers Maroc", "Échanges entre responsables de restaurants du réseau", "Groupe managers", null, GROUP_PHOTOS.managers],
+  ["Direction Opérations", "Pilotage réseau, standards et performance", "Groupe administration", null, GROUP_PHOTOS.operations],
+  ["Cuisine & Operations", "Standards produit, cuisson, qualité et hygiène", "Groupe opérationnel", null, GROUP_PHOTOS.kitchen],
+  ["Maintenance", "Pannes équipements, interventions et suivi technique", "Groupe opérationnel", null, GROUP_PHOTOS.maintenance],
+  ["Région Grand Casablanca", "Coordination régionale multi-restaurants", "Groupe régional", null, GROUP_PHOTOS.regional],
+  ["Administration", "Comptes, permissions, approvisionnement et reporting", "Groupe administration", null, GROUP_PHOTOS.administration],
 ];
 
-export const chatGroups: ChatGroup[] = GROUP_DEFS.map(([name, description, type, rid], i) => {
+export const chatGroups: ChatGroup[] = GROUP_DEFS.map(([name, description, type, rid, photo], i) => {
   const base = rid ? staffOf(rid) : users.slice(0, 10).map((u) => u.id);
   const memberIds = Array.from(new Set([managerUser.id, adminUser.id, ...base])).slice(0, 12);
   return {
@@ -97,7 +112,7 @@ export const chatGroups: ChatGroup[] = GROUP_DEFS.map(([name, description, type,
     description,
     type,
     restaurantId: rid,
-    avatar: AVATARS[i % AVATARS.length]!,
+    avatar: photo,
     memberIds,
     adminId: type === "Groupe restaurant" ? managerUser.id : adminUser.id,
     createdAt: shift(-120 + i * 9),
@@ -105,92 +120,219 @@ export const chatGroups: ChatGroup[] = GROUP_DEFS.map(([name, description, type,
   };
 });
 
-type Script = { text: string; att?: ChatAttachment[] };
-const t = (text: string, att?: ChatAttachment[]): Script => ({ text, ...(att ? { att } : {}) });
-
-const MSG_SCRIPTS: Record<string, Script[]> = {
+/* --------------------------- casting des conversations --------------------------- */
+/** Casting réaliste par groupe : les mêmes personnes reviennent d'un jour à l'autre. */
+const CASTS: Record<string, ID[]> = {
   g1: [
-    t("Bonjour l'équipe 👋 ouverture validée à 07:05, températures chambre froide à 2,4°C — conformes."),
-    t("Relevé du matin envoyé, photo à l'appui.", [{ name: "releve-temperatures-0705.jpg", kind: "Image" }]),
-    t("La friteuse 2 chauffe lentement (168°C au lieu de 175°C). @Maintenance je passe une demande."),
-    t("Bien reçu, je bloque la friteuse 2 et je note l'anomalie sur le contrôle du shift."),
-    t("Livraison surgelés annoncée pour 14:00 — prévoir deux personnes en réception 🚚"),
-    t("Rush midi terminé : 312 commandes, temps moyen 4 min 20. Salle nettoyée, preuves photo envoyées ✅"),
-    t("Rappel fermeture : filtration huile, nettoyage grill, contrôle DLC frigo 3."),
-    t("Checklist de fermeture complétée à 23:48, aucune non-conformité 🙏"),
+    byRole("Restaurant Manager", "r1"),
+    byRole("Shift Leader", "r1"),
+    byRole("Cook", "r1"),
+    byRole("Crew Member", "r1"),
+    byRole("Cashier", "r1"),
+    byRole("Cleaning / Hygiene Staff", "r1"),
   ],
   g2: [
-    t("Checklist fermeture d'hier complète, aucune non-conformité."),
-    t("Stock packaging bas : boîtes 8 pièces à 1,5 jour de couverture ⚠️"),
-    t("Je remonte le besoin à l'administration ce matin, commande passée avant 11:00."),
-    t("Contrôle DLC réalisé : 3 produits retirés et tracés dans la fiche de destruction.", [
-      { name: "fiche-destruction.pdf", kind: "Document" },
-    ]),
-    t("Formation Food Safety : 4 équipiers sur 6 l'ont terminée, relance faite."),
-    t("Nouveau planning du week-end publié, merci de confirmer vos créneaux 🕒"),
+    byRole("Restaurant Manager", "r2"),
+    byRole("Shift Leader", "r2"),
+    byRole("Cook", "r2"),
+    byRole("Crew Member", "r2"),
+    byRole("Assistant Manager", "r2"),
+  ],
+  g3: [managerUser.id, byRole("Restaurant Manager", "r2"), byRole("Restaurant Manager", "r3"), byRole("Restaurant Manager", "r4"), adminUser.id],
+  g4: [adminUser.id, byRole("Operations Admin"), byRole("Auditeur"), managerUser.id],
+  g5: [byRole("Cook", "r1"), byRole("Cook", "r2"), byRole("Restaurant Manager", "r3"), byRole("Operations Admin"), byRole("Shift Leader", "r1")],
+  g6: [byRole("Maintenance"), byRole("Restaurant Manager", "r2"), managerUser.id, byRole("Operations Admin")],
+  g7: [adminUser.id, managerUser.id, byRole("Restaurant Manager", "r3"), byRole("Restaurant Manager", "r5")],
+  g8: [adminUser.id, byRole("Restaurant Admin"), byRole("Auditeur"), byRole("Operations Admin"), managerUser.id],
+};
+
+/** "jour|heure|castIndex|texte" — les pièces jointes sont ajoutées via ATTACHMENTS. */
+const CONVERSATIONS: Record<string, string[]> = {
+  g1: [
+    "-5|07:04|1|Ouverture faite. Températures chambre froide 2,4°C, friteuses en chauffe.",
+    "-5|07:22|2|Marinades du jour préparées, lot tracé sur la fiche production.",
+    "-5|09:40|0|Merci. Pensez au contrôle des DLC avant le rush.",
+    "-5|11:58|3|Contrôle DLC terminé, 2 produits retirés et tracés.",
+    "-5|14:15|4|Caisse 2 a un ticket bloqué, je bascule les clients sur la caisse 1.",
+    "-5|14:20|0|Ok, je crée un ticket maintenance. Continuez sur une caisse.",
+    "-5|22:41|1|Checklist de fermeture complétée à 22:38, zéro non-conformité ✅",
+    "-4|07:10|1|Ouverture ok. Le contrôle de la zone cuisine est terminé, il reste la chambre froide.",
+    "-4|07:26|2|Température contrôlée à 3,1°C. J'ajoute la preuve photo dans la checklist.",
+    "-4|07:35|0|Parfait. Pensez aussi à vérifier le stockage avant la fin du shift.",
+    "-4|10:02|1|C'est fait, le point de contrôle est maintenant à 100 %.",
+    "-4|12:40|3|Rush midi : file drive à 5 min, on ouvre un deuxième poste emballage.",
+    "-4|15:05|5|Salle et sanitaires nettoyés, preuves envoyées 📸",
+    "-4|19:30|2|La friteuse 2 chauffe lentement (168°C au lieu de 175°C).",
+    "-4|19:34|0|Je bloque la friteuse 2 et je remonte au groupe Maintenance.",
+    "-3|08:12|0|Briefing du jour : objectif temps de service < 4 min 30.",
+    "-3|11:20|4|Bien reçu 👍",
+    "-3|13:50|3|312 commandes ce midi, temps moyen 4 min 20 🔥",
+    "-3|17:05|1|Livraison surgelés annoncée à 18:00, deux personnes en réception.",
+    "-3|18:40|2|Livraison réceptionnée, tout est conforme sauf 1 carton de nuggets abîmé.",
+    "-3|18:52|0|Note-le sur la réception, je remonte la réserve au fournisseur.",
+    "-2|07:08|1|Ouverture ok, aucun incident cette nuit.",
+    "-2|09:45|5|Filtration huile faite sur les 3 friteuses.",
+    "-2|12:15|3|Rupture de sauce Buffalo, on bascule sur le stock de réserve.",
+    "-2|12:30|0|Commande urgente passée à l'administration.",
+    "-2|21:58|1|Fermeture conforme, score du shift 96 %.",
+    "-1|07:00|0|Bonjour l'équipe 👋 audit hygiène possible cette semaine, on reste carré sur les preuves.",
+    "-1|08:30|2|Reçu chef. Photos systématiques après chaque nettoyage.",
+    "-1|14:10|4|Formation Food Safety terminée de mon côté ✅",
+    "-1|20:20|1|Il reste 2 équipiers à finaliser leur formation, relance faite.",
+    "0|07:06|1|Ouverture du jour validée, températures conformes.",
+    "0|09:15|2|Marinades prêtes, contrôle visuel ok.",
+    "0|11:40|0|Pensez à la vérification du stockage sec avant midi.",
+    "0|12:05|3|Stockage vérifié, rien à signaler.",
+    "0|14:45|5|Zone terrasse nettoyée, preuve ajoutée à la tâche.",
+  ],
+  g2: [
+    "-6|07:15|1|Ouverture Rabat faite, checklist en cours.",
+    "-6|09:10|0|Le stock packaging est bas : boîtes 8 pièces à 1,5 jour de couverture ⚠️",
+    "-6|09:22|4|Je remonte le besoin à l'administration ce matin.",
+    "-6|16:30|2|Chambre froide à 5,8°C, au-dessus du seuil. Je surveille.",
+    "-6|16:45|0|Ticket maintenance ouvert, on transfère les produits sensibles.",
+    "-5|08:00|1|Contrôle DLC réalisé : 3 produits retirés et tracés.",
+    "-5|12:20|3|Rush midi géré, 4 min 50 de temps moyen.",
+    "-5|18:10|4|Planning du week-end publié, merci de confirmer vos créneaux 🕒",
+    "-4|07:40|1|Ouverture ok. Chambre froide toujours à 5,4°C.",
+    "-4|10:05|0|Le technicien passe mercredi, thermostat commandé.",
+    "-4|15:00|2|Nettoyage grill effectué, photos ajoutées.",
+    "-3|08:20|1|Formation Food Safety : 4 équipiers sur 6 l'ont terminée.",
+    "-3|09:00|0|Relance faite auprès des 2 derniers, deadline vendredi.",
+    "-3|19:45|3|Panne mineure sur la machine à glaçons, contournement en place.",
+    "-2|07:25|1|Checklist de fermeture d'hier complète, aucune non-conformité.",
+    "-2|11:50|4|Livraison boissons reçue, 1 bidon de sirop manquant.",
+    "-2|12:02|0|Réserve notée sur le bon de commande, avoir demandé.",
+    "-1|08:05|1|Chambre froide réparée ✅ 2,9°C ce matin.",
+    "-1|13:30|2|Fiche technique Spicy Chicken appliquée, retour équipe positif.",
+    "-1|21:10|0|Score conformité de la semaine : 92 %. On vise 95 %.",
+    "0|07:18|1|Ouverture ok, températures conformes.",
+    "0|10:40|3|Preuves photo du shift du matin envoyées.",
+    "0|13:15|0|Merci, c'était le point demandé par la direction.",
   ],
   g3: [
-    t("Rappel : audit hygiène réseau la semaine prochaine, préparez les registres."),
-    t("Casablanca à 94% de conformité cette semaine, bravo l'équipe 🔥"),
-    t("Rabat en retard sur les preuves photo du shift du soir — action corrective demandée."),
-    t("Pensez à valider les formations Food Safety avant vendredi."),
-    t("Synthèse conformité réseau du mois en pièce jointe.", [{ name: "conformite-reseau-mensuelle.pdf", kind: "Document" }]),
-    t("Point managers jeudi 10:00 : ordre du jour = pertes, staffing, drive."),
+    "-7|09:00|4|Rappel : audit hygiène réseau la semaine prochaine, préparez les registres.",
+    "-7|09:20|0|Casablanca prêt, registres à jour.",
+    "-7|10:05|1|Rabat : il me manque les preuves du shift du soir, je corrige aujourd'hui.",
+    "-6|08:30|2|Marrakech à 91 %, on travaille le temps de service au drive.",
+    "-6|14:00|4|Pensez à valider les formations Food Safety avant vendredi.",
+    "-5|09:45|3|Tanger : nouvel Assistant Manager arrivé, formation Onboarding lancée.",
+    "-5|17:20|0|Casablanca à 94 % de conformité cette semaine 🔥",
+    "-4|08:15|4|Synthèse conformité réseau du mois en pièce jointe.",
+    "-4|11:00|1|Merci, je diffuse à mon équipe.",
+    "-3|10:30|2|Question staffing : quelqu'un a un modèle de planning rush week-end ?",
+    "-3|10:48|0|Je t'envoie le mien, il gère les pics 12h-14h et 19h-21h.",
+    "-2|09:10|4|Point managers jeudi 10:00 : pertes, staffing, drive.",
+    "-2|15:30|3|Noté. Je prépare les chiffres pertes de Tanger.",
+    "-1|08:40|1|Rabat repasse au-dessus de l'objectif, chambre froide réparée.",
+    "-1|18:00|0|Bravo 👏",
+    "0|08:20|4|Deux restaurants ont des preuves manquantes ce matin, merci de régulariser.",
+    "0|09:05|2|Marrakech régularisé ✅",
   ],
   g4: [
-    t("Nouveau standard de cuisson diffusé à tous les restaurants (v2.4)."),
-    t("Les bons de commande passent désormais exclusivement par la plateforme."),
-    t("Objectif réseau Q3 : 95% de conformité et zéro alerte fraude critique."),
-    t("Reporting mensuel disponible dans Analytics, filtré par ville et par rôle."),
-    t("Deux alertes anti-fraude à traiter aujourd'hui : preuves dupliquées détectées ⚠️"),
+    "-8|09:00|0|Nouveau standard de cuisson diffusé à tous les restaurants (v2.4).",
+    "-8|11:30|1|Les bons de commande passent désormais exclusivement par la plateforme.",
+    "-7|10:15|2|Audit interne : 3 restaurants avec preuves dupliquées détectées par l'IA ⚠️",
+    "-7|10:40|0|On traite en priorité, contact des managers concernés aujourd'hui.",
+    "-6|09:20|1|Objectif réseau Q3 : 95 % de conformité et zéro alerte fraude critique.",
+    "-5|14:00|2|Rapport d'audit hebdomadaire disponible.",
+    "-4|09:45|3|Casablanca a corrigé les écarts signalés la semaine dernière.",
+    "-3|11:10|1|Reporting mensuel disponible dans Analytics, filtré par ville et par rôle.",
+    "-2|08:50|0|Budget formation validé pour le T4 : 6 nouvelles formations métier.",
+    "-1|16:20|2|Deux alertes anti-fraude à traiter aujourd'hui : preuves dupliquées.",
+    "0|08:35|0|Revue hebdo à 15:00, ordre du jour : conformité, formations, approvisionnement.",
+    "0|09:12|3|Présent, je prépare les indicateurs restaurant.",
   ],
   g5: [
-    t("Contrôle huile de friture : viscosité à vérifier deux fois par shift."),
-    t("Photos de plan de travail à prendre après chaque nettoyage 📸"),
-    t("Nouvelle fiche technique Spicy Chicken : marinade 12h minimum.", [
-      { name: "fiche-technique-spicy.pdf", kind: "Document" },
-    ]),
-    t("Rappel : température à cœur 74°C minimum, sonde désinfectée entre chaque mesure."),
-    t("Retour qualité client sur la panure trop foncée à Marrakech, on revoit le temps de cuisson."),
+    "-6|08:10|0|Contrôle huile de friture : viscosité à vérifier deux fois par shift.",
+    "-6|13:25|1|Fait à Rabat, huile changée sur la friteuse 3.",
+    "-5|09:30|3|Nouvelle fiche technique Spicy Chicken : marinade 12h minimum.",
+    "-5|10:00|4|Reçu, on applique dès demain.",
+    "-4|11:15|2|Retour qualité client sur la panure trop foncée à Marrakech.",
+    "-4|11:40|0|On réduit le temps de cuisson de 15 secondes et on mesure.",
+    "-3|08:45|3|Rappel : température à cœur 74°C minimum, sonde désinfectée entre chaque mesure.",
+    "-3|15:00|1|Photos de plan de travail prises après chaque nettoyage 📸",
+    "-2|09:20|4|Nouveau format d'emballage testé sur le drive, gain de 20 secondes.",
+    "-1|10:10|0|Résultat du test panure : couleur conforme sur 3 lots consécutifs ✅",
+    "-1|17:30|3|Excellent, on généralise au réseau.",
+    "0|08:55|1|Contrôle huile du matin fait, viscosité conforme.",
+    "0|12:30|2|Sonde recalibrée à Marrakech.",
   ],
   g6: [
-    t("Intervention prévue mercredi sur la chambre froide de Rabat ❄️"),
-    t("Pièce détachée commandée (thermostat), délai 48h."),
-    t("Friteuse 2 Casablanca : résistance remplacée, remise en service validée à 16:10 ✅"),
-    t("Merci, je referme le ticket maintenance et je réactive la tâche de cuisson."),
+    "-5|08:30|1|Chambre froide de Rabat instable, 5,8°C constatés.",
+    "-5|09:00|0|Intervention prévue mercredi ❄️ pièce détachée commandée (thermostat), délai 48h.",
+    "-4|10:20|2|Friteuse 2 Casablanca hors service depuis hier soir.",
+    "-4|11:00|0|Résistance en stock, je passe cet après-midi.",
+    "-4|16:10|0|Friteuse 2 : résistance remplacée, remise en service validée ✅",
+    "-4|16:18|2|Merci, je referme le ticket et je réactive la tâche de cuisson.",
+    "-3|09:40|0|Thermostat Rabat reçu, intervention demain matin 07:00.",
+    "-2|08:05|0|Chambre froide Rabat réparée, 2,9°C stables sur 12h.",
+    "-2|08:20|1|Confirmé de notre côté, merci 🙏",
+    "-1|14:00|3|Planning maintenance préventive du mois publié.",
+    "0|09:25|2|Machine à glaçons Rabat à surveiller, bruit anormal.",
+    "0|09:40|0|Je passe en fin de journée.",
   ],
   g7: [
-    t("Réunion régionale jeudi 10:00 en visio."),
-    t("Trois restaurants du Grand Casablanca au-dessus de l'objectif conformité 💪"),
-    t("Support de la réunion régionale.", [{ name: "reunion-regionale.pptx", kind: "Document" }]),
+    "-6|09:00|0|Réunion régionale jeudi 10:00 en visio.",
+    "-5|11:00|1|Trois restaurants du Grand Casablanca au-dessus de l'objectif conformité 💪",
+    "-4|10:30|2|Besoin de renfort équipiers sur le site Maarif pour le week-end.",
+    "-4|10:52|0|Je regarde les disponibilités des autres sites.",
+    "-3|09:15|3|Support de la réunion régionale partagé.",
+    "-2|16:40|1|Pertes matières en baisse de 12 % sur la région ce mois-ci.",
+    "-1|08:50|0|Bonne dynamique, on garde le cap sur le drive.",
+    "0|09:30|2|Renfort trouvé pour le week-end ✅",
   ],
   g8: [
-    t("Nouveaux comptes équipiers créés pour Casablanca et Marrakech."),
-    t("Permissions Formations activées pour tous les rôles restaurant."),
-    t("Le module Commandes est ouvert aux Restaurant Managers en lecture seule."),
-    t("Rappel : toute demande d'accès passe par un ticket dans ce groupe 📦"),
+    "-7|09:10|0|Nouveaux comptes équipiers créés pour Casablanca et Marrakech.",
+    "-6|10:00|1|Permissions Formations activées pour tous les rôles restaurant.",
+    "-5|11:20|2|Audit des accès terminé : 4 comptes inactifs désactivés.",
+    "-4|09:45|3|Le module Commandes est ouvert aux Restaurant Managers en lecture seule.",
+    "-3|14:10|4|Demande d'accès au module Livraisons pour mon Assistant Manager.",
+    "-3|14:35|0|Validé, accès ouvert en lecture.",
+    "-2|10:05|1|Rappel : toute demande d'accès passe par un ticket dans ce groupe 📦",
+    "-1|09:00|2|Reporting des commandes fournisseurs du mois disponible.",
+    "0|08:40|0|Deux bons de commande en retard à relancer aujourd'hui.",
+    "0|09:20|3|Je m'en occupe.",
   ],
+};
+
+const ATTACHMENTS: Record<string, ChatAttachment[]> = {
+  "g1-1": [{ name: "releve-temperatures.jpg", kind: "Image" }],
+  "g1-12": [{ name: "nettoyage-salle.jpg", kind: "Image" }],
+  "g2-5": [{ name: "fiche-destruction.pdf", kind: "Document" }],
+  "g3-7": [{ name: "conformite-reseau-mensuelle.pdf", kind: "Document" }],
+  "g4-5": [{ name: "rapport-audit-hebdo.pdf", kind: "Document" }],
+  "g5-2": [{ name: "fiche-technique-spicy.pdf", kind: "Document" }],
+  "g6-9": [{ name: "planning-maintenance.pdf", kind: "Document" }],
+  "g7-4": [{ name: "reunion-regionale.pptx", kind: "Document" }],
+  "g8-8": [{ name: "reporting-commandes.xlsx", kind: "Document" }],
 };
 
 export const chatMessages: ChatMessage[] = [];
 chatGroups.forEach((g, gi) => {
-  const scripts = MSG_SCRIPTS[g.id] ?? [t("Message d'équipe Texas Chicken.")];
-  scripts.forEach((s, i) => {
-    const author = g.memberIds[(i + gi) % g.memberIds.length]!;
-    const dayOffset = i >= scripts.length - 3 ? 0 : -(scripts.length - i);
-    const hour = 7 + i * 2;
-    const unread = i >= scripts.length - 1 && gi % 2 === 0;
+  const cast = CASTS[g.id] ?? g.memberIds.slice(0, 4);
+  const lines = CONVERSATIONS[g.id] ?? [];
+  lines.forEach((line, i) => {
+    const [day, time, castIdx, text] = line.split("|");
+    const author = cast[Number(castIdx) % cast.length] ?? g.memberIds[0]!;
+    const isLast = i >= lines.length - 2;
+    const unread = isLast && gi % 2 === 0 && author !== managerUser.id;
+    const att = ATTACHMENTS[`${g.id}-${i}`];
     chatMessages.push({
       id: `m${g.id}-${i}`,
       groupId: g.id,
       userId: author,
-      text: s.text,
-      at: `${shift(dayOffset)} ${pad(Math.min(hour, 21))}:${pad((i * 17) % 60)}`,
-      readBy: unread ? [author] : g.memberIds,
-      ...(s.att ? { attachments: s.att } : {}),
+      text: text!,
+      at: `${shift(Number(day))} ${time}`,
+      readBy: unread ? [author] : Array.from(new Set([...g.memberIds, author])),
+      ...(att ? { attachments: att } : {}),
     });
   });
 });
+
+/** Membres réellement actifs dans une conversation (utile pour l'affichage). */
+export const groupCast = CASTS;
+
 
 
 /* ============================== FORMATIONS ============================== */
@@ -228,12 +370,18 @@ export interface Training {
   level: TrainingLevel;
   duration: number; // minutes
   mandatory: boolean;
-  cover: string; // dégradé
+  cover: string; // dégradé (repli) ou URL d'image
+  coverPhoto?: string;
   mainVideo: string;
   documents: { name: string; type: string }[];
   rules: string[];
   modules: TrainingModule[];
   quiz: TrainingQuiz[];
+  /** Affectation : restaurants concernés (vide = tout le réseau). */
+  restaurantIds?: ID[];
+  /** Affectation nominative complémentaire. */
+  userIds?: ID[];
+  createdAt?: string;
   status: "Publiée" | "Brouillon";
 }
 
@@ -450,7 +598,10 @@ export const trainings: Training[] = TRAINING_DEFS.map((d, i) => {
         answer: 1,
       },
     ],
-    status: "Publiée",
+    restaurantIds: i % 4 === 3 ? restaurants.slice(0, 4).map((r) => r.id) : [],
+    userIds: [],
+    createdAt: shift(-200 + i * 14),
+    status: i === 8 ? "Brouillon" : "Publiée",
   };
 });
 
@@ -460,10 +611,30 @@ export interface TrainingProgress {
   completedStepIds: ID[];
   startedAt?: string;
   completedAt?: string;
+  lastActivity?: string;
+  dueDate?: string;
+}
+
+/** Utilisateurs concernés par une formation (rôles + restaurants + nominatif). */
+export function assigneesOf(t: Training, pool = users) {
+  const explicit = new Set(t.userIds ?? []);
+  return pool.filter((u) => {
+    if (explicit.has(u.id)) return true;
+    if (!t.roles.includes(u.role)) return false;
+    const rids = t.restaurantIds ?? [];
+    if (rids.length && (!u.restaurantId || !rids.includes(u.restaurantId))) return false;
+    return true;
+  });
 }
 
 export const trainingProgress: TrainingProgress[] = [];
 {
+  const hash = (s: string) => {
+    let h = 7;
+    for (let i = 0; i < s.length; i++) h = (h * 33 + s.charCodeAt(i)) >>> 0;
+    return h;
+  };
+  // progression du manager de démonstration (états variés et lisibles)
   const seeds: [string, number][] = [
     ["tr1", 0.75],
     ["tr2", 0.4],
@@ -473,31 +644,42 @@ export const trainingProgress: TrainingProgress[] = [];
     ["tr9", 1],
   ];
   for (const [tid, ratio] of seeds) {
-    const tr = trainings.find((t) => t.id === tid)!;
+    const tr = trainings.find((t) => t.id === tid);
+    if (!tr) continue;
     const all = tr.modules.flatMap((m) => m.steps.map((s) => s.id));
-    const done = all.slice(0, Math.round(all.length * ratio));
     trainingProgress.push({
       userId: managerUser.id,
       trainingId: tid,
-      completedStepIds: done,
+      completedStepIds: all.slice(0, Math.round(all.length * ratio)),
       startedAt: shift(-20),
       completedAt: ratio >= 1 ? shift(-4) : undefined,
+      lastActivity: shift(-2),
+      dueDate: shift(tr.mandatory ? 6 : 20),
     });
   }
-  // progression réseau pour quelques équipiers
-  users.slice(2, 14).forEach((u, i) => {
-    const tr = trainings[i % trainings.length]!;
+  // progression réseau : chaque utilisateur assigné a un état cohérent
+  for (const tr of trainings) {
     const all = tr.modules.flatMap((m) => m.steps.map((s) => s.id));
-    const ratio = [0.2, 0.5, 0.8, 1][i % 4]!;
-    trainingProgress.push({
-      userId: u.id,
-      trainingId: tr.id,
-      completedStepIds: all.slice(0, Math.round(all.length * ratio)),
-      startedAt: shift(-30 + i),
-      completedAt: ratio >= 1 ? shift(-3) : undefined,
-    });
-  });
+    for (const u of assigneesOf(tr)) {
+      if (trainingProgress.some((p) => p.userId === u.id && p.trainingId === tr.id)) continue;
+      const h = hash(`${tr.id}-${u.id}`);
+      const bucket = h % 10; // 0-1 non démarré, 2-4 en cours, 5-8 terminé, 9 en retard
+      if (bucket <= 1) continue; // non démarré : aucune ligne de progression
+      const ratio = bucket >= 5 && bucket <= 8 ? 1 : [0.2, 0.4, 0.65, 0.85][h % 4]!;
+      const late = bucket === 9;
+      trainingProgress.push({
+        userId: u.id,
+        trainingId: tr.id,
+        completedStepIds: all.slice(0, Math.round(all.length * ratio)),
+        startedAt: shift(-(10 + (h % 40))),
+        completedAt: ratio >= 1 ? shift(-(1 + (h % 12))) : undefined,
+        lastActivity: shift(-(h % 9)),
+        dueDate: shift(late ? -(2 + (h % 5)) : 5 + (h % 20)),
+      });
+    }
+  }
 }
+
 
 /* ========================= APPROVISIONNEMENT ========================= */
 
