@@ -251,7 +251,8 @@ export function AnimatedBackground({
         const z1 = v.x * sinR + v.z * cosR;
         const y2 = v.y * cosT - z1 * sinT;
         const z2 = v.y * sinT + z1 * cosT;
-        return { sx: cx + x1 * R, sy: cy - y2 * R, z: z2, nx: x1, ny: y2 };
+        // projection en miroir horizontal (inversion gauche/droite)
+        return { sx: cx - x1 * R, sy: cy - y2 * R, z: z2, nx: -x1, ny: y2 };
       };
       // direction du soleil (jour/nuit) tournant plus lentement
       const sunA = t * 0.02 + 0.6;
