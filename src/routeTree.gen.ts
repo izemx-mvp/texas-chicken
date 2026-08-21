@@ -17,12 +17,16 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminAlertsRouteImport } from './routes/admin.alerts'
 import { Route as AdminBuilderRouteImport } from './routes/admin.builder'
 import { Route as AdminEvidenceRouteImport } from './routes/admin.evidence'
+import { Route as AdminGroupsRouteImport } from './routes/admin.groups'
+import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminProcessesRouteImport } from './routes/admin.processes'
 import { Route as AdminRestaurantsRouteImport } from './routes/admin.restaurants'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppAlertsRouteImport } from './routes/app.alerts'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
+import { Route as AppChatRouteImport } from './routes/app.chat'
+import { Route as AppDeliveriesRouteImport } from './routes/app.deliveries'
 import { Route as AppProcessesRouteImport } from './routes/app.processes'
 import { Route as AppTasksRouteImport } from './routes/app.tasks'
 import { Route as LoginAdminRouteImport } from './routes/login.admin'
@@ -32,6 +36,8 @@ import { Route as AdminRestaurantsIndexRouteImport } from './routes/admin.restau
 import { Route as AdminRestaurantsIdRouteImport } from './routes/admin.restaurants.$id'
 import { Route as AppProcessIdRouteImport } from './routes/app.process.$id'
 import { Route as AppTaskIdRouteImport } from './routes/app.task.$id'
+import { Route as AppTrainingIdRouteImport } from './routes/app.training.$id'
+import { Route as AppTrainingsIndexRouteImport } from './routes/app.trainings.index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -73,6 +79,16 @@ const AdminEvidenceRoute = AdminEvidenceRouteImport.update({
   path: '/evidence',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminGroupsRoute = AdminGroupsRouteImport.update({
+  id: '/groups',
+  path: '/groups',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOrdersRoute = AdminOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminProcessesRoute = AdminProcessesRouteImport.update({
   id: '/processes',
   path: '/processes',
@@ -101,6 +117,16 @@ const AppAlertsRoute = AppAlertsRouteImport.update({
 const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppChatRoute = AppChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDeliveriesRoute = AppDeliveriesRouteImport.update({
+  id: '/deliveries',
+  path: '/deliveries',
   getParentRoute: () => AppRoute,
 } as any)
 const AppProcessesRoute = AppProcessesRouteImport.update({
@@ -148,6 +174,16 @@ const AppTaskIdRoute = AppTaskIdRouteImport.update({
   path: '/task/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTrainingIdRoute = AppTrainingIdRouteImport.update({
+  id: '/training/$id',
+  path: '/training/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTrainingsIndexRoute = AppTrainingsIndexRouteImport.update({
+  id: '/trainings/',
+  path: '/trainings/',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -157,11 +193,15 @@ export interface FileRoutesByFullPath {
   '/admin/alerts': typeof AdminAlertsRoute
   '/admin/builder': typeof AdminBuilderRoute
   '/admin/evidence': typeof AdminEvidenceRoute
+  '/admin/groups': typeof AdminGroupsRoute
+  '/admin/orders': typeof AdminOrdersRoute
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/restaurants': typeof AdminRestaurantsRouteWithChildren
   '/admin/users': typeof AdminUsersRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/analytics': typeof AppAnalyticsRoute
+  '/app/chat': typeof AppChatRoute
+  '/app/deliveries': typeof AppDeliveriesRoute
   '/app/processes': typeof AppProcessesRoute
   '/app/tasks': typeof AppTasksRoute
   '/login/admin': typeof LoginAdminRoute
@@ -172,7 +212,9 @@ export interface FileRoutesByFullPath {
   '/admin/restaurants/$id': typeof AdminRestaurantsIdRoute
   '/app/process/$id': typeof AppProcessIdRoute
   '/app/task/$id': typeof AppTaskIdRoute
+  '/app/training/$id': typeof AppTrainingIdRoute
   '/admin/restaurants/': typeof AdminRestaurantsIndexRoute
+  '/app/trainings/': typeof AppTrainingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -180,10 +222,14 @@ export interface FileRoutesByTo {
   '/admin/alerts': typeof AdminAlertsRoute
   '/admin/builder': typeof AdminBuilderRoute
   '/admin/evidence': typeof AdminEvidenceRoute
+  '/admin/groups': typeof AdminGroupsRoute
+  '/admin/orders': typeof AdminOrdersRoute
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/users': typeof AdminUsersRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/analytics': typeof AppAnalyticsRoute
+  '/app/chat': typeof AppChatRoute
+  '/app/deliveries': typeof AppDeliveriesRoute
   '/app/processes': typeof AppProcessesRoute
   '/app/tasks': typeof AppTasksRoute
   '/login/admin': typeof LoginAdminRoute
@@ -194,7 +240,9 @@ export interface FileRoutesByTo {
   '/admin/restaurants/$id': typeof AdminRestaurantsIdRoute
   '/app/process/$id': typeof AppProcessIdRoute
   '/app/task/$id': typeof AppTaskIdRoute
+  '/app/training/$id': typeof AppTrainingIdRoute
   '/admin/restaurants': typeof AdminRestaurantsIndexRoute
+  '/app/trainings': typeof AppTrainingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -205,11 +253,15 @@ export interface FileRoutesById {
   '/admin/alerts': typeof AdminAlertsRoute
   '/admin/builder': typeof AdminBuilderRoute
   '/admin/evidence': typeof AdminEvidenceRoute
+  '/admin/groups': typeof AdminGroupsRoute
+  '/admin/orders': typeof AdminOrdersRoute
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/restaurants': typeof AdminRestaurantsRouteWithChildren
   '/admin/users': typeof AdminUsersRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/analytics': typeof AppAnalyticsRoute
+  '/app/chat': typeof AppChatRoute
+  '/app/deliveries': typeof AppDeliveriesRoute
   '/app/processes': typeof AppProcessesRoute
   '/app/tasks': typeof AppTasksRoute
   '/login/admin': typeof LoginAdminRoute
@@ -220,7 +272,9 @@ export interface FileRoutesById {
   '/admin/restaurants/$id': typeof AdminRestaurantsIdRoute
   '/app/process/$id': typeof AppProcessIdRoute
   '/app/task/$id': typeof AppTaskIdRoute
+  '/app/training/$id': typeof AppTrainingIdRoute
   '/admin/restaurants/': typeof AdminRestaurantsIndexRoute
+  '/app/trainings/': typeof AppTrainingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -232,11 +286,15 @@ export interface FileRouteTypes {
     | '/admin/alerts'
     | '/admin/builder'
     | '/admin/evidence'
+    | '/admin/groups'
+    | '/admin/orders'
     | '/admin/processes'
     | '/admin/restaurants'
     | '/admin/users'
     | '/app/alerts'
     | '/app/analytics'
+    | '/app/chat'
+    | '/app/deliveries'
     | '/app/processes'
     | '/app/tasks'
     | '/login/admin'
@@ -247,7 +305,9 @@ export interface FileRouteTypes {
     | '/admin/restaurants/$id'
     | '/app/process/$id'
     | '/app/task/$id'
+    | '/app/training/$id'
     | '/admin/restaurants/'
+    | '/app/trainings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -255,10 +315,14 @@ export interface FileRouteTypes {
     | '/admin/alerts'
     | '/admin/builder'
     | '/admin/evidence'
+    | '/admin/groups'
+    | '/admin/orders'
     | '/admin/processes'
     | '/admin/users'
     | '/app/alerts'
     | '/app/analytics'
+    | '/app/chat'
+    | '/app/deliveries'
     | '/app/processes'
     | '/app/tasks'
     | '/login/admin'
@@ -269,7 +333,9 @@ export interface FileRouteTypes {
     | '/admin/restaurants/$id'
     | '/app/process/$id'
     | '/app/task/$id'
+    | '/app/training/$id'
     | '/admin/restaurants'
+    | '/app/trainings'
   id:
     | '__root__'
     | '/'
@@ -279,11 +345,15 @@ export interface FileRouteTypes {
     | '/admin/alerts'
     | '/admin/builder'
     | '/admin/evidence'
+    | '/admin/groups'
+    | '/admin/orders'
     | '/admin/processes'
     | '/admin/restaurants'
     | '/admin/users'
     | '/app/alerts'
     | '/app/analytics'
+    | '/app/chat'
+    | '/app/deliveries'
     | '/app/processes'
     | '/app/tasks'
     | '/login/admin'
@@ -294,7 +364,9 @@ export interface FileRouteTypes {
     | '/admin/restaurants/$id'
     | '/app/process/$id'
     | '/app/task/$id'
+    | '/app/training/$id'
     | '/admin/restaurants/'
+    | '/app/trainings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -364,6 +436,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminEvidenceRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/groups': {
+      id: '/admin/groups'
+      path: '/groups'
+      fullPath: '/admin/groups'
+      preLoaderRoute: typeof AdminGroupsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/orders': {
+      id: '/admin/orders'
+      path: '/orders'
+      fullPath: '/admin/orders'
+      preLoaderRoute: typeof AdminOrdersRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/processes': {
       id: '/admin/processes'
       path: '/processes'
@@ -404,6 +490,20 @@ declare module '@tanstack/react-router' {
       path: '/analytics'
       fullPath: '/app/analytics'
       preLoaderRoute: typeof AppAnalyticsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/chat': {
+      id: '/app/chat'
+      path: '/chat'
+      fullPath: '/app/chat'
+      preLoaderRoute: typeof AppChatRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/deliveries': {
+      id: '/app/deliveries'
+      path: '/deliveries'
+      fullPath: '/app/deliveries'
+      preLoaderRoute: typeof AppDeliveriesRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/processes': {
@@ -469,6 +569,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTaskIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/training/$id': {
+      id: '/app/training/$id'
+      path: '/training/$id'
+      fullPath: '/app/training/$id'
+      preLoaderRoute: typeof AppTrainingIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/trainings/': {
+      id: '/app/trainings/'
+      path: '/trainings'
+      fullPath: '/app/trainings/'
+      preLoaderRoute: typeof AppTrainingsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -489,6 +603,8 @@ interface AdminRouteChildren {
   AdminAlertsRoute: typeof AdminAlertsRoute
   AdminBuilderRoute: typeof AdminBuilderRoute
   AdminEvidenceRoute: typeof AdminEvidenceRoute
+  AdminGroupsRoute: typeof AdminGroupsRoute
+  AdminOrdersRoute: typeof AdminOrdersRoute
   AdminProcessesRoute: typeof AdminProcessesRoute
   AdminRestaurantsRoute: typeof AdminRestaurantsRouteWithChildren
   AdminUsersRoute: typeof AdminUsersRoute
@@ -500,6 +616,8 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAlertsRoute: AdminAlertsRoute,
   AdminBuilderRoute: AdminBuilderRoute,
   AdminEvidenceRoute: AdminEvidenceRoute,
+  AdminGroupsRoute: AdminGroupsRoute,
+  AdminOrdersRoute: AdminOrdersRoute,
   AdminProcessesRoute: AdminProcessesRoute,
   AdminRestaurantsRoute: AdminRestaurantsRouteWithChildren,
   AdminUsersRoute: AdminUsersRoute,
@@ -512,21 +630,29 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 interface AppRouteChildren {
   AppAlertsRoute: typeof AppAlertsRoute
   AppAnalyticsRoute: typeof AppAnalyticsRoute
+  AppChatRoute: typeof AppChatRoute
+  AppDeliveriesRoute: typeof AppDeliveriesRoute
   AppProcessesRoute: typeof AppProcessesRoute
   AppTasksRoute: typeof AppTasksRoute
   AppIndexRoute: typeof AppIndexRoute
   AppProcessIdRoute: typeof AppProcessIdRoute
   AppTaskIdRoute: typeof AppTaskIdRoute
+  AppTrainingIdRoute: typeof AppTrainingIdRoute
+  AppTrainingsIndexRoute: typeof AppTrainingsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAlertsRoute: AppAlertsRoute,
   AppAnalyticsRoute: AppAnalyticsRoute,
+  AppChatRoute: AppChatRoute,
+  AppDeliveriesRoute: AppDeliveriesRoute,
   AppProcessesRoute: AppProcessesRoute,
   AppTasksRoute: AppTasksRoute,
   AppIndexRoute: AppIndexRoute,
   AppProcessIdRoute: AppProcessIdRoute,
   AppTaskIdRoute: AppTaskIdRoute,
+  AppTrainingIdRoute: AppTrainingIdRoute,
+  AppTrainingsIndexRoute: AppTrainingsIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

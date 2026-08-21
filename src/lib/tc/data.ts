@@ -152,44 +152,10 @@ export const restaurants: Restaurant[] = CITIES.map(([city, area], i) => {
 });
 
 /* ---------------- users ---------------- */
-export const roles: Role[] = [
-  {
-    id: "role-super",
-    name: "Super Admin",
-    description: "Accès total à la plateforme",
-    system: true,
-    permissions: {},
-  },
-  {
-    id: "role-ops",
-    name: "Operations Admin",
-    description: "Pilotage opérationnel du réseau",
-    system: true,
-    permissions: {},
-  },
-  {
-    id: "role-resto",
-    name: "Restaurant Admin",
-    description: "Gestion d'un périmètre de restaurants",
-    system: true,
-    permissions: {},
-  },
-  {
-    id: "role-audit",
-    name: "Auditeur",
-    description: "Lecture seule, contrôles et preuves",
-    system: true,
-    permissions: {},
-  },
-  {
-    id: "role-manager",
-    name: "Manager",
-    description: "Exécution terrain des standards",
-    system: true,
-    permissions: {},
-  },
-];
-
+/**
+ * Système de rôles d'entreprise : administration, management restaurant et équipiers.
+ * Chaque rôle possède une matrice de permissions par module (interface).
+ */
 const ALL_MODULES = [
   "Dashboard",
   "Restaurants",
@@ -197,6 +163,11 @@ const ALL_MODULES = [
   "Contrôles",
   "Standards",
   "Checklists",
+  "Formations",
+  "Chat",
+  "Groupes",
+  "Commandes",
+  "Livraisons",
   "Utilisateurs",
   "Administrateurs",
   "Rôles",
@@ -208,19 +179,251 @@ const ALL_MODULES = [
   "Audit",
   "Paramètres",
 ];
-for (const m of ALL_MODULES) {
-  roles[0].permissions[m] = ["Voir", "Créer", "Modifier", "Supprimer", "Exporter"];
-  roles[1].permissions[m] = ["Dashboard", "Restaurants", "Processus", "Contrôles", "Standards", "Checklists", "Preuves", "Notifications", "Analytics", "Rapports"].includes(m)
-    ? ["Voir", "Créer", "Modifier", "Exporter"]
-    : ["Voir"];
-  roles[2].permissions[m] = ["Dashboard", "Restaurants", "Contrôles", "Preuves", "Notifications", "Analytics"].includes(m)
-    ? ["Voir", "Modifier", "Exporter"]
-    : [];
-  roles[3].permissions[m] = ["Dashboard", "Contrôles", "Preuves", "Analytics", "Rapports", "Audit"].includes(m)
-    ? ["Voir", "Exporter"]
-    : [];
-  roles[4].permissions[m] = [];
+
+type Perm = "Voir" | "Créer" | "Modifier" | "Supprimer" | "Exporter";
+const CRUD: Perm[] = ["Voir", "Créer", "Modifier", "Supprimer", "Exporter"];
+const RU: Perm[] = ["Voir", "Modifier"];
+const RC: Perm[] = ["Voir", "Créer"];
+const R: Perm[] = ["Voir"];
+const NONE: Perm[] = [];
+
+interface RoleDef {
+  id: string;
+  name: string;
+  description: string;
+  group: "Administration" | "Restaurant Management" | "Restaurant Staff";
+  base: Perm[];
+  overrides: Record<string, Perm[]>;
 }
+
+const ROLE_DEFS: RoleDef[] = [
+  {
+    id: "role-super",
+    name: "Super Admin",
+    description: "Accès total à la plateforme",
+    group: "Administration",
+    base: CRUD,
+    overrides: {},
+  },
+  {
+    id: "role-admin",
+    name: "Admin",
+    description: "Administration complète du réseau",
+    group: "Administration",
+    base: CRUD,
+    overrides: { Audit: ["Voir", "Exporter"] },
+  },
+  {
+    id: "role-ops",
+    name: "Operations Manager",
+    description: "Pilotage opérationnel du réseau et des approvisionnements",
+    group: "Administration",
+    base: R,
+    overrides: {
+      Dashboard: R,
+      Restaurants: RU,
+      Processus: CRUD,
+      Contrôles: CRUD,
+      Standards: CRUD,
+      Checklists: CRUD,
+      Formations: CRUD,
+      Chat: CRUD,
+      Groupes: CRUD,
+      Commandes: CRUD,
+      Livraisons: RU,
+      Analytics: ["Voir", "Exporter"],
+      Rapports: ["Voir", "Exporter"],
+      Utilisateurs: RU,
+    },
+  },
+  {
+    id: "role-resto",
+    name: "Restaurant Admin",
+    description: "Gestion d'un périmètre de restaurants",
+    group: "Administration",
+    base: NONE,
+    overrides: {
+      Dashboard: R,
+      Restaurants: RU,
+      Contrôles: RU,
+      Preuves: R,
+      Notifications: R,
+      Analytics: R,
+      Chat: RC,
+      Formations: R,
+      Commandes: RC,
+      Livraisons: RU,
+    },
+  },
+  {
+    id: "role-audit",
+    name: "Auditeur",
+    description: "Lecture seule : contrôles, preuves et rapports",
+    group: "Administration",
+    base: NONE,
+    overrides: {
+      Dashboard: R,
+      Contrôles: ["Voir", "Exporter"],
+      Preuves: ["Voir", "Exporter"],
+      Analytics: ["Voir", "Exporter"],
+      Rapports: ["Voir", "Exporter"],
+      Audit: ["Voir", "Exporter"],
+      Formations: R,
+      Chat: R,
+    },
+  },
+  {
+    id: "role-manager",
+    name: "Restaurant Manager",
+    description: "Pilotage complet d'un restaurant : shift, équipe, livraisons",
+    group: "Restaurant Management",
+    base: NONE,
+    overrides: {
+      Dashboard: R,
+      Restaurants: R,
+      Processus: R,
+      Contrôles: CRUD,
+      Checklists: CRUD,
+      Standards: R,
+      Formations: RU,
+      Chat: RC,
+      Groupes: R,
+      Commandes: RC,
+      Livraisons: RU,
+      Preuves: RC,
+      Notifications: R,
+      Analytics: R,
+      Utilisateurs: R,
+    },
+  },
+  {
+    id: "role-assistant",
+    name: "Assistant Manager",
+    description: "Second du restaurant : shift, équipe et réceptions",
+    group: "Restaurant Management",
+    base: NONE,
+    overrides: {
+      Dashboard: R,
+      Processus: R,
+      Contrôles: ["Voir", "Créer", "Modifier"],
+      Checklists: ["Voir", "Créer", "Modifier"],
+      Formations: RU,
+      Chat: RC,
+      Livraisons: RU,
+      Preuves: RC,
+      Notifications: R,
+      Analytics: R,
+    },
+  },
+  {
+    id: "role-shift",
+    name: "Shift Leader",
+    description: "Responsable de shift : exécution terrain et coordination équipe",
+    group: "Restaurant Management",
+    base: NONE,
+    overrides: {
+      Dashboard: R,
+      Processus: R,
+      Contrôles: ["Voir", "Créer", "Modifier"],
+      Checklists: ["Voir", "Créer", "Modifier"],
+      Formations: RU,
+      Chat: RC,
+      Livraisons: RU,
+      Preuves: RC,
+      Notifications: R,
+    },
+  },
+  {
+    id: "role-crew",
+    name: "Crew Member",
+    description: "Équipier polyvalent : tâches assignées, formations et communication",
+    group: "Restaurant Staff",
+    base: NONE,
+    overrides: {
+      Dashboard: R,
+      Checklists: ["Voir", "Modifier"],
+      Processus: R,
+      Formations: RU,
+      Chat: RC,
+      Preuves: RC,
+      Livraisons: R,
+    },
+  },
+  {
+    id: "role-cook",
+    name: "Cook",
+    description: "Équipier cuisine : préparation, cuisson et standards produit",
+    group: "Restaurant Staff",
+    base: NONE,
+    overrides: {
+      Dashboard: R,
+      Checklists: ["Voir", "Modifier"],
+      Processus: R,
+      Formations: RU,
+      Chat: RC,
+      Preuves: RC,
+    },
+  },
+  {
+    id: "role-cashier",
+    name: "Cashier",
+    description: "Équipier caisse : encaissement et service client",
+    group: "Restaurant Staff",
+    base: NONE,
+    overrides: {
+      Dashboard: R,
+      Checklists: ["Voir", "Modifier"],
+      Formations: RU,
+      Chat: RC,
+      Preuves: RC,
+    },
+  },
+  {
+    id: "role-drive",
+    name: "Drive-Thru Staff",
+    description: "Équipier drive : prise de commande et temps de service",
+    group: "Restaurant Staff",
+    base: NONE,
+    overrides: {
+      Dashboard: R,
+      Checklists: ["Voir", "Modifier"],
+      Formations: RU,
+      Chat: RC,
+      Preuves: RC,
+    },
+  },
+  {
+    id: "role-clean",
+    name: "Cleaning / Hygiene Staff",
+    description: "Hygiène et propreté : plan de nettoyage et traçabilité",
+    group: "Restaurant Staff",
+    base: NONE,
+    overrides: {
+      Dashboard: R,
+      Checklists: ["Voir", "Modifier"],
+      Formations: RU,
+      Chat: RC,
+      Preuves: RC,
+    },
+  },
+];
+
+export const ROLE_GROUPS = ["Administration", "Restaurant Management", "Restaurant Staff"] as const;
+export const ROLE_GROUP_OF: Record<string, string> = {};
+
+export const roles: Role[] = ROLE_DEFS.map((d) => {
+  const permissions: Record<string, Perm[]> = {};
+  for (const m of ALL_MODULES) permissions[m] = d.overrides[m] ?? d.base;
+  ROLE_GROUP_OF[d.id] = d.group;
+  return {
+    id: d.id,
+    name: d.name,
+    description: d.description,
+    system: true,
+    permissions,
+  };
+});
+
 
 export const users: User[] = [];
 users.push({
@@ -287,6 +490,42 @@ for (let i = 2; i <= 30; i++) {
     alerts: int(0, 14),
   });
 }
+
+/* équipiers & encadrement restaurant (accès application avec permissions adaptées) */
+const STAFF_ROLES: [User["role"], string][] = [
+  ["Restaurant Manager", "role-manager"],
+  ["Assistant Manager", "role-assistant"],
+  ["Shift Leader", "role-shift"],
+  ["Crew Member", "role-crew"],
+  ["Cook", "role-cook"],
+  ["Cashier", "role-cashier"],
+  ["Drive-Thru Staff", "role-drive"],
+  ["Cleaning / Hygiene Staff", "role-clean"],
+];
+for (let i = 0; i < 40; i++) {
+  const f = FIRST[(i * 7 + 2) % FIRST.length];
+  const l = LAST[(i * 11 + 3) % LAST.length];
+  const [role, roleId] = STAFF_ROLES[i % STAFF_ROLES.length]!;
+  const rid = restaurants[i % Math.min(restaurants.length, 8)].id;
+  users.push({
+    id: `s${i + 1}`,
+    firstName: f,
+    lastName: l,
+    email: `${f.toLowerCase()}.${l.toLowerCase().replace(/[^a-z]/g, "")}${i}@texaschicken-demo.com`,
+    password: "Crew123!",
+    restaurantId: rid,
+    role,
+    roleId,
+    status: i % 13 === 0 ? "Inactif" : "Actif",
+    lastLogin: `${dateMinus(int(0, 6))} ${pad(int(6, 23))}:${pad(int(0, 59))}`,
+    score: int(60, 99),
+    tasks: int(20, 220),
+    late: int(0, 12),
+    processes: int(1, 6),
+    alerts: int(0, 5),
+  });
+}
+
 
 /* ---------------- processes ---------------- */
 const ROLE_OPTS = ["Manager", "Responsable restaurant", "Responsable zone"];

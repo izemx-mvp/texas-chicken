@@ -14,6 +14,24 @@ import {
   TODAY as SEED_TODAY,
 } from "./data";
 import { REJECTED_PHOTO, evidenceVideo, zonePhoto } from "./media";
+import {
+  chatGroups as seedChatGroups,
+  chatMessages as seedChatMessages,
+  trainings as seedTrainings,
+  trainingProgress as seedTrainingProgress,
+  suppliers as seedSuppliers,
+  purchaseOrders as seedPurchaseOrders,
+} from "./ops";
+import type {
+  ChatGroup,
+  ChatMessage,
+  OrderLine,
+  OrderStatus,
+  PurchaseOrder,
+  Supplier,
+  Training,
+  TrainingProgress,
+} from "./ops";
 
 import type {
   Alert,
@@ -51,6 +69,12 @@ export interface State {
   roles: Role[];
   shiftTasks: ShiftTask[];
   usedPhotoHashes: string[];
+  chatGroups: ChatGroup[];
+  chatMessages: ChatMessage[];
+  trainings: Training[];
+  trainingProgress: TrainingProgress[];
+  suppliers: Supplier[];
+  purchaseOrders: PurchaseOrder[];
 }
 
 let state: State = {
@@ -67,6 +91,12 @@ let state: State = {
   roles: seedRoles,
   shiftTasks: seedShiftTasks,
   usedPhotoHashes: [],
+  chatGroups: seedChatGroups,
+  chatMessages: seedChatMessages,
+  trainings: seedTrainings,
+  trainingProgress: seedTrainingProgress,
+  suppliers: seedSuppliers,
+  purchaseOrders: seedPurchaseOrders,
 };
 
 
@@ -1005,4 +1035,243 @@ export function executionsRange(
   const out: ExecutionDetail[] = [];
   for (let i = 0; i < days; i++) out.push(...executionsForDate(shiftDate(from, -i), restaurantId, s));
   return out;
+}
+
+/* ==================== COMMUNICATION (groupes & messages) ==================== */
+
+export function groupsForUser(userId: string | undefined, s: State = state) {
+  if (!userId) return [];
+  const me = s.users.find((u) => u.id === userId);
+  const isSuper = !!me && isSuperAdmin(me);
+  return s.chatGroups.filter(
+    (g) => g.status === "Actif" && (isSuper || g.memberIds.includes(userId)),
+  );
+}
+
+export function messagesOf(groupId: string, s: State = state) {
+  return s.chatMessages
+    .filter((m) => m.groupId === groupId)
+    .sort((a, b) => a.at.localeCompare(b.at));
+}
+
+export function unreadCount(groupId: string, userId: string | undefined, s: State = state) {
+  if (!userId) return 0;
+  return s.chatMessages.filter(
+    (m) => m.groupId === groupId && m.userId !== userId && !m.readBy.includes(userId),
+  ).length;
+}
+
+export function totalUnread(userId: string | undefined, s: State = state) {
+  return groupsForUser(userId, s).reduce((a, g) => a + unreadCount(g.id, userId, s), 0);
+}
+
+function nowStamp() {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${state.activeDate} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+export function sendMessage(groupId: string, userId: string, text: string) {
+  const msg: ChatMessage = {
+    id: uid("m"),
+    groupId,
+    userId,
+    text: text.trim(),
+    at: nowStamp(),
+    readBy: [userId],
+  };
+  setState((s) => ({ chatMessages: [...s.chatMessages, msg] }));
+  return msg;
+}
+
+export function markGroupRead(groupId: string, userId: string) {
+  setState((s) => ({
+    chatMessages: s.chatMessages.map((m) =>
+      m.groupId === groupId && !m.readBy.includes(userId) ? { ...m, readBy: [...m.readBy, userId] } : m,
+    ),
+  }));
+}
+
+export function upsertGroup(group: ChatGroup) {
+  setState((s) => ({
+    chatGroups: s.chatGroups.some((g) => g.id === group.id)
+      ? s.chatGroups.map((g) => (g.id === group.id ? group : g))
+      : [group, ...s.chatGroups],
+  }));
+}
+
+export function removeGroup(id: string) {
+  setState((s) => ({
+    chatGroups: s.chatGroups.filter((g) => g.id !== id),
+    chatMessages: s.chatMessages.filter((m) => m.groupId !== id),
+  }));
+}
+
+export function toggleGroupStatus(id: string) {
+  setState((s) => ({
+    chatGroups: s.chatGroups.map((g) =>
+      g.id === id ? { ...g, status: g.status === "Actif" ? "Inactif" : "Actif" } : g,
+    ),
+  }));
+}
+
+/* ============================== FORMATIONS ============================== */
+
+export interface TrainingView {
+  training: Training;
+  totalSteps: number;
+  doneSteps: number;
+  percent: number;
+  started: boolean;
+  completed: boolean;
+  nextStepId?: string;
+}
+
+export function trainingSteps(t: Training) {
+  return t.modules.flatMap((m) => m.steps);
+}
+
+export function trainingView(trainingId: string, userId: string | undefined, s: State = state): TrainingView | null {
+  const training = s.trainings.find((t) => t.id === trainingId);
+  if (!training) return null;
+  const all = trainingSteps(training);
+  const prog = s.trainingProgress.find((p) => p.trainingId === trainingId && p.userId === userId);
+  const done = prog?.completedStepIds ?? [];
+  const doneSteps = all.filter((x) => done.includes(x.id)).length;
+  const next = all.find((x) => !done.includes(x.id));
+  return {
+    training,
+    totalSteps: all.length,
+    doneSteps,
+    percent: all.length ? Math.round((doneSteps / all.length) * 100) : 0,
+    started: doneSteps > 0,
+    completed: doneSteps === all.length && all.length > 0,
+    nextStepId: next?.id,
+  };
+}
+
+export function trainingsForUser(userId: string | undefined, s: State = state): TrainingView[] {
+  return s.trainings
+    .map((t) => trainingView(t.id, userId, s))
+    .filter((v): v is TrainingView => !!v);
+}
+
+export function toggleTrainingStep(trainingId: string, userId: string, stepId: string, done: boolean) {
+  setState((s) => {
+    const training = s.trainings.find((t) => t.id === trainingId);
+    const all = training ? trainingSteps(training).map((x) => x.id) : [];
+    const existing = s.trainingProgress.find((p) => p.trainingId === trainingId && p.userId === userId);
+    const nextIds = done
+      ? Array.from(new Set([...(existing?.completedStepIds ?? []), stepId]))
+      : (existing?.completedStepIds ?? []).filter((x) => x !== stepId);
+    const completedAt = nextIds.length === all.length && all.length ? s.activeDate : undefined;
+    const entry: TrainingProgress = {
+      userId,
+      trainingId,
+      completedStepIds: nextIds,
+      startedAt: existing?.startedAt ?? s.activeDate,
+      completedAt,
+    };
+    return {
+      trainingProgress: existing
+        ? s.trainingProgress.map((p) => (p === existing ? entry : p))
+        : [...s.trainingProgress, entry],
+    };
+  });
+}
+
+/* ========================= APPROVISIONNEMENT ========================= */
+
+export function ordersFor(restaurantId: string | null | undefined, s: State = state) {
+  const list = restaurantId ? s.purchaseOrders.filter((o) => o.restaurantId === restaurantId) : s.purchaseOrders;
+  return [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export function orderTotal(o: PurchaseOrder) {
+  return o.lines.reduce((a, l) => a + l.quantity * l.price, 0);
+}
+
+export function createOrder(input: {
+  supplierId: string;
+  restaurantId: string;
+  lines: OrderLine[];
+  note?: string;
+  createdBy: string;
+  expectedAt: string;
+}) {
+  const ref = `BC-2026-${String(200 + state.purchaseOrders.length).padStart(3, "0")}`;
+  const at = nowStamp();
+  const supplier = state.suppliers.find((x) => x.id === input.supplierId);
+  const order: PurchaseOrder = {
+    id: uid("po"),
+    ref,
+    supplierId: input.supplierId,
+    restaurantId: input.restaurantId,
+    createdBy: input.createdBy,
+    createdAt: at,
+    expectedAt: input.expectedAt,
+    status: "Envoyée",
+    lines: input.lines,
+    note: input.note,
+    history: [
+      { at, label: "Bon de commande créé" },
+      { at, label: `Envoyé à ${supplier?.name ?? "fournisseur"}` },
+    ],
+  };
+  setState((s) => ({ purchaseOrders: [order, ...s.purchaseOrders] }));
+  return order;
+}
+
+export function setOrderStatus(id: string, status: OrderStatus, label?: string) {
+  const at = nowStamp();
+  setState((s) => ({
+    purchaseOrders: s.purchaseOrders.map((o) =>
+      o.id === id ? { ...o, status, history: [...o.history, { at, label: label ?? `Statut : ${status}` }] } : o,
+    ),
+  }));
+}
+
+export function receiveOrder(
+  id: string,
+  by: string,
+  data: { conform: boolean; comment?: string; photo?: string; receivedQuantities?: Record<string, number> },
+) {
+  const at = nowStamp();
+  setState((s) => ({
+    purchaseOrders: s.purchaseOrders.map((o) =>
+      o.id === id
+        ? {
+            ...o,
+            status: "Reçue" as OrderStatus,
+            lines: o.lines.map((l) => ({
+              ...l,
+              receivedQuantity: data.receivedQuantities?.[l.productId] ?? l.quantity,
+            })),
+            reception: { at, by, conform: data.conform, comment: data.comment, photo: data.photo },
+            history: [
+              ...o.history,
+              { at, label: data.conform ? "Livraison réceptionnée — conforme" : "Livraison réceptionnée — écart signalé" },
+            ],
+          }
+        : o,
+    ),
+  }));
+}
+
+export interface DeliveryStats {
+  attendues: number;
+  envoyees: number;
+  enLivraison: number;
+  recues: number;
+  enRetard: number;
+}
+
+export function deliveryStats(list: PurchaseOrder[]): DeliveryStats {
+  return {
+    attendues: list.filter((o) => ["Envoyée", "En préparation", "En livraison", "En retard"].includes(o.status)).length,
+    envoyees: list.filter((o) => o.status === "Envoyée").length,
+    enLivraison: list.filter((o) => o.status === "En livraison").length,
+    recues: list.filter((o) => o.status === "Reçue" || o.status === "Clôturée").length,
+    enRetard: list.filter((o) => o.status === "En retard").length,
+  };
 }

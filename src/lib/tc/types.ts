@@ -150,7 +150,19 @@ export type UserRole =
   | "Operations Admin"
   | "Restaurant Admin"
   | "Auditeur"
-  | "Super Admin";
+  | "Super Admin"
+  | "Operations Manager"
+  | "General Manager"
+  | "Restaurant Manager"
+  | "Assistant Manager"
+  | "Shift Leader"
+  | "Crew Member"
+  | "Cook"
+  | "Cashier"
+  | "Drive-Thru Staff"
+  | "Cleaning / Hygiene Staff"
+  | "Maintenance";
+
 
 export interface User {
   id: ID;
@@ -293,6 +305,11 @@ export const MODULES = [
   "Contrôles",
   "Standards",
   "Checklists",
+  "Formations",
+  "Chat",
+  "Groupes",
+  "Commandes",
+  "Livraisons",
   "Utilisateurs",
   "Administrateurs",
   "Rôles",
@@ -304,6 +321,7 @@ export const MODULES = [
   "Audit",
   "Paramètres",
 ] as const;
+
 export type ModuleName = (typeof MODULES)[number];
 
 export const PERMISSIONS = [

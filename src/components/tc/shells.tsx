@@ -17,6 +17,10 @@ import {
   LogOut,
   Menu,
   Users as UsersIcon,
+  MessagesSquare,
+  PackageSearch,
+  GraduationCap,
+  Truck,
 
   Search,
   ShieldCheck,
@@ -43,6 +47,8 @@ export const ADMIN_NAV: NavItem[] = [
   { to: "/admin", label: "Command Center", module: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/restaurants", label: "Restaurants", module: "Restaurants", icon: Building2 },
   { to: "/admin/processes", label: "Processus & Contrôles", module: "Processus", icon: Workflow },
+  { to: "/admin/groups", label: "Groupes", module: "Groupes", icon: MessagesSquare },
+  { to: "/admin/orders", label: "Commandes", module: "Commandes", icon: PackageSearch },
   { to: "/admin/users", label: "Utilisateurs", module: "Utilisateurs", icon: UsersIcon },
 ];
 
@@ -365,8 +371,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
 /* ---------------- manager shell ---------------- */
 const MANAGER_NAV: { to: string; label: string; icon: typeof Home; exact?: boolean }[] = [
   { to: "/app", label: "Shift", icon: Home, exact: true },
-  { to: "/app/processes", label: "Processus", icon: Workflow },
   { to: "/app/tasks", label: "Tâches", icon: ListChecks },
+  { to: "/app/trainings", label: "Formations", icon: GraduationCap },
+  { to: "/app/chat", label: "Chat", icon: MessagesSquare },
+  { to: "/app/deliveries", label: "Livraisons", icon: Truck },
   { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
 ];
 
