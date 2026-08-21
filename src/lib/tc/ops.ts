@@ -105,62 +105,93 @@ export const chatGroups: ChatGroup[] = GROUP_DEFS.map(([name, description, type,
   };
 });
 
-const MSG_SCRIPTS: Record<string, string[]> = {
+type Script = { text: string; att?: ChatAttachment[] };
+const t = (text: string, att?: ChatAttachment[]): Script => ({ text, ...(att ? { att } : {}) });
+
+const MSG_SCRIPTS: Record<string, Script[]> = {
   g1: [
-    "Bonjour l'équipe, ouverture validée à 07:05, températures conformes.",
-    "La friteuse 2 chauffe lentement, je passe une demande maintenance.",
-    "Bien reçu, je note l'anomalie sur le contrôle du shift.",
-    "Livraison surgelés annoncée pour 14:00, prévoir deux personnes en réception.",
-    "Rush midi terminé, salle nettoyée et preuves photo envoyées.",
+    t("Bonjour l'équipe 👋 ouverture validée à 07:05, températures chambre froide à 2,4°C — conformes."),
+    t("Relevé du matin envoyé, photo à l'appui.", [{ name: "releve-temperatures-0705.jpg", kind: "Image" }]),
+    t("La friteuse 2 chauffe lentement (168°C au lieu de 175°C). @Maintenance je passe une demande."),
+    t("Bien reçu, je bloque la friteuse 2 et je note l'anomalie sur le contrôle du shift."),
+    t("Livraison surgelés annoncée pour 14:00 — prévoir deux personnes en réception 🚚"),
+    t("Rush midi terminé : 312 commandes, temps moyen 4 min 20. Salle nettoyée, preuves photo envoyées ✅"),
+    t("Rappel fermeture : filtration huile, nettoyage grill, contrôle DLC frigo 3."),
+    t("Checklist de fermeture complétée à 23:48, aucune non-conformité 🙏"),
   ],
   g2: [
-    "Checklist fermeture d'hier complète, aucune non-conformité.",
-    "Stock packaging bas : boîtes 8 pièces à commander.",
-    "Je remonte le besoin à l'administration ce matin.",
+    t("Checklist fermeture d'hier complète, aucune non-conformité."),
+    t("Stock packaging bas : boîtes 8 pièces à 1,5 jour de couverture ⚠️"),
+    t("Je remonte le besoin à l'administration ce matin, commande passée avant 11:00."),
+    t("Contrôle DLC réalisé : 3 produits retirés et tracés dans la fiche de destruction.", [
+      { name: "fiche-destruction.pdf", kind: "Document" },
+    ]),
+    t("Formation Food Safety : 4 équipiers sur 6 l'ont terminée, relance faite."),
+    t("Nouveau planning du week-end publié, merci de confirmer vos créneaux 🕒"),
   ],
   g3: [
-    "Rappel : audit hygiène réseau la semaine prochaine.",
-    "Casablanca à 94% de conformité cette semaine, bravo l'équipe.",
-    "Pensez à valider les formations Food Safety avant vendredi.",
+    t("Rappel : audit hygiène réseau la semaine prochaine, préparez les registres."),
+    t("Casablanca à 94% de conformité cette semaine, bravo l'équipe 🔥"),
+    t("Rabat en retard sur les preuves photo du shift du soir — action corrective demandée."),
+    t("Pensez à valider les formations Food Safety avant vendredi."),
+    t("Synthèse conformité réseau du mois en pièce jointe.", [{ name: "conformite-reseau-mensuelle.pdf", kind: "Document" }]),
+    t("Point managers jeudi 10:00 : ordre du jour = pertes, staffing, drive."),
   ],
   g4: [
-    "Nouveau standard de cuisson diffusé à tous les restaurants.",
-    "Les bons de commande passent désormais par la plateforme.",
-    "Reporting mensuel disponible dans Analytics.",
+    t("Nouveau standard de cuisson diffusé à tous les restaurants (v2.4)."),
+    t("Les bons de commande passent désormais exclusivement par la plateforme."),
+    t("Objectif réseau Q3 : 95% de conformité et zéro alerte fraude critique."),
+    t("Reporting mensuel disponible dans Analytics, filtré par ville et par rôle."),
+    t("Deux alertes anti-fraude à traiter aujourd'hui : preuves dupliquées détectées ⚠️"),
   ],
   g5: [
-    "Contrôle huile de friture : viscosité à vérifier deux fois par shift.",
-    "Photos de plan de travail à prendre après chaque nettoyage.",
+    t("Contrôle huile de friture : viscosité à vérifier deux fois par shift."),
+    t("Photos de plan de travail à prendre après chaque nettoyage 📸"),
+    t("Nouvelle fiche technique Spicy Chicken : marinade 12h minimum.", [
+      { name: "fiche-technique-spicy.pdf", kind: "Document" },
+    ]),
+    t("Rappel : température à cœur 74°C minimum, sonde désinfectée entre chaque mesure."),
+    t("Retour qualité client sur la panure trop foncée à Marrakech, on revoit le temps de cuisson."),
   ],
   g6: [
-    "Intervention prévue mercredi sur la chambre froide de Rabat.",
-    "Pièce détachée commandée, délai 48h.",
+    t("Intervention prévue mercredi sur la chambre froide de Rabat ❄️"),
+    t("Pièce détachée commandée (thermostat), délai 48h."),
+    t("Friteuse 2 Casablanca : résistance remplacée, remise en service validée à 16:10 ✅"),
+    t("Merci, je referme le ticket maintenance et je réactive la tâche de cuisson."),
   ],
-  g7: ["Réunion régionale jeudi 10:00 en visio."],
+  g7: [
+    t("Réunion régionale jeudi 10:00 en visio."),
+    t("Trois restaurants du Grand Casablanca au-dessus de l'objectif conformité 💪"),
+    t("Support de la réunion régionale.", [{ name: "reunion-regionale.pptx", kind: "Document" }]),
+  ],
   g8: [
-    "Nouveaux comptes équipiers créés pour Casablanca et Marrakech.",
-    "Permissions Formations activées pour tous les rôles restaurant.",
+    t("Nouveaux comptes équipiers créés pour Casablanca et Marrakech."),
+    t("Permissions Formations activées pour tous les rôles restaurant."),
+    t("Le module Commandes est ouvert aux Restaurant Managers en lecture seule."),
+    t("Rappel : toute demande d'accès passe par un ticket dans ce groupe 📦"),
   ],
 };
 
 export const chatMessages: ChatMessage[] = [];
 chatGroups.forEach((g, gi) => {
-  const scripts = MSG_SCRIPTS[g.id] ?? ["Message d'équipe Texas Chicken."];
-  scripts.forEach((text, i) => {
+  const scripts = MSG_SCRIPTS[g.id] ?? [t("Message d'équipe Texas Chicken.")];
+  scripts.forEach((s, i) => {
     const author = g.memberIds[(i + gi) % g.memberIds.length]!;
-    const dayOffset = i === scripts.length - 1 ? 0 : -(scripts.length - i);
+    const dayOffset = i >= scripts.length - 3 ? 0 : -(scripts.length - i);
     const hour = 7 + i * 2;
     const unread = i >= scripts.length - 1 && gi % 2 === 0;
     chatMessages.push({
       id: `m${g.id}-${i}`,
       groupId: g.id,
       userId: author,
-      text,
+      text: s.text,
       at: `${shift(dayOffset)} ${pad(Math.min(hour, 21))}:${pad((i * 17) % 60)}`,
       readBy: unread ? [author] : g.memberIds,
+      ...(s.att ? { attachments: s.att } : {}),
     });
   });
 });
+
 
 /* ============================== FORMATIONS ============================== */
 
