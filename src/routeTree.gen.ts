@@ -17,6 +17,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminAlertsRouteImport } from './routes/admin.alerts'
 import { Route as AdminBuilderRouteImport } from './routes/admin.builder'
 import { Route as AdminEvidenceRouteImport } from './routes/admin.evidence'
+import { Route as AdminGroupsRouteImport } from './routes/admin.groups'
 import { Route as AdminProcessesRouteImport } from './routes/admin.processes'
 import { Route as AdminRestaurantsRouteImport } from './routes/admin.restaurants'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
@@ -75,6 +76,11 @@ const AdminBuilderRoute = AdminBuilderRouteImport.update({
 const AdminEvidenceRoute = AdminEvidenceRouteImport.update({
   id: '/evidence',
   path: '/evidence',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminGroupsRoute = AdminGroupsRouteImport.update({
+  id: '/groups',
+  path: '/groups',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminProcessesRoute = AdminProcessesRouteImport.update({
@@ -181,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/admin/alerts': typeof AdminAlertsRoute
   '/admin/builder': typeof AdminBuilderRoute
   '/admin/evidence': typeof AdminEvidenceRoute
+  '/admin/groups': typeof AdminGroupsRoute
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/restaurants': typeof AdminRestaurantsRouteWithChildren
   '/admin/users': typeof AdminUsersRoute
@@ -208,6 +215,7 @@ export interface FileRoutesByTo {
   '/admin/alerts': typeof AdminAlertsRoute
   '/admin/builder': typeof AdminBuilderRoute
   '/admin/evidence': typeof AdminEvidenceRoute
+  '/admin/groups': typeof AdminGroupsRoute
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/users': typeof AdminUsersRoute
   '/app/alerts': typeof AppAlertsRoute
@@ -237,6 +245,7 @@ export interface FileRoutesById {
   '/admin/alerts': typeof AdminAlertsRoute
   '/admin/builder': typeof AdminBuilderRoute
   '/admin/evidence': typeof AdminEvidenceRoute
+  '/admin/groups': typeof AdminGroupsRoute
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/restaurants': typeof AdminRestaurantsRouteWithChildren
   '/admin/users': typeof AdminUsersRoute
@@ -268,6 +277,7 @@ export interface FileRouteTypes {
     | '/admin/alerts'
     | '/admin/builder'
     | '/admin/evidence'
+    | '/admin/groups'
     | '/admin/processes'
     | '/admin/restaurants'
     | '/admin/users'
@@ -295,6 +305,7 @@ export interface FileRouteTypes {
     | '/admin/alerts'
     | '/admin/builder'
     | '/admin/evidence'
+    | '/admin/groups'
     | '/admin/processes'
     | '/admin/users'
     | '/app/alerts'
@@ -323,6 +334,7 @@ export interface FileRouteTypes {
     | '/admin/alerts'
     | '/admin/builder'
     | '/admin/evidence'
+    | '/admin/groups'
     | '/admin/processes'
     | '/admin/restaurants'
     | '/admin/users'
@@ -410,6 +422,13 @@ declare module '@tanstack/react-router' {
       path: '/evidence'
       fullPath: '/admin/evidence'
       preLoaderRoute: typeof AdminEvidenceRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/groups': {
+      id: '/admin/groups'
+      path: '/groups'
+      fullPath: '/admin/groups'
+      preLoaderRoute: typeof AdminGroupsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/processes': {
@@ -565,6 +584,7 @@ interface AdminRouteChildren {
   AdminAlertsRoute: typeof AdminAlertsRoute
   AdminBuilderRoute: typeof AdminBuilderRoute
   AdminEvidenceRoute: typeof AdminEvidenceRoute
+  AdminGroupsRoute: typeof AdminGroupsRoute
   AdminProcessesRoute: typeof AdminProcessesRoute
   AdminRestaurantsRoute: typeof AdminRestaurantsRouteWithChildren
   AdminUsersRoute: typeof AdminUsersRoute
@@ -576,6 +596,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAlertsRoute: AdminAlertsRoute,
   AdminBuilderRoute: AdminBuilderRoute,
   AdminEvidenceRoute: AdminEvidenceRoute,
+  AdminGroupsRoute: AdminGroupsRoute,
   AdminProcessesRoute: AdminProcessesRoute,
   AdminRestaurantsRoute: AdminRestaurantsRouteWithChildren,
   AdminUsersRoute: AdminUsersRoute,
