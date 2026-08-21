@@ -596,7 +596,10 @@ export const trainings: Training[] = TRAINING_DEFS.map((d, i) => {
         answer: 1,
       },
     ],
-    status: "Publiée",
+    restaurantIds: i % 4 === 3 ? restaurants.slice(0, 4).map((r) => r.id) : [],
+    userIds: [],
+    createdAt: shift(-200 + i * 14),
+    status: i === 8 ? "Brouillon" : "Publiée",
   };
 });
 
