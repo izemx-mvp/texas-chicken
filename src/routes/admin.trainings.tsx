@@ -329,23 +329,13 @@ function TrainingsAdminPage() {
 
       {/* ---------------- création / édition ---------------- */}
       {draft && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="glass animate-rise max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="font-display text-xl font-bold uppercase">
-                  {draft.id ? "Modifier la formation" : "Nouvelle formation"}
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  Étape {String(step + 1).padStart(2, "0")} — {EDIT_STEPS[step]}
-                </p>
-              </div>
-              <button onClick={() => setDraft(null)} aria-label="Fermer">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mt-4 flex items-center gap-1">
+        <TCModal
+          title={draft.id ? "Modifier la formation" : "Nouvelle formation"}
+          subtitle={`Étape ${String(step + 1).padStart(2, "0")} — ${EDIT_STEPS[step]}`}
+          onClose={() => setDraft(null)}
+          size="xl"
+          toolbar={
+            <div className="flex items-center gap-1">
               {EDIT_STEPS.map((s, i) => (
                 <button
                   key={s}
@@ -363,8 +353,60 @@ function TrainingsAdminPage() {
                 </button>
               ))}
             </div>
+          }
+          footer={
+            <div className="flex items-center justify-between gap-2">
+              <Button variant="ghost" onClick={() => (step === 0 ? setDraft(null) : setStep((s) => s - 1))}>
+                {step === 0 ? (
+                  "Annuler"
+                ) : (
+                  <>
+                    <ArrowLeft className="mr-1.5 h-4 w-4" /> Retour
+                  </>
+                )}
+              </Button>
+              <div className="flex gap-2">
+                {step === EDIT_STEPS.length - 1 && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      if (!draft.title.trim()) {
+                        toast.error("Le titre est obligatoire");
+                        return;
+                      }
+                      upsertTraining({ ...draft, id: draft.id || uid("tr"), status: "Brouillon" });
+                      toast.success("Brouillon enregistré");
+                      setDraft(null);
+                    }}
+                  >
+                    Enregistrer en brouillon
+                  </Button>
+                )}
+                {step < EDIT_STEPS.length - 1 ? (
+                  <Button onClick={() => setStep((s) => Math.min(EDIT_STEPS.length - 1, s + 1))}>
+                    Continuer <ArrowRight className="ml-1.5 h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      if (!draft.title.trim()) {
+                        toast.error("Le titre est obligatoire");
+                        return;
+                      }
+                      upsertTraining({ ...draft, id: draft.id || uid("tr"), status: "Publiée" });
+                      toast.success(draft.id ? "Formation mise à jour" : "Formation publiée");
+                      setDraft(null);
+                    }}
+                  >
+                    <Check className="mr-1.5 h-4 w-4" /> Publier
+                  </Button>
+                )}
+              </div>
+            </div>
+          }
+        >
+            <div className="min-h-72">
 
-            <div className="mt-5 min-h-72">
               {step === 0 && (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block sm:col-span-2">
