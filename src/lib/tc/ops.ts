@@ -387,8 +387,9 @@ export interface Training {
   objectives?: string[];
   /** Prérequis avant de démarrer la formation. */
   prerequisites?: string[];
+  mainVideo: string;
+  documents: { name: string; type: string; url?: string }[];
 
-  documents: { name: string; type: string }[];
   rules: string[];
   modules: TrainingModule[];
   quiz: TrainingQuiz[];
