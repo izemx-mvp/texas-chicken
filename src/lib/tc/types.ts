@@ -305,6 +305,11 @@ export const MODULES = [
   "Contrôles",
   "Standards",
   "Checklists",
+  "Formations",
+  "Chat",
+  "Groupes",
+  "Commandes",
+  "Livraisons",
   "Utilisateurs",
   "Administrateurs",
   "Rôles",
@@ -316,6 +321,7 @@ export const MODULES = [
   "Audit",
   "Paramètres",
 ] as const;
+
 export type ModuleName = (typeof MODULES)[number];
 
 export const PERMISSIONS = [
