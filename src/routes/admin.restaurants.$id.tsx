@@ -7,6 +7,7 @@ import { TaskBoard } from "@/components/tc/task-board";
 import texasLogo from "@/assets/texas-chicken-logo.svg";
 import { cn } from "@/lib/utils";
 import { restaurantStats, useStore } from "@/lib/tc/store";
+import { ChatContextButton } from "@/components/tc/chat-dock";
 
 export const Route = createFileRoute("/admin/restaurants/$id")({
   head: () => ({
@@ -75,7 +76,10 @@ function RestaurantPage() {
               <MapPin className="h-3.5 w-3.5" /> {restaurant.code} · {restaurant.address}
             </p>
           </div>
-          <ComplianceRing value={restaurant.compliance} />
+          <div className="flex flex-col items-end gap-3">
+            <ComplianceRing value={restaurant.compliance} />
+            <ChatContextButton label="Contacter l'équipe" target={{ restaurantId: restaurant.id, match: restaurant.name }} />
+          </div>
         </div>
         <div className="relative mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard label="Tâches terminées" value={stats.done} suffix={`/${stats.total}`} />
