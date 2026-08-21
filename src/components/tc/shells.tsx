@@ -194,7 +194,6 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const user = useStore(() => currentUser());
-  const initials = `${user?.firstName?.[0] ?? ""}${user?.lastName?.[0] ?? ""}`;
 
   return (
     <div className="relative">
