@@ -5,6 +5,7 @@
  */
 import { restaurants, users, TODAY, REF_DATE } from "./data";
 import type { ID } from "./types";
+import { GROUP_PHOTOS } from "./people";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const shift = (days: number) => {
