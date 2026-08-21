@@ -14,6 +14,24 @@ import {
   TODAY as SEED_TODAY,
 } from "./data";
 import { REJECTED_PHOTO, evidenceVideo, zonePhoto } from "./media";
+import {
+  chatGroups as seedChatGroups,
+  chatMessages as seedChatMessages,
+  trainings as seedTrainings,
+  trainingProgress as seedTrainingProgress,
+  suppliers as seedSuppliers,
+  purchaseOrders as seedPurchaseOrders,
+} from "./ops";
+import type {
+  ChatGroup,
+  ChatMessage,
+  OrderLine,
+  OrderStatus,
+  PurchaseOrder,
+  Supplier,
+  Training,
+  TrainingProgress,
+} from "./ops";
 
 import type {
   Alert,
@@ -51,6 +69,12 @@ export interface State {
   roles: Role[];
   shiftTasks: ShiftTask[];
   usedPhotoHashes: string[];
+  chatGroups: ChatGroup[];
+  chatMessages: ChatMessage[];
+  trainings: Training[];
+  trainingProgress: TrainingProgress[];
+  suppliers: Supplier[];
+  purchaseOrders: PurchaseOrder[];
 }
 
 let state: State = {
@@ -67,6 +91,12 @@ let state: State = {
   roles: seedRoles,
   shiftTasks: seedShiftTasks,
   usedPhotoHashes: [],
+  chatGroups: seedChatGroups,
+  chatMessages: seedChatMessages,
+  trainings: seedTrainings,
+  trainingProgress: seedTrainingProgress,
+  suppliers: seedSuppliers,
+  purchaseOrders: seedPurchaseOrders,
 };
 
 
