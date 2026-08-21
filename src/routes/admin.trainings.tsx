@@ -110,7 +110,10 @@ function TrainingsAdminPage() {
 
   const roles = useMemo(() => Array.from(new Set(state.users.map((u) => u.role))).sort(), [state.users]);
 
-  const columns: Column<TrainingAdminStats>[] = [
+  type Row = TrainingAdminStats & { id: string };
+  const rows: Row[] = useMemo(() => stats.map((s) => ({ ...s, id: s.training.id })), [stats]);
+
+  const columns: Column<Row>[] = [
     {
       key: "title",
       header: "Formation",
@@ -219,11 +222,11 @@ function TrainingsAdminPage() {
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <KpiCard label="Formations" value={totals.total} icon={GraduationCap} />
-        <KpiCard label="Actives" value={totals.active} icon={BookOpen} />
-        <KpiCard label="Obligatoires" value={totals.mandatory} icon={Check} />
-        <KpiCard label="En retard" value={totals.late} icon={X} tone="danger" />
-        <KpiCard label="Taux de complétion" value={`${totals.rate}%`} icon={ArrowRight} tone="success" />
+        <KpiCard label="Formations" value={totals.total} icon={<GraduationCap className="h-4 w-4" />} />
+        <KpiCard label="Actives" value={totals.active} icon={<BookOpen className="h-4 w-4" />} tone="brand" />
+        <KpiCard label="Obligatoires" value={totals.mandatory} icon={<Check className="h-4 w-4" />} tone="warning" />
+        <KpiCard label="En retard" value={totals.late} icon={<X className="h-4 w-4" />} tone="danger" />
+        <KpiCard label="Taux de complétion" value={totals.rate} suffix="%" icon={<ArrowRight className="h-4 w-4" />} tone="success" />
       </div>
 
       <div className="glass rounded-3xl p-4">
@@ -244,7 +247,7 @@ function TrainingsAdminPage() {
       </div>
 
       <DataTable
-        rows={stats}
+        rows={rows}
         columns={columns}
         searchFields={(s) => `${s.training.title} ${s.training.category} ${s.training.roles.join(" ")}`}
       />
@@ -742,7 +745,10 @@ function TrainingsAdminPage() {
                   <Button
                     variant="ghost"
                     onClick={() => {
-                      if (!draft.title.trim()) return toast.error("Le titre est obligatoire");
+                      if (!draft.title.trim()) {
+                        toast.error("Le titre est obligatoire");
+                        return;
+                      }
                       upsertTraining({ ...draft, id: draft.id || uid("tr"), status: "Brouillon" });
                       toast.success("Brouillon enregistré");
                       setDraft(null);
@@ -758,7 +764,10 @@ function TrainingsAdminPage() {
                 ) : (
                   <Button
                     onClick={() => {
-                      if (!draft.title.trim()) return toast.error("Le titre est obligatoire");
+                      if (!draft.title.trim()) {
+                        toast.error("Le titre est obligatoire");
+                        return;
+                      }
                       upsertTraining({ ...draft, id: draft.id || uid("tr"), status: "Publiée" });
                       toast.success(draft.id ? "Formation mise à jour" : "Formation publiée");
                       setDraft(null);
