@@ -491,6 +491,42 @@ for (let i = 2; i <= 30; i++) {
   });
 }
 
+/* équipiers & encadrement restaurant (accès application avec permissions adaptées) */
+const STAFF_ROLES: [User["role"], string][] = [
+  ["Restaurant Manager", "role-manager"],
+  ["Assistant Manager", "role-assistant"],
+  ["Shift Leader", "role-shift"],
+  ["Crew Member", "role-crew"],
+  ["Cook", "role-cook"],
+  ["Cashier", "role-cashier"],
+  ["Drive-Thru Staff", "role-drive"],
+  ["Cleaning / Hygiene Staff", "role-clean"],
+];
+for (let i = 0; i < 40; i++) {
+  const f = FIRST[(i * 7 + 2) % FIRST.length];
+  const l = LAST[(i * 11 + 3) % LAST.length];
+  const [role, roleId] = STAFF_ROLES[i % STAFF_ROLES.length]!;
+  const rid = restaurants[i % Math.min(restaurants.length, 8)].id;
+  users.push({
+    id: `s${i + 1}`,
+    firstName: f,
+    lastName: l,
+    email: `${f.toLowerCase()}.${l.toLowerCase().replace(/[^a-z]/g, "")}${i}@texaschicken-demo.com`,
+    password: "Crew123!",
+    restaurantId: rid,
+    role,
+    roleId,
+    status: i % 13 === 0 ? "Inactif" : "Actif",
+    lastLogin: `${dateMinus(int(0, 6))} ${pad(int(6, 23))}:${pad(int(0, 59))}`,
+    score: int(60, 99),
+    tasks: int(20, 220),
+    late: int(0, 12),
+    processes: int(1, 6),
+    alerts: int(0, 5),
+  });
+}
+
+
 /* ---------------- processes ---------------- */
 const ROLE_OPTS = ["Manager", "Responsable restaurant", "Responsable zone"];
 
