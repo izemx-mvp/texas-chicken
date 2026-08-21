@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/tc/bits";
 import { cn } from "@/lib/utils";
 import { currentUser, toggleTrainingStep, trainingView, useStore } from "@/lib/tc/store";
+import { MediaGrid } from "@/components/tc/media-viewer";
 import type { TrainingStep } from "@/lib/tc/ops";
 
 export const Route = createFileRoute("/app/training/$id")({
@@ -112,6 +113,7 @@ function TrainingDetail() {
             <span className="text-sm font-bold text-gold">{view.percent}%</span>
           </div>
           <div className="mt-1 text-[11px] text-muted-foreground">
+            Module {(t.modules.findIndex((m) => m.steps.some((s) => s.id === (activeStep ?? view.nextStepId))) + 1) || 1}/{t.modules.length} ·{" "}
             {view.doneSteps}/{view.totalSteps} étapes validées
             {progress?.dueDate ? ` · échéance ${progress.dueDate}` : ""}
           </div>
@@ -202,6 +204,15 @@ function TrainingDetail() {
             )}
 
             <p className="text-sm text-muted-foreground">{current.content}</p>
+
+            {current.instructions && (
+              <div className="rounded-2xl border border-border bg-secondary/30 p-3 text-xs text-muted-foreground">
+                <div className="mb-1 text-[10px] uppercase tracking-widest text-gold">Instructions</div>
+                {current.instructions}
+              </div>
+            )}
+
+            <MediaGrid items={current.media ?? []} title="Contenu de l'étape" />
 
             {current.procedure?.length ? (
               <div>
@@ -311,6 +322,16 @@ function TrainingDetail() {
                     <span className="ml-auto text-[10px] uppercase tracking-widest text-muted-foreground">
                       {okCount}/{total}
                     </span>
+                  </div>
+
+                  {m.instructions && (
+                    <p className="mb-2 rounded-xl bg-secondary/40 p-2 text-[11px] text-muted-foreground">{m.instructions}</p>
+                  )}
+
+                  <MediaGrid items={m.media ?? []} title="Contenu du module" className="mb-3" />
+
+                  <div className="mb-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+                    Parcours du module — {total} étapes
                   </div>
                   <div className="space-y-1">
                     {m.steps.map((s) => {
