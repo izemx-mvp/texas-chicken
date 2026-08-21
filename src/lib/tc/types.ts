@@ -150,7 +150,19 @@ export type UserRole =
   | "Operations Admin"
   | "Restaurant Admin"
   | "Auditeur"
-  | "Super Admin";
+  | "Super Admin"
+  | "Operations Manager"
+  | "General Manager"
+  | "Restaurant Manager"
+  | "Assistant Manager"
+  | "Shift Leader"
+  | "Crew Member"
+  | "Cook"
+  | "Cashier"
+  | "Drive-Thru Staff"
+  | "Cleaning / Hygiene Staff"
+  | "Maintenance";
+
 
 export interface User {
   id: ID;
