@@ -33,6 +33,7 @@ import { Route as AdminRestaurantsIndexRouteImport } from './routes/admin.restau
 import { Route as AdminRestaurantsIdRouteImport } from './routes/admin.restaurants.$id'
 import { Route as AppProcessIdRouteImport } from './routes/app.process.$id'
 import { Route as AppTaskIdRouteImport } from './routes/app.task.$id'
+import { Route as AppTrainingIdRouteImport } from './routes/app.training.$id'
 import { Route as AppTrainingsIndexRouteImport } from './routes/app.trainings.index'
 
 const IndexRoute = IndexRouteImport.update({
@@ -155,6 +156,11 @@ const AppTaskIdRoute = AppTaskIdRouteImport.update({
   path: '/task/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTrainingIdRoute = AppTrainingIdRouteImport.update({
+  id: '/training/$id',
+  path: '/training/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppTrainingsIndexRoute = AppTrainingsIndexRouteImport.update({
   id: '/trainings/',
   path: '/trainings/',
@@ -185,6 +191,7 @@ export interface FileRoutesByFullPath {
   '/admin/restaurants/$id': typeof AdminRestaurantsIdRoute
   '/app/process/$id': typeof AppProcessIdRoute
   '/app/task/$id': typeof AppTaskIdRoute
+  '/app/training/$id': typeof AppTrainingIdRoute
   '/admin/restaurants/': typeof AdminRestaurantsIndexRoute
   '/app/trainings/': typeof AppTrainingsIndexRoute
 }
@@ -209,6 +216,7 @@ export interface FileRoutesByTo {
   '/admin/restaurants/$id': typeof AdminRestaurantsIdRoute
   '/app/process/$id': typeof AppProcessIdRoute
   '/app/task/$id': typeof AppTaskIdRoute
+  '/app/training/$id': typeof AppTrainingIdRoute
   '/admin/restaurants': typeof AdminRestaurantsIndexRoute
   '/app/trainings': typeof AppTrainingsIndexRoute
 }
@@ -237,6 +245,7 @@ export interface FileRoutesById {
   '/admin/restaurants/$id': typeof AdminRestaurantsIdRoute
   '/app/process/$id': typeof AppProcessIdRoute
   '/app/task/$id': typeof AppTaskIdRoute
+  '/app/training/$id': typeof AppTrainingIdRoute
   '/admin/restaurants/': typeof AdminRestaurantsIndexRoute
   '/app/trainings/': typeof AppTrainingsIndexRoute
 }
@@ -266,6 +275,7 @@ export interface FileRouteTypes {
     | '/admin/restaurants/$id'
     | '/app/process/$id'
     | '/app/task/$id'
+    | '/app/training/$id'
     | '/admin/restaurants/'
     | '/app/trainings/'
   fileRoutesByTo: FileRoutesByTo
@@ -290,6 +300,7 @@ export interface FileRouteTypes {
     | '/admin/restaurants/$id'
     | '/app/process/$id'
     | '/app/task/$id'
+    | '/app/training/$id'
     | '/admin/restaurants'
     | '/app/trainings'
   id:
@@ -317,6 +328,7 @@ export interface FileRouteTypes {
     | '/admin/restaurants/$id'
     | '/app/process/$id'
     | '/app/task/$id'
+    | '/app/training/$id'
     | '/admin/restaurants/'
     | '/app/trainings/'
   fileRoutesById: FileRoutesById
@@ -500,6 +512,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTaskIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/training/$id': {
+      id: '/app/training/$id'
+      path: '/training/$id'
+      fullPath: '/app/training/$id'
+      preLoaderRoute: typeof AppTrainingIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/trainings/': {
       id: '/app/trainings/'
       path: '/trainings'
@@ -556,6 +575,7 @@ interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppProcessIdRoute: typeof AppProcessIdRoute
   AppTaskIdRoute: typeof AppTaskIdRoute
+  AppTrainingIdRoute: typeof AppTrainingIdRoute
   AppTrainingsIndexRoute: typeof AppTrainingsIndexRoute
 }
 
@@ -568,6 +588,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppProcessIdRoute: AppProcessIdRoute,
   AppTaskIdRoute: AppTaskIdRoute,
+  AppTrainingIdRoute: AppTrainingIdRoute,
   AppTrainingsIndexRoute: AppTrainingsIndexRoute,
 }
 
