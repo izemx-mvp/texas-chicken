@@ -371,8 +371,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
 /* ---------------- manager shell ---------------- */
 const MANAGER_NAV: { to: string; label: string; icon: typeof Home; exact?: boolean }[] = [
   { to: "/app", label: "Shift", icon: Home, exact: true },
-  { to: "/app/processes", label: "Processus", icon: Workflow },
   { to: "/app/tasks", label: "Tâches", icon: ListChecks },
+  { to: "/app/trainings", label: "Formations", icon: GraduationCap },
+  { to: "/app/chat", label: "Chat", icon: MessagesSquare },
+  { to: "/app/deliveries", label: "Livraisons", icon: Truck },
   { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
 ];
 
