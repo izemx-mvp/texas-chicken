@@ -18,6 +18,7 @@ import { Route as AdminAlertsRouteImport } from './routes/admin.alerts'
 import { Route as AdminBuilderRouteImport } from './routes/admin.builder'
 import { Route as AdminEvidenceRouteImport } from './routes/admin.evidence'
 import { Route as AdminGroupsRouteImport } from './routes/admin.groups'
+import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminProcessesRouteImport } from './routes/admin.processes'
 import { Route as AdminRestaurantsRouteImport } from './routes/admin.restaurants'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
@@ -81,6 +82,11 @@ const AdminEvidenceRoute = AdminEvidenceRouteImport.update({
 const AdminGroupsRoute = AdminGroupsRouteImport.update({
   id: '/groups',
   path: '/groups',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOrdersRoute = AdminOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminProcessesRoute = AdminProcessesRouteImport.update({
@@ -188,6 +194,7 @@ export interface FileRoutesByFullPath {
   '/admin/builder': typeof AdminBuilderRoute
   '/admin/evidence': typeof AdminEvidenceRoute
   '/admin/groups': typeof AdminGroupsRoute
+  '/admin/orders': typeof AdminOrdersRoute
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/restaurants': typeof AdminRestaurantsRouteWithChildren
   '/admin/users': typeof AdminUsersRoute
@@ -216,6 +223,7 @@ export interface FileRoutesByTo {
   '/admin/builder': typeof AdminBuilderRoute
   '/admin/evidence': typeof AdminEvidenceRoute
   '/admin/groups': typeof AdminGroupsRoute
+  '/admin/orders': typeof AdminOrdersRoute
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/users': typeof AdminUsersRoute
   '/app/alerts': typeof AppAlertsRoute
@@ -246,6 +254,7 @@ export interface FileRoutesById {
   '/admin/builder': typeof AdminBuilderRoute
   '/admin/evidence': typeof AdminEvidenceRoute
   '/admin/groups': typeof AdminGroupsRoute
+  '/admin/orders': typeof AdminOrdersRoute
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/restaurants': typeof AdminRestaurantsRouteWithChildren
   '/admin/users': typeof AdminUsersRoute
@@ -278,6 +287,7 @@ export interface FileRouteTypes {
     | '/admin/builder'
     | '/admin/evidence'
     | '/admin/groups'
+    | '/admin/orders'
     | '/admin/processes'
     | '/admin/restaurants'
     | '/admin/users'
@@ -306,6 +316,7 @@ export interface FileRouteTypes {
     | '/admin/builder'
     | '/admin/evidence'
     | '/admin/groups'
+    | '/admin/orders'
     | '/admin/processes'
     | '/admin/users'
     | '/app/alerts'
@@ -335,6 +346,7 @@ export interface FileRouteTypes {
     | '/admin/builder'
     | '/admin/evidence'
     | '/admin/groups'
+    | '/admin/orders'
     | '/admin/processes'
     | '/admin/restaurants'
     | '/admin/users'
@@ -429,6 +441,13 @@ declare module '@tanstack/react-router' {
       path: '/groups'
       fullPath: '/admin/groups'
       preLoaderRoute: typeof AdminGroupsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/orders': {
+      id: '/admin/orders'
+      path: '/orders'
+      fullPath: '/admin/orders'
+      preLoaderRoute: typeof AdminOrdersRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/processes': {
@@ -585,6 +604,7 @@ interface AdminRouteChildren {
   AdminBuilderRoute: typeof AdminBuilderRoute
   AdminEvidenceRoute: typeof AdminEvidenceRoute
   AdminGroupsRoute: typeof AdminGroupsRoute
+  AdminOrdersRoute: typeof AdminOrdersRoute
   AdminProcessesRoute: typeof AdminProcessesRoute
   AdminRestaurantsRoute: typeof AdminRestaurantsRouteWithChildren
   AdminUsersRoute: typeof AdminUsersRoute
@@ -597,6 +617,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminBuilderRoute: AdminBuilderRoute,
   AdminEvidenceRoute: AdminEvidenceRoute,
   AdminGroupsRoute: AdminGroupsRoute,
+  AdminOrdersRoute: AdminOrdersRoute,
   AdminProcessesRoute: AdminProcessesRoute,
   AdminRestaurantsRoute: AdminRestaurantsRouteWithChildren,
   AdminUsersRoute: AdminUsersRoute,
