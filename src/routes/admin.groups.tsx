@@ -13,6 +13,8 @@ import { GROUP_PHOTO_LIBRARY } from "@/lib/tc/people";
 import { TCSelect } from "@/components/tc/select";
 import { GroupAvatar, UserAvatar } from "@/components/tc/avatar";
 import { MemberPicker } from "@/components/tc/member-picker";
+import { PhotoUpload } from "@/components/tc/upload";
+import { TCModal } from "@/components/tc/modal";
 
 export const Route = createFileRoute("/admin/groups")({
   head: () => ({
@@ -163,24 +165,13 @@ function GroupsPage() {
       <DataTable rows={state.chatGroups} columns={columns} searchFields={(g) => `${g.name} ${g.type} ${g.description}`} />
 
       {draft && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="glass animate-rise max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="font-display text-xl font-bold uppercase">
-                  {draft.id ? "Modifier le groupe" : "Nouveau groupe"}
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  Étape {String(step + 1).padStart(2, "0")} — {STEPS[step]}
-                </p>
-              </div>
-              <button onClick={() => setDraft(null)} aria-label="Fermer">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* stepper */}
-            <div className="mt-4 flex items-center gap-1">
+        <TCModal
+          title={draft.id ? "Modifier le groupe" : "Nouveau groupe"}
+          subtitle={`Étape ${String(step + 1).padStart(2, "0")} — ${STEPS[step]}`}
+          onClose={() => setDraft(null)}
+          size="lg"
+          toolbar={
+            <div className="flex items-center gap-1">
               {STEPS.map((s, i) => (
                 <button
                   key={s}
@@ -194,8 +185,37 @@ function GroupsPage() {
                 </button>
               ))}
             </div>
-
-            <div className="mt-5 min-h-72">
+          }
+          footer={
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <Button variant="ghost" onClick={() => (step === 0 ? setDraft(null) : setStep((s) => s - 1))}>
+                  {step === 0 ? (
+                    "Annuler"
+                  ) : (
+                    <>
+                      <ArrowLeft className="mr-1.5 h-4 w-4" /> Retour
+                    </>
+                  )}
+                </Button>
+                {step < STEPS.length - 1 ? (
+                  <Button onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))}>
+                    Continuer <ArrowRight className="ml-1.5 h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button onClick={save}>
+                    <Check className="mr-1.5 h-4 w-4" />
+                    {draft.id ? "Enregistrer le groupe" : "Créer le groupe"}
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center justify-end gap-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                <MessageSquare className="h-3 w-3 text-gold" /> {draft.memberIds.length} membres · {admins.length} admin(s)
+              </div>
+            </div>
+          }
+        >
+            <div className="min-h-72">
               {step === 0 && (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block sm:col-span-2">
@@ -328,32 +348,7 @@ function GroupsPage() {
               )}
             </div>
 
-            <div className="mt-6 flex items-center justify-between gap-2">
-              <Button variant="ghost" onClick={() => (step === 0 ? setDraft(null) : setStep((s) => s - 1))}>
-                {step === 0 ? (
-                  "Annuler"
-                ) : (
-                  <>
-                    <ArrowLeft className="mr-1.5 h-4 w-4" /> Retour
-                  </>
-                )}
-              </Button>
-              {step < STEPS.length - 1 ? (
-                <Button onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))}>
-                  Continuer <ArrowRight className="ml-1.5 h-4 w-4" />
-                </Button>
-              ) : (
-                <Button onClick={save}>
-                  <Check className="mr-1.5 h-4 w-4" />
-                  {draft.id ? "Enregistrer le groupe" : "Créer le groupe"}
-                </Button>
-              )}
-            </div>
-            <div className="mt-2 flex items-center justify-end gap-2 text-[10px] uppercase tracking-widest text-muted-foreground">
-              <MessageSquare className="h-3 w-3 text-gold" /> {draft.memberIds.length} membres · {admins.length} admin(s)
-            </div>
-          </div>
-        </div>
+        </TCModal>
       )}
     </div>
   );
