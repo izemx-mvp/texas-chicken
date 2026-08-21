@@ -609,10 +609,30 @@ export interface TrainingProgress {
   completedStepIds: ID[];
   startedAt?: string;
   completedAt?: string;
+  lastActivity?: string;
+  dueDate?: string;
+}
+
+/** Utilisateurs concernés par une formation (rôles + restaurants + nominatif). */
+export function assigneesOf(t: Training, pool = users) {
+  const explicit = new Set(t.userIds ?? []);
+  return pool.filter((u) => {
+    if (explicit.has(u.id)) return true;
+    if (!t.roles.includes(u.role)) return false;
+    const rids = t.restaurantIds ?? [];
+    if (rids.length && (!u.restaurantId || !rids.includes(u.restaurantId))) return false;
+    return true;
+  });
 }
 
 export const trainingProgress: TrainingProgress[] = [];
 {
+  const hash = (s: string) => {
+    let h = 7;
+    for (let i = 0; i < s.length; i++) h = (h * 33 + s.charCodeAt(i)) >>> 0;
+    return h;
+  };
+  // progression du manager de démonstration (états variés et lisibles)
   const seeds: [string, number][] = [
     ["tr1", 0.75],
     ["tr2", 0.4],
@@ -622,31 +642,42 @@ export const trainingProgress: TrainingProgress[] = [];
     ["tr9", 1],
   ];
   for (const [tid, ratio] of seeds) {
-    const tr = trainings.find((t) => t.id === tid)!;
+    const tr = trainings.find((t) => t.id === tid);
+    if (!tr) continue;
     const all = tr.modules.flatMap((m) => m.steps.map((s) => s.id));
-    const done = all.slice(0, Math.round(all.length * ratio));
     trainingProgress.push({
       userId: managerUser.id,
       trainingId: tid,
-      completedStepIds: done,
+      completedStepIds: all.slice(0, Math.round(all.length * ratio)),
       startedAt: shift(-20),
       completedAt: ratio >= 1 ? shift(-4) : undefined,
+      lastActivity: shift(-2),
+      dueDate: shift(tr.mandatory ? 6 : 20),
     });
   }
-  // progression réseau pour quelques équipiers
-  users.slice(2, 14).forEach((u, i) => {
-    const tr = trainings[i % trainings.length]!;
+  // progression réseau : chaque utilisateur assigné a un état cohérent
+  for (const tr of trainings) {
     const all = tr.modules.flatMap((m) => m.steps.map((s) => s.id));
-    const ratio = [0.2, 0.5, 0.8, 1][i % 4]!;
-    trainingProgress.push({
-      userId: u.id,
-      trainingId: tr.id,
-      completedStepIds: all.slice(0, Math.round(all.length * ratio)),
-      startedAt: shift(-30 + i),
-      completedAt: ratio >= 1 ? shift(-3) : undefined,
-    });
-  });
+    for (const u of assigneesOf(tr)) {
+      if (trainingProgress.some((p) => p.userId === u.id && p.trainingId === tr.id)) continue;
+      const h = hash(`${tr.id}-${u.id}`);
+      const bucket = h % 10; // 0-1 non démarré, 2-4 en cours, 5-8 terminé, 9 en retard
+      if (bucket <= 1) continue; // non démarré : aucune ligne de progression
+      const ratio = bucket >= 5 && bucket <= 8 ? 1 : [0.2, 0.4, 0.65, 0.85][h % 4]!;
+      const late = bucket === 9;
+      trainingProgress.push({
+        userId: u.id,
+        trainingId: tr.id,
+        completedStepIds: all.slice(0, Math.round(all.length * ratio)),
+        startedAt: shift(-(10 + (h % 40))),
+        completedAt: ratio >= 1 ? shift(-(1 + (h % 12))) : undefined,
+        lastActivity: shift(-(h % 9)),
+        dueDate: shift(late ? -(2 + (h % 5)) : 5 + (h % 20)),
+      });
+    }
+  }
 }
+
 
 /* ========================= APPROVISIONNEMENT ========================= */
 
