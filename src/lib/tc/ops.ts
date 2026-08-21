@@ -32,6 +32,12 @@ export const GROUP_TYPES: GroupType[] = [
   "Groupe personnalisé",
 ];
 
+export interface ChatAttachment {
+  name: string;
+  kind: "Image" | "Document";
+  url?: string;
+}
+
 export interface ChatMessage {
   id: ID;
   groupId: ID;
@@ -39,7 +45,10 @@ export interface ChatMessage {
   text: string;
   at: string; // "YYYY-MM-DD HH:mm"
   readBy: ID[];
+  attachments?: ChatAttachment[];
+  mentions?: ID[];
 }
+
 
 export interface ChatGroup {
   id: ID;
