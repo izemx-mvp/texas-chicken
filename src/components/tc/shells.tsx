@@ -363,6 +363,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
       </header>
 
       <main className="animate-rise mx-auto w-full max-w-[1600px] p-4 lg:p-6">{children}</main>
+      <ChatDock />
+
     </div>
   );
 
