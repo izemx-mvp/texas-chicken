@@ -25,6 +25,7 @@ import { TCSelect } from "@/components/tc/select";
 import { UserAvatar } from "@/components/tc/avatar";
 import { DocumentUpload, ImageUpload, MediaUploader, VideoUpload } from "@/components/tc/upload";
 
+import { TCModal } from "@/components/tc/modal";
 import { MemberPicker } from "@/components/tc/member-picker";
 import { cn } from "@/lib/utils";
 import {
