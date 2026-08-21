@@ -368,12 +368,18 @@ export interface Training {
   level: TrainingLevel;
   duration: number; // minutes
   mandatory: boolean;
-  cover: string; // dégradé
+  cover: string; // dégradé (repli) ou URL d'image
+  coverPhoto?: string;
   mainVideo: string;
   documents: { name: string; type: string }[];
   rules: string[];
   modules: TrainingModule[];
   quiz: TrainingQuiz[];
+  /** Affectation : restaurants concernés (vide = tout le réseau). */
+  restaurantIds?: ID[];
+  /** Affectation nominative complémentaire. */
+  userIds?: ID[];
+  createdAt?: string;
   status: "Publiée" | "Brouillon";
 }
 
