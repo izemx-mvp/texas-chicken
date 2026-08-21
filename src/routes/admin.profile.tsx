@@ -54,10 +54,11 @@ function AdminProfilePage() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Restaurants supervisés" value={String(scope.length)} icon={Building2} />
-        <KpiCard label="Collaborateurs" value={String(state.users.length)} icon={UsersIcon} />
-        <KpiCard label="Formations pilotées" value={String(state.trainings.length)} icon={GraduationCap} />
-        <KpiCard label="Groupes de communication" value={String(state.chatGroups.length)} icon={MessagesSquare} />
+        <KpiCard label="Restaurants supervisés" value={scope.length} icon={<Building2 className="h-4 w-4" />} />
+        <KpiCard label="Collaborateurs" value={state.users.length} icon={<UsersIcon className="h-4 w-4" />} />
+        <KpiCard label="Formations pilotées" value={state.trainings.length} icon={<GraduationCap className="h-4 w-4" />} />
+        <KpiCard label="Groupes de communication" value={state.chatGroups.length} icon={<MessagesSquare className="h-4 w-4" />} />
+
       </div>
 
       <div className="glass overflow-hidden rounded-3xl p-5">
