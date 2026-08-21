@@ -20,6 +20,7 @@ import { Route as AdminEvidenceRouteImport } from './routes/admin.evidence'
 import { Route as AdminGroupsRouteImport } from './routes/admin.groups'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminProcessesRouteImport } from './routes/admin.processes'
+import { Route as AdminProfileRouteImport } from './routes/admin.profile'
 import { Route as AdminRestaurantsRouteImport } from './routes/admin.restaurants'
 import { Route as AdminTrainingsRouteImport } from './routes/admin.trainings'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
@@ -94,6 +95,11 @@ const AdminOrdersRoute = AdminOrdersRouteImport.update({
 const AdminProcessesRoute = AdminProcessesRouteImport.update({
   id: '/processes',
   path: '/processes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminProfileRoute = AdminProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminRestaurantsRoute = AdminRestaurantsRouteImport.update({
@@ -208,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/admin/groups': typeof AdminGroupsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/processes': typeof AdminProcessesRoute
+  '/admin/profile': typeof AdminProfileRoute
   '/admin/restaurants': typeof AdminRestaurantsRouteWithChildren
   '/admin/trainings': typeof AdminTrainingsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -239,6 +246,7 @@ export interface FileRoutesByTo {
   '/admin/groups': typeof AdminGroupsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/processes': typeof AdminProcessesRoute
+  '/admin/profile': typeof AdminProfileRoute
   '/admin/trainings': typeof AdminTrainingsRoute
   '/admin/users': typeof AdminUsersRoute
   '/app/alerts': typeof AppAlertsRoute
@@ -272,6 +280,7 @@ export interface FileRoutesById {
   '/admin/groups': typeof AdminGroupsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/processes': typeof AdminProcessesRoute
+  '/admin/profile': typeof AdminProfileRoute
   '/admin/restaurants': typeof AdminRestaurantsRouteWithChildren
   '/admin/trainings': typeof AdminTrainingsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -307,6 +316,7 @@ export interface FileRouteTypes {
     | '/admin/groups'
     | '/admin/orders'
     | '/admin/processes'
+    | '/admin/profile'
     | '/admin/restaurants'
     | '/admin/trainings'
     | '/admin/users'
@@ -338,6 +348,7 @@ export interface FileRouteTypes {
     | '/admin/groups'
     | '/admin/orders'
     | '/admin/processes'
+    | '/admin/profile'
     | '/admin/trainings'
     | '/admin/users'
     | '/app/alerts'
@@ -370,6 +381,7 @@ export interface FileRouteTypes {
     | '/admin/groups'
     | '/admin/orders'
     | '/admin/processes'
+    | '/admin/profile'
     | '/admin/restaurants'
     | '/admin/trainings'
     | '/admin/users'
@@ -479,6 +491,13 @@ declare module '@tanstack/react-router' {
       path: '/processes'
       fullPath: '/admin/processes'
       preLoaderRoute: typeof AdminProcessesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/profile': {
+      id: '/admin/profile'
+      path: '/profile'
+      fullPath: '/admin/profile'
+      preLoaderRoute: typeof AdminProfileRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/restaurants': {
@@ -644,6 +663,7 @@ interface AdminRouteChildren {
   AdminGroupsRoute: typeof AdminGroupsRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
   AdminProcessesRoute: typeof AdminProcessesRoute
+  AdminProfileRoute: typeof AdminProfileRoute
   AdminRestaurantsRoute: typeof AdminRestaurantsRouteWithChildren
   AdminTrainingsRoute: typeof AdminTrainingsRoute
   AdminUsersRoute: typeof AdminUsersRoute
@@ -658,6 +678,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminGroupsRoute: AdminGroupsRoute,
   AdminOrdersRoute: AdminOrdersRoute,
   AdminProcessesRoute: AdminProcessesRoute,
+  AdminProfileRoute: AdminProfileRoute,
   AdminRestaurantsRoute: AdminRestaurantsRouteWithChildren,
   AdminTrainingsRoute: AdminTrainingsRoute,
   AdminUsersRoute: AdminUsersRoute,
