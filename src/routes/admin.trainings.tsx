@@ -422,13 +422,10 @@ function TrainingsAdminPage() {
                     <ImageUpload value={draft.coverPhoto} onChange={(url) => patch({ coverPhoto: url })} />
                   </div>
                   <div>
-                    <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">Vidéo principale</div>
+                    <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">Vidéo principale (import de fichier)</div>
                     <VideoUpload value={draft.mainVideo} onChange={(url) => patch({ mainVideo: url ?? "" })} />
-                    <label className="mt-2 block">
-                      <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">…ou une URL vidéo</span>
-                      <Input value={draft.mainVideo} onChange={(e) => patch({ mainVideo: e.target.value })} />
-                    </label>
                   </div>
+
                   <div className="sm:col-span-2">
                     <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">Documents & fiches standard</div>
                     <DocumentUpload value={draft.documents} onChange={(docs) => patch({ documents: docs })} />
