@@ -9,8 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { SectionTitle } from "@/components/tc/bits";
 import { cn } from "@/lib/utils";
 import { getState, uid, upsert, useStore } from "@/lib/tc/store";
-import {
 import { TCSelect } from "@/components/tc/select";
+import {
   ZONES,
   type AvailabilityType,
   type Priority,
