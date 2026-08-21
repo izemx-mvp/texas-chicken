@@ -347,7 +347,18 @@ export interface TrainingStep {
   duration: number; // minutes
   tips: string[];
   warnings: string[];
+  /** Objectif pédagogique de l'étape. */
+  objective?: string;
+  /** Procédure détaillée, geste par geste. */
+  procedure?: string[];
+  /** Erreurs fréquentes à éviter. */
+  mistakes?: string[];
+  /** Document de référence rattaché à l'étape. */
+  document?: { name: string; type: string; url?: string };
+  /** Illustration de l'étape. */
+  image?: string;
 }
+
 
 export interface TrainingModule {
   id: ID;
