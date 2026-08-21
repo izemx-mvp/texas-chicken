@@ -35,6 +35,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { Input } from "@/components/ui/input";
 import { can, currentUser, logout, useStore } from "@/lib/tc/store";
 import { StatusPill } from "./bits";
+import { UserAvatar } from "./avatar";
 
 export interface NavItem {
   to: string;
@@ -202,9 +203,7 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
         className="flex items-center gap-2 rounded-xl border border-border bg-secondary/40 p-1 pr-2 transition-colors hover:border-gold/50"
         aria-label="Menu utilisateur"
       >
-        <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-gradient font-display text-sm font-bold text-brand-foreground">
-          {initials}
-        </span>
+        <UserAvatar user={user ?? undefined} size={32} presence rounded="rounded-lg" />
         {!compact && (
           <span className="hidden leading-tight sm:block">
             <span className="block text-xs font-semibold">
@@ -376,7 +375,6 @@ const MANAGER_NAV: { to: string; label: string; icon: typeof Home; exact?: boole
   { to: "/app", label: "Shift", icon: Home, exact: true },
   { to: "/app/tasks", label: "Tâches", icon: ListChecks },
   { to: "/app/trainings", label: "Formations", icon: GraduationCap },
-  { to: "/app/chat", label: "Chat", icon: MessagesSquare },
   { to: "/app/deliveries", label: "Livraisons", icon: Truck },
   { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
 ];

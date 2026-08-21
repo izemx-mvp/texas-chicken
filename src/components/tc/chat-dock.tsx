@@ -28,6 +28,7 @@ import {
   useStore,
 } from "@/lib/tc/store";
 import type { ChatAttachment } from "@/lib/tc/ops";
+import { GroupAvatar, UserAvatar } from "./avatar";
 
 /* ------------------------ état global du dock ------------------------ */
 type DockState = { open: boolean; groupId: string | null };
@@ -194,7 +195,7 @@ export function ChatDock() {
                 <button onClick={() => setDock({ groupId: null })} aria-label="Retour" className="text-gold">
                   <ArrowLeft className="h-4 w-4" />
                 </button>
-                <span className="h-8 w-8 shrink-0 rounded-lg" style={{ background: active.avatar }} />
+                <GroupAvatar avatar={active.avatar} name={active.name} size={32} rounded="rounded-lg" />
                 <div className="min-w-0 flex-1 leading-tight">
                   <div className="truncate text-sm font-semibold">{active.name}</div>
                   <div className="truncate text-[10px] text-muted-foreground">
@@ -239,7 +240,8 @@ export function ChatDock() {
                       onClick={() => setDock({ groupId: g.id })}
                       className="flex w-full items-center gap-2.5 rounded-2xl p-2 text-left transition-colors hover:bg-secondary/60"
                     >
-                      <span className="relative h-11 w-11 shrink-0 rounded-xl" style={{ background: g.avatar }}>
+                      <span className="relative shrink-0">
+                        <GroupAvatar avatar={g.avatar} name={g.name} size={44} />
                         {n > 0 && <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-background bg-gold" />}
                       </span>
                       <span className="min-w-0 flex-1">
@@ -273,9 +275,7 @@ export function ChatDock() {
                 <div className="max-h-32 overflow-y-auto border-b border-border p-2">
                   {active.memberIds.map((id) => (
                     <div key={id} className="flex items-center gap-2 rounded-lg px-2 py-1 text-xs">
-                      <span className="grid h-6 w-6 place-items-center rounded-md bg-brand-gradient text-[9px] font-bold text-brand-foreground">
-                        {initials(id)}
-                      </span>
+                      <UserAvatar user={userOf(id)} size={24} presence rounded="rounded-md" />
                       <span className="truncate">{nameOf(id)}</span>
                       <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">{userOf(id)?.role}</span>
                     </div>
@@ -300,9 +300,7 @@ export function ChatDock() {
                       )}
                       <div className={cn("flex items-end gap-2", mine ? "justify-end" : "justify-start")}>
                         {!mine && (
-                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-gradient text-[9px] font-bold text-brand-foreground">
-                            {initials(m.userId)}
-                          </span>
+                          <UserAvatar user={userOf(m.userId)} size={28} rounded="rounded-full" />
                         )}
                         <div
                           className={cn(
