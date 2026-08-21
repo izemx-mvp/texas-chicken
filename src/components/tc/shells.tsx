@@ -30,6 +30,7 @@ import {
 import { cn } from "@/lib/utils";
 import { AnimatedBackground } from "./background";
 import { TCLogo, TCMark } from "./logo";
+import { ChatDock } from "./chat-dock";
 import { ThemeToggle } from "./theme-toggle";
 import { Input } from "@/components/ui/input";
 import { can, currentUser, logout, useStore } from "@/lib/tc/store";
@@ -441,6 +442,7 @@ export function ManagerShell({ children }: { children: ReactNode }) {
           })}
         </div>
       </nav>
+      <ChatDock />
     </div>
   );
 }
