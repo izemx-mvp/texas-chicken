@@ -23,8 +23,9 @@ import { KpiCard, SectionTitle, StatusPill } from "@/components/tc/bits";
 import { DataTable, type Column } from "@/components/tc/data-table";
 import { TCSelect } from "@/components/tc/select";
 import { UserAvatar } from "@/components/tc/avatar";
-import { DocumentUpload, ImageUpload, VideoUpload } from "@/components/tc/upload";
+import { DocumentUpload, ImageUpload, MediaUploader, VideoUpload } from "@/components/tc/upload";
 
+import { TCModal } from "@/components/tc/modal";
 import { MemberPicker } from "@/components/tc/member-picker";
 import { cn } from "@/lib/utils";
 import {
@@ -38,7 +39,7 @@ import {
   useStore,
   type TrainingAdminStats,
 } from "@/lib/tc/store";
-import type { Training, TrainingLevel } from "@/lib/tc/ops";
+import type { Training, TrainingLevel, TrainingModule, TrainingStep } from "@/lib/tc/ops";
 
 export const Route = createFileRoute("/admin/trainings")({
   head: () => ({
@@ -256,19 +257,21 @@ function TrainingsAdminPage() {
 
       {/* ---------------- suivi détaillé ---------------- */}
       {detail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="glass animate-rise max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="font-display text-xl font-bold uppercase">{detail.training.title}</h2>
-                <p className="text-xs text-muted-foreground">
-                  {detail.training.category} · {detail.totalSteps} étapes · {detail.assigned} collaborateurs assignés
-                </p>
-              </div>
-              <button onClick={() => setViewId(null)} aria-label="Fermer">
-                <X className="h-5 w-5" />
-              </button>
+        <TCModal
+          title={detail.training.title}
+          subtitle={`${detail.training.category} · ${detail.totalSteps} étapes · ${detail.assigned} collaborateurs assignés`}
+          onClose={() => setViewId(null)}
+          size="xl"
+          footer={
+            <div className="flex justify-end">
+              <Button variant="ghost" onClick={() => setViewId(null)}>
+                Fermer
+              </Button>
             </div>
+          }
+        >
+          <div className="space-y-4">
+
 
             <div className="mt-4 grid gap-2 sm:grid-cols-4">
               {[
@@ -321,28 +324,19 @@ function TrainingsAdminPage() {
               )}
             </div>
           </div>
-        </div>
+        </TCModal>
+
       )}
 
       {/* ---------------- création / édition ---------------- */}
       {draft && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="glass animate-rise max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="font-display text-xl font-bold uppercase">
-                  {draft.id ? "Modifier la formation" : "Nouvelle formation"}
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  Étape {String(step + 1).padStart(2, "0")} — {EDIT_STEPS[step]}
-                </p>
-              </div>
-              <button onClick={() => setDraft(null)} aria-label="Fermer">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mt-4 flex items-center gap-1">
+        <TCModal
+          title={draft.id ? "Modifier la formation" : "Nouvelle formation"}
+          subtitle={`Étape ${String(step + 1).padStart(2, "0")} — ${EDIT_STEPS[step]}`}
+          onClose={() => setDraft(null)}
+          size="xl"
+          toolbar={
+            <div className="flex items-center gap-1">
               {EDIT_STEPS.map((s, i) => (
                 <button
                   key={s}
@@ -360,8 +354,60 @@ function TrainingsAdminPage() {
                 </button>
               ))}
             </div>
+          }
+          footer={
+            <div className="flex items-center justify-between gap-2">
+              <Button variant="ghost" onClick={() => (step === 0 ? setDraft(null) : setStep((s) => s - 1))}>
+                {step === 0 ? (
+                  "Annuler"
+                ) : (
+                  <>
+                    <ArrowLeft className="mr-1.5 h-4 w-4" /> Retour
+                  </>
+                )}
+              </Button>
+              <div className="flex gap-2">
+                {step === EDIT_STEPS.length - 1 && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      if (!draft.title.trim()) {
+                        toast.error("Le titre est obligatoire");
+                        return;
+                      }
+                      upsertTraining({ ...draft, id: draft.id || uid("tr"), status: "Brouillon" });
+                      toast.success("Brouillon enregistré");
+                      setDraft(null);
+                    }}
+                  >
+                    Enregistrer en brouillon
+                  </Button>
+                )}
+                {step < EDIT_STEPS.length - 1 ? (
+                  <Button onClick={() => setStep((s) => Math.min(EDIT_STEPS.length - 1, s + 1))}>
+                    Continuer <ArrowRight className="ml-1.5 h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      if (!draft.title.trim()) {
+                        toast.error("Le titre est obligatoire");
+                        return;
+                      }
+                      upsertTraining({ ...draft, id: draft.id || uid("tr"), status: "Publiée" });
+                      toast.success(draft.id ? "Formation mise à jour" : "Formation publiée");
+                      setDraft(null);
+                    }}
+                  >
+                    <Check className="mr-1.5 h-4 w-4" /> Publier
+                  </Button>
+                )}
+              </div>
+            </div>
+          }
+        >
+            <div className="min-h-72">
 
-            <div className="mt-5 min-h-72">
               {step === 0 && (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block sm:col-span-2">
@@ -422,13 +468,10 @@ function TrainingsAdminPage() {
                     <ImageUpload value={draft.coverPhoto} onChange={(url) => patch({ coverPhoto: url })} />
                   </div>
                   <div>
-                    <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">Vidéo principale</div>
+                    <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">Vidéo principale (import de fichier)</div>
                     <VideoUpload value={draft.mainVideo} onChange={(url) => patch({ mainVideo: url ?? "" })} />
-                    <label className="mt-2 block">
-                      <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">…ou une URL vidéo</span>
-                      <Input value={draft.mainVideo} onChange={(e) => patch({ mainVideo: e.target.value })} />
-                    </label>
                   </div>
+
                   <div className="sm:col-span-2">
                     <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">Documents & fiches standard</div>
                     <DocumentUpload value={draft.documents} onChange={(docs) => patch({ documents: docs })} />
@@ -513,122 +556,24 @@ function TrainingsAdminPage() {
               {step === 3 && (
                 <div className="space-y-3">
                   {draft.modules.map((m, mi) => (
-                    <div key={m.id} className="rounded-2xl border border-border p-3">
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={m.title}
-                          onChange={(e) => {
-                            const modules = [...draft.modules];
-                            modules[mi] = { ...m, title: e.target.value };
-                            patch({ modules });
-                          }}
-                        />
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          aria-label="Monter"
-                          disabled={mi === 0}
-                          onClick={() => {
-                            const modules = [...draft.modules];
-                            const [x] = modules.splice(mi, 1);
-                            modules.splice(mi - 1, 0, x!);
-                            patch({ modules });
-                          }}
-                        >
-                          <ChevronUp className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          aria-label="Descendre"
-                          disabled={mi === draft.modules.length - 1}
-                          onClick={() => {
-                            const modules = [...draft.modules];
-                            const [x] = modules.splice(mi, 1);
-                            modules.splice(mi + 1, 0, x!);
-                            patch({ modules });
-                          }}
-                        >
-                          <ChevronDown className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          aria-label="Supprimer le module"
-                          onClick={() => patch({ modules: draft.modules.filter((x) => x.id !== m.id) })}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-
-                      <div className="mt-2 space-y-1.5 pl-2">
-                        {m.steps.map((st, si) => (
-                          <div key={st.id} className="flex items-center gap-2">
-                            <span className="w-8 shrink-0 text-[10px] uppercase tracking-widest text-gold">
-                              {String(si + 1).padStart(2, "0")}
-                            </span>
-                            <Input
-                              value={st.title}
-                              onChange={(e) => {
-                                const modules = [...draft.modules];
-                                const steps = [...m.steps];
-                                steps[si] = { ...st, title: e.target.value };
-                                modules[mi] = { ...m, steps };
-                                patch({ modules });
-                              }}
-                            />
-                            <Input
-                              type="number"
-                              className="w-20"
-                              value={st.duration}
-                              onChange={(e) => {
-                                const modules = [...draft.modules];
-                                const steps = [...m.steps];
-                                steps[si] = { ...st, duration: Number(e.target.value) || 0 };
-                                modules[mi] = { ...m, steps };
-                                patch({ modules });
-                              }}
-                            />
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              aria-label="Supprimer la leçon"
-                              onClick={() => {
-                                const modules = [...draft.modules];
-                                modules[mi] = { ...m, steps: m.steps.filter((x) => x.id !== st.id) };
-                                patch({ modules });
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        ))}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            const modules = [...draft.modules];
-                            modules[mi] = {
-                              ...m,
-                              steps: [
-                                ...m.steps,
-                                {
-                                  id: uid("s"),
-                                  title: `Leçon ${m.steps.length + 1}`,
-                                  content: "",
-                                  duration: 5,
-                                  tips: [],
-                                  warnings: [],
-                                },
-                              ],
-                            };
-                            patch({ modules });
-                          }}
-                        >
-                          <Plus className="mr-1.5 h-4 w-4" /> Ajouter une leçon
-                        </Button>
-                      </div>
-                    </div>
+                    <ModuleEditor
+                      key={m.id}
+                      module={m}
+                      index={mi}
+                      count={draft.modules.length}
+                      onChange={(next) => {
+                        const modules = [...draft.modules];
+                        modules[mi] = next;
+                        patch({ modules });
+                      }}
+                      onMove={(dir) => {
+                        const modules = [...draft.modules];
+                        const [x] = modules.splice(mi, 1);
+                        modules.splice(mi + dir, 0, x!);
+                        patch({ modules });
+                      }}
+                      onRemove={() => patch({ modules: draft.modules.filter((x) => x.id !== m.id) })}
+                    />
                   ))}
                   <Button
                     variant="ghost"
@@ -636,7 +581,7 @@ function TrainingsAdminPage() {
                       patch({
                         modules: [
                           ...draft.modules,
-                          { id: uid("m"), title: `Module ${draft.modules.length + 1}`, steps: [] },
+                          { id: uid("m"), title: `Module ${draft.modules.length + 1}`, steps: [], media: [] },
                         ],
                       })
                     }
@@ -645,6 +590,7 @@ function TrainingsAdminPage() {
                   </Button>
                 </div>
               )}
+
 
               {step === 4 && (
                 <div className="space-y-3">
@@ -759,58 +705,156 @@ function TrainingsAdminPage() {
                 </div>
               )}
             </div>
+        </TCModal>
 
-            <div className="mt-6 flex items-center justify-between gap-2">
-              <Button variant="ghost" onClick={() => (step === 0 ? setDraft(null) : setStep((s) => s - 1))}>
-                {step === 0 ? (
-                  "Annuler"
-                ) : (
-                  <>
-                    <ArrowLeft className="mr-1.5 h-4 w-4" /> Retour
-                  </>
-                )}
-              </Button>
-              <div className="flex gap-2">
-                {step === EDIT_STEPS.length - 1 && (
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      if (!draft.title.trim()) {
-                        toast.error("Le titre est obligatoire");
-                        return;
-                      }
-                      upsertTraining({ ...draft, id: draft.id || uid("tr"), status: "Brouillon" });
-                      toast.success("Brouillon enregistré");
-                      setDraft(null);
-                    }}
-                  >
-                    Enregistrer en brouillon
-                  </Button>
-                )}
-                {step < EDIT_STEPS.length - 1 ? (
-                  <Button onClick={() => setStep((s) => Math.min(EDIT_STEPS.length - 1, s + 1))}>
-                    Continuer <ArrowRight className="ml-1.5 h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={() => {
-                      if (!draft.title.trim()) {
-                        toast.error("Le titre est obligatoire");
-                        return;
-                      }
-                      upsertTraining({ ...draft, id: draft.id || uid("tr"), status: "Publiée" });
-                      toast.success(draft.id ? "Formation mise à jour" : "Formation publiée");
-                      setDraft(null);
-                    }}
-                  >
-                    <Check className="mr-1.5 h-4 w-4" /> Publier
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
       )}
+    </div>
+  );
+}
+
+/* ===================== Éditeur de module & d'étapes ===================== */
+
+function ModuleEditor({
+  module: m,
+  index,
+  count,
+  onChange,
+  onMove,
+  onRemove,
+}: {
+  module: TrainingModule;
+  index: number;
+  count: number;
+  onChange: (m: TrainingModule) => void;
+  onMove: (dir: -1 | 1) => void;
+  onRemove: () => void;
+}) {
+  const [openStep, setOpenStep] = useState<string | null>(null);
+
+  const setStep = (si: number, patchStep: Partial<TrainingStep>) => {
+    const steps = [...m.steps];
+    steps[si] = { ...steps[si]!, ...patchStep };
+    onChange({ ...m, steps });
+  };
+
+  return (
+    <div className="rounded-2xl border border-border p-3">
+      <div className="flex items-center gap-2">
+        <span className="shrink-0 text-[10px] uppercase tracking-widest text-gold">
+          Module {String(index + 1).padStart(2, "0")}
+        </span>
+        <Input value={m.title} onChange={(e) => onChange({ ...m, title: e.target.value })} />
+        <Button size="icon" variant="ghost" aria-label="Monter" disabled={index === 0} onClick={() => onMove(-1)}>
+          <ChevronUp className="h-4 w-4" />
+        </Button>
+        <Button size="icon" variant="ghost" aria-label="Descendre" disabled={index === count - 1} onClick={() => onMove(1)}>
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+        <Button size="icon" variant="ghost" aria-label="Supprimer le module" onClick={onRemove}>
+          <Trash2 className="h-4 w-4 text-destructive" />
+        </Button>
+      </div>
+
+      <label className="mt-2 block">
+        <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">
+          Instructions du module
+        </span>
+        <textarea
+          value={m.instructions ?? ""}
+          onChange={(e) => onChange({ ...m, instructions: e.target.value })}
+          rows={2}
+          className="w-full rounded-xl border border-border bg-secondary/40 px-3 py-2 text-sm outline-none"
+        />
+      </label>
+
+      <div className="mt-2">
+        <MediaUploader
+          value={m.media ?? []}
+          onChange={(media) => onChange({ ...m, media })}
+          title="Contenu du module (vidéos, documents, images, texte)"
+        />
+      </div>
+
+      <div className="mt-3 space-y-2 pl-1">
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+          Étapes du module ({m.steps.length})
+        </div>
+        {m.steps.map((st, si) => (
+          <div key={st.id} className="rounded-xl border border-border">
+            <div className="flex items-center gap-2 p-2">
+              <span className="w-8 shrink-0 text-[10px] uppercase tracking-widest text-gold">
+                {String(si + 1).padStart(2, "0")}
+              </span>
+              <Input value={st.title} onChange={(e) => setStep(si, { title: e.target.value })} />
+              <Input
+                type="number"
+                className="w-20"
+                value={st.duration}
+                onChange={(e) => setStep(si, { duration: Number(e.target.value) || 0 })}
+              />
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setOpenStep((v) => (v === st.id ? null : st.id))}
+              >
+                {openStep === st.id ? "Fermer" : "Contenu"}
+                <span className="ml-1.5 text-[10px] text-gold">{(st.media ?? []).length}</span>
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label="Supprimer l'étape"
+                onClick={() => onChange({ ...m, steps: m.steps.filter((x) => x.id !== st.id) })}
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+            {openStep === st.id && (
+              <div className="space-y-2 border-t border-border p-3">
+                <label className="block">
+                  <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">
+                    Instructions de l'étape
+                  </span>
+                  <textarea
+                    value={st.instructions ?? st.content ?? ""}
+                    onChange={(e) => setStep(si, { instructions: e.target.value })}
+                    rows={3}
+                    className="w-full rounded-xl border border-border bg-secondary/40 px-3 py-2 text-sm outline-none"
+                  />
+                </label>
+                <MediaUploader
+                  value={st.media ?? []}
+                  onChange={(media) => setStep(si, { media })}
+                  title="Contenu de l'étape (vidéos, documents, images, texte)"
+                />
+              </div>
+            )}
+          </div>
+        ))}
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() =>
+            onChange({
+              ...m,
+              steps: [
+                ...m.steps,
+                {
+                  id: uid("s"),
+                  title: `Étape ${m.steps.length + 1}`,
+                  content: "",
+                  duration: 5,
+                  tips: [],
+                  warnings: [],
+                  media: [],
+                },
+              ],
+            })
+          }
+        >
+          <Plus className="mr-1.5 h-4 w-4" /> Ajouter une étape
+        </Button>
+      </div>
     </div>
   );
 }

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
+  can,
   currentUser,
   groupsForUser,
   markGroupRead,
@@ -27,8 +28,16 @@ import {
   unreadCount,
   useStore,
 } from "@/lib/tc/store";
-import type { ChatAttachment } from "@/lib/tc/ops";
+import { toast } from "sonner";
+import { upsertGroup } from "@/lib/tc/store";
+import type { ChatAttachment, ChatGroup } from "@/lib/tc/ops";
 import { GroupAvatar, UserAvatar } from "./avatar";
+import { TCModal } from "./modal";
+import { PhotoUpload } from "./upload";
+import { MemberPicker } from "./member-picker";
+import { TCSelect } from "./select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 /* ------------------------ état global du dock ------------------------ */
 type DockState = { open: boolean; groupId: string | null };
@@ -112,11 +121,15 @@ export function ChatDock() {
   const [pending, setPending] = useState<ChatAttachment[]>([]);
   const [emoji, setEmoji] = useState(false);
   const [members, setMembers] = useState(false);
+  const [details, setDetails] = useState(false);
+  const [editGroup, setEditGroup] = useState<ChatGroup | null>(null);
   const [mentionOpen, setMentionOpen] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const active = groups.find((g) => g.id === groupId) ?? null;
+  const canEdit =
+    !!active && (can(me, "chat", "Modifier") || (active.adminIds ?? [active.adminId]).includes(me?.id ?? ""));
   const msgs = active ? messagesOf(active.id, state) : [];
 
   useEffect(() => {
@@ -195,13 +208,20 @@ export function ChatDock() {
                 <button onClick={() => setDock({ groupId: null })} aria-label="Retour" className="text-gold">
                   <ArrowLeft className="h-4 w-4" />
                 </button>
-                <GroupAvatar avatar={active.avatar} name={active.name} size={32} rounded="rounded-lg" />
-                <div className="min-w-0 flex-1 leading-tight">
-                  <div className="truncate text-sm font-semibold">{active.name}</div>
-                  <div className="truncate text-[10px] text-muted-foreground">
-                    {active.memberIds.length} membres · {active.type}
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setDetails(true)}
+                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                  aria-label="Détails du groupe"
+                >
+                  <GroupAvatar avatar={active.avatar} name={active.name} size={32} rounded="rounded-lg" />
+                  <span className="min-w-0 flex-1 leading-tight">
+                    <span className="block truncate text-sm font-semibold">{active.name}</span>
+                    <span className="block truncate text-[10px] text-muted-foreground">
+                      {active.memberIds.length} membres · {active.type}
+                    </span>
+                  </span>
+                </button>
                 <button onClick={() => setMembers((m) => !m)} aria-label="Membres" className="text-muted-foreground hover:text-gold">
                   <Users className="h-4 w-4" />
                 </button>
@@ -441,6 +461,125 @@ export function ChatDock() {
             </>
           )}
         </div>
+      )}
+
+      {active && details && (
+        <TCModal
+          title={active.name}
+          subtitle={`${active.type} · ${active.memberIds.length} membres`}
+          onClose={() => {
+            setDetails(false);
+            setEditGroup(null);
+          }}
+          size="md"
+          footer={
+            <div className="flex items-center justify-between gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setDetails(false);
+                  setEditGroup(null);
+                }}
+              >
+                Fermer
+              </Button>
+              {canEdit &&
+                (editGroup ? (
+                  <Button
+                    onClick={() => {
+                      if (!editGroup.name.trim()) {
+                        toast.error("Le nom du groupe est obligatoire");
+                        return;
+                      }
+                      upsertGroup(editGroup);
+                      toast.success("Groupe mis à jour");
+                      setEditGroup(null);
+                    }}
+                  >
+                    Enregistrer
+                  </Button>
+                ) : (
+                  <Button onClick={() => setEditGroup({ ...active })}>Modifier le groupe</Button>
+                ))}
+            </div>
+          }
+        >
+          {editGroup ? (
+            <div className="space-y-4">
+              <PhotoUpload
+                value={editGroup.avatar}
+                onChange={(url) => setEditGroup({ ...editGroup, avatar: url ?? "" })}
+                label="Photo du groupe"
+                hint="JPG ou PNG — carré recommandé"
+              />
+              <label className="block">
+                <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">Nom</span>
+                <Input value={editGroup.name} onChange={(e) => setEditGroup({ ...editGroup, name: e.target.value })} />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Description
+                </span>
+                <Input
+                  value={editGroup.description}
+                  onChange={(e) => setEditGroup({ ...editGroup, description: e.target.value })}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Restaurant
+                </span>
+                <TCSelect
+                  value={editGroup.restaurantId ?? ""}
+                  onChange={(v) => setEditGroup({ ...editGroup, restaurantId: v || null })}
+                  searchable
+                  options={[
+                    { value: "", label: "Réseau / siège" },
+                    ...state.restaurants.map((r) => ({ value: r.id, label: r.name, description: r.city })),
+                  ]}
+                />
+              </label>
+              <MemberPicker
+                value={editGroup.memberIds}
+                onChange={(ids) => setEditGroup({ ...editGroup, memberIds: ids })}
+              />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4 rounded-2xl border border-border bg-secondary/30 p-4">
+                <GroupAvatar avatar={active.avatar} name={active.name} size={72} rounded="rounded-2xl" />
+                <div className="min-w-0">
+                  <div className="font-display text-lg font-bold uppercase">{active.name}</div>
+                  <div className="text-xs text-muted-foreground">{active.description}</div>
+                  <div className="mt-1 text-[10px] uppercase tracking-widest text-gold">
+                    {active.type} · {state.restaurants.find((r) => r.id === active.restaurantId)?.name ?? "Réseau / siège"}
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-border p-3">
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Membres ({active.memberIds.length})
+                </div>
+                <div className="mt-2 space-y-1.5">
+                  {active.memberIds.map((id) => {
+                    const u = state.users.find((x) => x.id === id);
+                    const isAdmin = (active.adminIds ?? [active.adminId]).includes(id);
+                    return (
+                      <div key={id} className="flex items-center gap-2 text-xs">
+                        <UserAvatar user={u} size={26} presence rounded="rounded-full" />
+                        <span>
+                          {u?.firstName} {u?.lastName}
+                        </span>
+                        <span className="ml-auto text-[10px] uppercase text-muted-foreground">{u?.role}</span>
+                        {isAdmin && <span className="text-[10px] uppercase text-gold">admin</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+        </TCModal>
       )}
     </>
   );
