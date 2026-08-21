@@ -34,6 +34,7 @@ import {
 } from "@/lib/tc/store";
 import { TODAY } from "@/lib/tc/data";
 import { PRIORITIES_LIST, STATUS_LIST } from "@/lib/tc/view-options";
+import { TCSelect } from "./select";
 
 const WEEK = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
@@ -310,17 +311,14 @@ function Select({
   labels?: Record<string, string>;
 }) {
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="h-9 rounded-xl border border-border bg-secondary/40 px-2 text-xs font-semibold"
-    >
-      {options.map((o) => (
-        <option key={o} value={o}>
-          {labels?.[o] ?? o}
-        </option>
-      ))}
-    </select>
+    <div className="w-40">
+      <TCSelect
+        value={value}
+        onChange={onChange}
+        className="h-9 text-xs font-semibold"
+        options={options.map((o) => ({ value: o, label: labels?.[o] ?? o }))}
+      />
+    </div>
   );
 }
 

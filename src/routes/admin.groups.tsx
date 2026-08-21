@@ -9,6 +9,7 @@ import { DataTable, type Column } from "@/components/tc/data-table";
 import { cn } from "@/lib/utils";
 import { messagesOf, removeGroup, toggleGroupStatus, uid, upsertGroup, useStore } from "@/lib/tc/store";
 import { GROUP_TYPES, type ChatGroup, type GroupType } from "@/lib/tc/ops";
+import { TCSelect } from "@/components/tc/select";
 
 export const Route = createFileRoute("/admin/groups")({
   head: () => ({
@@ -144,46 +145,27 @@ function GroupsPage() {
               </label>
               <label className="block">
                 <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">Type</span>
-                <select
-                  className="h-10 w-full rounded-md border border-border bg-secondary/40 px-3 text-sm"
-                  value={draft.type}
-                  onChange={(e) => patch({ type: e.target.value as GroupType })}
-                >
-                  {GROUP_TYPES.map((t) => (
-                    <option key={t}>{t}</option>
-                  ))}
-                </select>
+                <TCSelect value={draft.type} onChange={(v) => patch({ type: v as GroupType })} options={GROUP_TYPES.map((t) => ({ value: t, label: t }))} />
               </label>
               <label className="block">
                 <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">Restaurant</span>
-                <select
-                  className="h-10 w-full rounded-md border border-border bg-secondary/40 px-3 text-sm"
+                <TCSelect
                   value={draft.restaurantId ?? ""}
-                  onChange={(e) => patch({ restaurantId: e.target.value || null })}
-                >
-                  <option value="">Réseau / siège</option>
-                  {state.restaurants.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => patch({ restaurantId: v || null })}
+                  searchable
+                  options={[{ value: "", label: "Réseau / siège", description: "Groupe transverse" }, ...state.restaurants.map((r) => ({ value: r.id, label: r.name, description: r.city, group: "Restaurants" }))]}
+                />
               </label>
               <label className="block sm:col-span-2">
                 <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">
                   Administrateur du groupe
                 </span>
-                <select
-                  className="h-10 w-full rounded-md border border-border bg-secondary/40 px-3 text-sm"
+                <TCSelect
                   value={draft.adminId}
-                  onChange={(e) => patch({ adminId: e.target.value })}
-                >
-                  {state.users.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.firstName} {u.lastName} — {u.role}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => patch({ adminId: v })}
+                  searchable
+                  options={state.users.map((u) => ({ value: u.id, label: `${u.firstName} ${u.lastName}`, description: u.email, hint: u.role, group: u.role }))}
+                />
               </label>
             </div>
 

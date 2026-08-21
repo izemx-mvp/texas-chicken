@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SkeletonRows, EmptyState } from "./bits";
+import { TCSelect } from "./select";
 
 export interface Column<T> {
   key: string;
@@ -96,22 +97,18 @@ export function DataTable<T extends { id: string }>({
           />
         </div>
         {filters.map((f) => (
-          <select
-            key={f.key}
-            value={active[f.key] ?? "Tous"}
-            onChange={(e) => {
-              setActive((a) => ({ ...a, [f.key]: e.target.value }));
-              setPage(1);
-            }}
-            className="h-9 rounded-md border border-border bg-secondary/40 px-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring/40"
-          >
-            <option value="Tous">{f.label} : tous</option>
-            {f.options.map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
-            ))}
-          </select>
+          <div key={f.key} className="w-44">
+            <TCSelect
+              ariaLabel={f.label}
+              value={active[f.key] ?? "Tous"}
+              onChange={(v) => {
+                setActive((a) => ({ ...a, [f.key]: v }));
+                setPage(1);
+              }}
+              className="h-9"
+              options={[{ value: "Tous", label: `${f.label} : tous`, hint: "Tous" }, ...f.options.map((o) => ({ value: o, label: o, group: f.label }))]}
+            />
+          </div>
         ))}
         {hasFilters && (
           <Button
@@ -233,20 +230,18 @@ export function DataTable<T extends { id: string }>({
           {filtered.length} élément(s) — page {current} / {totalPages}
         </div>
         <div className="flex items-center gap-2">
-          <select
-            value={pageSize}
-            onChange={(e) => {
-              setPageSize(Number(e.target.value));
-              setPage(1);
-            }}
-            className="h-8 rounded-md border border-border bg-secondary/40 px-2 text-foreground"
-          >
-            {[5, 10, 25, 50].map((n) => (
-              <option key={n} value={n}>
-                {n} / page
-              </option>
-            ))}
-          </select>
+          <div className="w-28">
+            <TCSelect
+              ariaLabel="Éléments par page"
+              value={String(pageSize)}
+              onChange={(v) => {
+                setPageSize(Number(v));
+                setPage(1);
+              }}
+              className="h-8"
+              options={[5, 10, 25, 50].map((n) => ({ value: String(n), label: `${n} / page` }))}
+            />
+          </div>
           <Button variant="outline" size="sm" disabled={current <= 1} onClick={() => setPage(current - 1)}>
             <ChevronLeft className="h-4 w-4" /> Précédent
           </Button>

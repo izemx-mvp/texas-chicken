@@ -30,6 +30,7 @@ import {
 import { cn } from "@/lib/utils";
 import { AnimatedBackground } from "./background";
 import { TCLogo, TCMark } from "./logo";
+import { ChatDock } from "./chat-dock";
 import { ThemeToggle } from "./theme-toggle";
 import { Input } from "@/components/ui/input";
 import { can, currentUser, logout, useStore } from "@/lib/tc/store";
@@ -363,6 +364,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
       </header>
 
       <main className="animate-rise mx-auto w-full max-w-[1600px] p-4 lg:p-6">{children}</main>
+      <ChatDock />
+
     </div>
   );
 
@@ -439,6 +442,7 @@ export function ManagerShell({ children }: { children: ReactNode }) {
           })}
         </div>
       </nav>
+      <ChatDock />
     </div>
   );
 }
