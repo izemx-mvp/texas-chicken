@@ -702,7 +702,39 @@ export const trainings: Training[] = TRAINING_DEFS.map((d, i) => {
         warnings: si % 2 === 0 ? ["Toute non-conformité doit être signalée immédiatement au Shift Leader."] : [],
         document: { name: `${title} — fiche geste.pdf`, type: "PDF" },
         image: STEP_IMAGES[(i + si + mi) % STEP_IMAGES.length]!,
+        quiz:
+          si === m[1].length - 1
+            ? [
+                {
+                  id: `tr${i + 1}-s${stepN}-q1`,
+                  question: `« ${m[0]} » : quel est le point de contrôle le plus critique ?`,
+                  options: [
+                    "Le respect du standard Texas Chicken",
+                    "La rapidité seule",
+                    "L'improvisation du collaborateur",
+                    "L'avis du client",
+                  ],
+                  correct: [0],
+                  multiple: false,
+                  points: 1,
+                },
+                {
+                  id: `tr${i + 1}-s${stepN}-q2`,
+                  question: `Quels éléments sont obligatoires avant de valider « ${title} » ?`,
+                  options: [
+                    "Le contrôle visuel du résultat",
+                    "La validation par le Shift Leader",
+                    "Une photo publiée sur les réseaux",
+                    "Le nettoyage du poste",
+                  ],
+                  correct: [0, 1, 3],
+                  multiple: true,
+                  points: 2,
+                },
+              ]
+            : undefined,
       };
+
     }),
   }));
 
