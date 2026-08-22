@@ -311,18 +311,22 @@ function TrainingDetail() {
 
             <p className="text-sm text-muted-foreground">{current.content}</p>
 
-            {current.instructions && (
-              <div className="rounded-2xl border border-border bg-secondary/30 p-3 text-xs text-muted-foreground">
-                <div className="mb-1 text-[10px] uppercase tracking-widest text-gold">Instructions</div>
-                {current.instructions}
-              </div>
-            )}
-
-            <MediaGrid items={currentModule?.media ?? []} title="Contenu du module" />
-            {currentModule?.instructions && (
-              <p className="rounded-xl bg-secondary/40 p-2 text-[11px] text-muted-foreground">{currentModule.instructions}</p>
-            )}
             <MediaGrid items={current.media ?? []} title="Contenu de l'étape" />
+
+            {current.quiz?.length ? (
+              <div className="rounded-2xl border border-border bg-secondary/20 p-4">
+                <QuizPlayer
+                  key={current.id}
+                  questions={current.quiz}
+                  savedAnswers={savedAnswersFor(current)}
+                  onSubmit={(answers) => {
+                    const res = submitStepQuiz(t.id, me.id, current.id, answers);
+                    toast.success(`Quiz enregistré — ${res.score}/${res.max} points`);
+                  }}
+                />
+              </div>
+            ) : null}
+
 
             {current.procedure?.length ? (
               <div>
