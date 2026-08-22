@@ -1139,10 +1139,28 @@ export interface TrainingView {
   started: boolean;
   completed: boolean;
   nextStepId?: string;
+  /** Points obtenus sur l'ensemble des quiz de la formation. */
+  score: number;
+  /** Score maximum atteignable. */
+  maxScore: number;
+  /** Pourcentage de réussite aux quiz. */
+  scorePercent: number;
+  /** Réponses déjà validées, par identifiant de question. */
+  quizAnswers: Record<string, number[]>;
+  /** Étapes dont le quiz a été validé. */
+  quizDoneStepIds: string[];
 }
 
 export function trainingSteps(t: Training) {
   return t.modules.flatMap((m) => m.steps);
+}
+
+/** Score obtenu par un participant sur une question. */
+export function scoreQuestion(q: QuizQuestion, answer: number[] | undefined): number {
+  if (!answer) return 0;
+  const a = [...answer].sort().join(",");
+  const c = [...q.correct].sort().join(",");
+  return a === c ? q.points : 0;
 }
 
 export function trainingView(trainingId: string, userId: string | undefined, s: State = state): TrainingView | null {
@@ -1153,6 +1171,9 @@ export function trainingView(trainingId: string, userId: string | undefined, s: 
   const done = prog?.completedStepIds ?? [];
   const doneSteps = all.filter((x) => done.includes(x.id)).length;
   const next = all.find((x) => !done.includes(x.id));
+  const maxScore = trainingMaxScore(training);
+  const scores = prog?.quizScores ?? {};
+  const score = Object.values(scores).reduce((a, b) => a + b, 0);
   return {
     training,
     totalSteps: all.length,
@@ -1161,6 +1182,11 @@ export function trainingView(trainingId: string, userId: string | undefined, s: 
     started: doneSteps > 0,
     completed: doneSteps === all.length && all.length > 0,
     nextStepId: next?.id,
+    score,
+    maxScore,
+    scorePercent: maxScore ? Math.round((score / maxScore) * 100) : 0,
+    quizAnswers: prog?.quizAnswers ?? {},
+    quizDoneStepIds: Object.keys(scores),
   };
 }
 
@@ -1180,10 +1206,12 @@ export function toggleTrainingStep(trainingId: string, userId: string, stepId: s
       : (existing?.completedStepIds ?? []).filter((x) => x !== stepId);
     const completedAt = nextIds.length === all.length && all.length ? s.activeDate : undefined;
     const entry: TrainingProgress = {
+      ...existing,
       userId,
       trainingId,
       completedStepIds: nextIds,
       startedAt: existing?.startedAt ?? s.activeDate,
+      lastActivity: s.activeDate,
       completedAt,
     };
     return {
@@ -1193,6 +1221,38 @@ export function toggleTrainingStep(trainingId: string, userId: string, stepId: s
     };
   });
 }
+
+/** Enregistre les réponses au quiz d'une étape et calcule les points obtenus. */
+export function submitStepQuiz(
+  trainingId: string,
+  userId: string,
+  stepId: string,
+  answers: Record<string, number[]>,
+) {
+  setState((s) => {
+    const training = s.trainings.find((t) => t.id === trainingId);
+    const step = training ? trainingSteps(training).find((x) => x.id === stepId) : undefined;
+    if (!step?.quiz?.length) return {};
+    const earned = step.quiz.reduce((a, q) => a + scoreQuestion(q, answers[q.id]), 0);
+    const existing = s.trainingProgress.find((p) => p.trainingId === trainingId && p.userId === userId);
+    const entry: TrainingProgress = {
+      ...existing,
+      userId,
+      trainingId,
+      completedStepIds: existing?.completedStepIds ?? [],
+      startedAt: existing?.startedAt ?? s.activeDate,
+      lastActivity: s.activeDate,
+      quizAnswers: { ...(existing?.quizAnswers ?? {}), ...answers },
+      quizScores: { ...(existing?.quizScores ?? {}), [stepId]: earned },
+    };
+    return {
+      trainingProgress: existing
+        ? s.trainingProgress.map((p) => (p === existing ? entry : p))
+        : [...s.trainingProgress, entry],
+    };
+  });
+}
+
 
 /* ---------------- administration des formations ---------------- */
 
