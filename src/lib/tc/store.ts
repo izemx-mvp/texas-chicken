@@ -1266,6 +1266,14 @@ export interface TrainingAssignee {
   status: "Terminé" | "En cours" | "En retard" | "Non démarré";
   lastActivity?: string;
   dueDate?: string;
+  /** Date de finalisation de la formation. */
+  completedAt?: string;
+  /** Points obtenus aux quiz. */
+  score: number;
+  /** Score maximum de la formation. */
+  maxScore: number;
+  /** Pourcentage de réussite. */
+  scorePercent: number;
 }
 
 export interface TrainingAdminStats {
@@ -1278,17 +1286,24 @@ export interface TrainingAdminStats {
   notStarted: number;
   avgPercent: number;
   assignees: TrainingAssignee[];
+  /** Participants ayant terminé la formation, avec leur score final. */
+  results: TrainingAssignee[];
+  maxScore: number;
+  /** Moyenne des scores des participants ayant terminé. */
+  avgScorePercent: number;
 }
 
 export function trainingAdminStats(trainingId: string, s: State = state): TrainingAdminStats | null {
   const training = s.trainings.find((t) => t.id === trainingId);
   if (!training) return null;
   const totalSteps = trainingSteps(training).length;
+  const maxScore = trainingMaxScore(training);
   const assignees: TrainingAssignee[] = assigneesOf(training, s.users).map((user) => {
     const prog = s.trainingProgress.find((p) => p.trainingId === training.id && p.userId === user.id);
     const done = prog?.completedStepIds.length ?? 0;
     const percent = totalSteps ? Math.round((done / totalSteps) * 100) : 0;
     const overdue = !!prog?.dueDate && prog.dueDate < s.activeDate && percent < 100;
+    const score = Object.values(prog?.quizScores ?? {}).reduce((a, b) => a + b, 0);
     return {
       user,
       restaurantName: s.restaurants.find((r) => r.id === user.restaurantId)?.name ?? "Réseau",
@@ -1296,12 +1311,19 @@ export function trainingAdminStats(trainingId: string, s: State = state): Traini
       status: percent >= 100 ? "Terminé" : overdue ? "En retard" : percent > 0 ? "En cours" : "Non démarré",
       lastActivity: prog?.lastActivity,
       dueDate: prog?.dueDate,
+      completedAt: prog?.completedAt,
+      score,
+      maxScore,
+      scorePercent: maxScore ? Math.round((score / maxScore) * 100) : 0,
     };
   });
   const completed = assignees.filter((a) => a.status === "Terminé").length;
   const late = assignees.filter((a) => a.status === "En retard").length;
   const started = assignees.filter((a) => a.status === "En cours").length;
   const notStarted = assignees.filter((a) => a.status === "Non démarré").length;
+  const results = assignees
+    .filter((a) => a.status === "Terminé")
+    .sort((a, b) => b.scorePercent - a.scorePercent);
   return {
     training,
     totalSteps,
@@ -1312,8 +1334,14 @@ export function trainingAdminStats(trainingId: string, s: State = state): Traini
     notStarted,
     avgPercent: assignees.length ? Math.round(assignees.reduce((a, x) => a + x.percent, 0) / assignees.length) : 0,
     assignees,
+    results,
+    maxScore,
+    avgScorePercent: results.length
+      ? Math.round(results.reduce((a, x) => a + x.scorePercent, 0) / results.length)
+      : 0,
   };
 }
+
 
 export function allTrainingStats(s: State = state): TrainingAdminStats[] {
   return s.trainings.map((t) => trainingAdminStats(t.id, s)).filter((x): x is TrainingAdminStats => !!x);
