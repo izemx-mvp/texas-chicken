@@ -99,9 +99,9 @@ function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => void })
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-4 pt-24 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="glass animate-rise w-full max-w-2xl overflow-hidden rounded-2xl"
+        className="glass animate-rise max-h-[80vh] w-full max-w-2xl overflow-hidden rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 border-b border-border p-3">

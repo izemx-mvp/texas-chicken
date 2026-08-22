@@ -139,7 +139,7 @@ function AdminEvidence() {
 
       {open && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-background/85 p-4 backdrop-blur-sm" onClick={() => setOpen(null)}>
-          <div className="glass animate-rise w-full max-w-lg overflow-hidden rounded-3xl" onClick={(ev) => ev.stopPropagation()}>
+          <div className="glass animate-rise max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl" onClick={(ev) => ev.stopPropagation()}>
             <div className="h-56" style={{ background: open.gradient }} />
             <div className="space-y-3 p-6">
               <div className="flex items-center justify-between">
