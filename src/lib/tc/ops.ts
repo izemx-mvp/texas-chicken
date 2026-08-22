@@ -768,24 +768,22 @@ export const trainings: Training[] = TRAINING_DEFS.map((d, i) => {
       d.mandatory ? "Formation obligatoire — à compléter sous 30 jours." : "Formation recommandée.",
     ],
     modules,
-    quiz: [
-      {
-        question: `Quel est le point le plus critique de « ${d.title} » ?`,
-        options: ["Le respect du standard Texas Chicken", "La rapidité seule", "L'improvisation"],
-        answer: 0,
-      },
-      {
-        question: "Que faire en cas de non-conformité constatée ?",
-        options: ["Continuer le service", "Signaler immédiatement au Shift Leader", "Attendre le lendemain"],
-        answer: 1,
-      },
-    ],
     restaurantIds: i % 4 === 3 ? restaurants.slice(0, 4).map((r) => r.id) : [],
     userIds: [],
     createdAt: shift(-200 + i * 14),
     status: i === 8 ? "Brouillon" : "Publiée",
   };
 });
+
+/** Toutes les questions de quiz d'une formation (toutes étapes confondues). */
+export function trainingQuestions(t: Training): QuizQuestion[] {
+  return t.modules.flatMap((m) => m.steps.flatMap((s) => s.quiz ?? []));
+}
+
+/** Score maximum atteignable sur une formation. */
+export function trainingMaxScore(t: Training): number {
+  return trainingQuestions(t).reduce((a, q) => a + (q.points || 0), 0);
+}
 
 export interface TrainingProgress {
   userId: ID;
@@ -795,7 +793,12 @@ export interface TrainingProgress {
   completedAt?: string;
   lastActivity?: string;
   dueDate?: string;
+  /** Réponses données par question (indices d'options). */
+  quizAnswers?: Record<ID, number[]>;
+  /** Points obtenus par étape contenant un quiz. */
+  quizScores?: Record<ID, number>;
 }
+
 
 /** Utilisateurs concernés par une formation (rôles + restaurants + nominatif). */
 export function assigneesOf(t: Training, pool = users) {
