@@ -441,69 +441,64 @@ function TrainingDetail() {
         </div>
       )}
 
-      {tab === "quiz" && (
-        <div className="glass rounded-3xl p-5">
-          <div className="mb-1 font-display text-sm font-bold uppercase">Validation des acquis</div>
-          <p className="mb-3 text-[11px] text-muted-foreground">
-            Score minimum requis : 80 %. {view.completed ? "Toutes les étapes sont validées." : "Terminez d'abord toutes les étapes du parcours."}
-          </p>
-          <div className="space-y-4">
-            {t.quiz.map((q, qi) => (
-              <div key={q.question}>
-                <div className="text-sm font-medium">{q.question}</div>
-                <div className="mt-2 grid gap-1">
-                  {q.options.map((o, oi) => {
-                    const picked = quizAnswers[qi];
-                    const state2 =
-                      picked === undefined ? "idle" : oi === q.answer ? "good" : picked === oi ? "bad" : "idle";
-                    return (
-                      <button
-                        key={o}
-                        onClick={() => setQuizAnswers((a) => ({ ...a, [qi]: oi }))}
+      {tab === "resultats" && (
+        <div className="glass overflow-hidden rounded-3xl">
+          <div className="flex flex-wrap items-center justify-between gap-2 p-5 pb-3">
+            <div>
+              <div className="font-display text-sm font-bold uppercase">Résultats des participants</div>
+              <p className="text-[11px] text-muted-foreground">
+                Score maximum : {view.maxScore} points · moyenne réseau {stats?.avgScorePercent ?? 0}%
+              </p>
+            </div>
+            <div className="rounded-2xl border border-gold/30 bg-gold/10 px-3 py-1.5 text-xs text-gold">
+              Mon score : {view.score}/{view.maxScore} ({view.scorePercent}%)
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-left text-xs">
+              <thead className="bg-secondary/40 text-[10px] uppercase tracking-widest text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-2">Nom</th>
+                  <th className="px-4 py-2">Restaurant</th>
+                  <th className="px-4 py-2">Date</th>
+                  <th className="px-4 py-2">Score</th>
+                  <th className="px-4 py-2">Pourcentage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(stats?.results ?? []).map((r) => (
+                  <tr key={r.user.id} className="border-t border-border/60">
+                    <td className="px-4 py-2 font-medium">{r.user.name}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{r.restaurantName}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{r.completedAt ?? r.lastActivity ?? "—"}</td>
+                    <td className="px-4 py-2">
+                      {r.score}/{r.maxScore}
+                    </td>
+                    <td className="px-4 py-2">
+                      <span
                         className={cn(
-                          "rounded-xl border px-3 py-2 text-left text-xs transition-colors",
-                          state2 === "good"
-                            ? "border-success/60 bg-success/15 text-success"
-                            : state2 === "bad"
-                              ? "border-destructive/60 bg-destructive/10 text-destructive"
-                              : "border-border hover:bg-secondary/50",
+                          "rounded-full px-2 py-0.5 text-[10px] font-bold",
+                          r.scorePercent >= 80 ? "bg-success/20 text-success" : "bg-secondary/60 text-muted-foreground",
                         )}
                       >
-                        {o}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+                        {r.scorePercent}%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {!stats?.results.length && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                      Aucun participant n'a encore terminé cette formation.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-          {quizDone && (
-            <div
-              className={cn(
-                "mt-4 flex items-center gap-3 rounded-2xl border p-4 text-xs",
-                quizScore >= 80 && view.completed
-                  ? "border-success/50 bg-success/10"
-                  : "border-border bg-secondary/40",
-              )}
-            >
-              <Award className={cn("h-6 w-6", quizScore >= 80 ? "text-success" : "text-muted-foreground")} />
-              <div>
-                <div className="font-display text-sm font-bold uppercase">Score : {quizScore}%</div>
-                <div className="text-muted-foreground">
-                  {quizScore >= 80 && view.completed
-                    ? "Formation validée — attestation enregistrée dans votre dossier."
-                    : quizScore >= 80
-                      ? "Quiz réussi. Validez toutes les étapes du parcours pour finaliser."
-                      : "Score insuffisant — revoyez les modules puis retentez le quiz."}
-                </div>
-              </div>
-              <Button variant="ghost" className="ml-auto" onClick={() => setQuizAnswers({})}>
-                Recommencer
-              </Button>
-            </div>
-          )}
         </div>
       )}
+
     </div>
   );
 }
