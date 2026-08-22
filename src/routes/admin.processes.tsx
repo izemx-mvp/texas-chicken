@@ -182,9 +182,9 @@ function AdminProcesses() {
       />
 
       {detail && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-background/70 backdrop-blur-sm" onClick={() => setDetail(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-3 backdrop-blur-sm sm:p-6" onClick={() => setDetail(null)}>
           <div
-            className="glass h-full w-full max-w-xl overflow-y-auto p-6"
+            className="glass animate-rise max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-display text-2xl font-bold uppercase">{detail.name}</h2>

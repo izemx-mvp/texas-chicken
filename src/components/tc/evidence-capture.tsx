@@ -99,8 +99,8 @@ export function EvidenceCapture({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 backdrop-blur-sm sm:items-center">
-      <div className="glass animate-rise relative w-full max-w-lg overflow-hidden rounded-t-3xl sm:rounded-3xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6">
+      <div className="glass animate-rise relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <Camera className="h-4 w-4 text-gold" />

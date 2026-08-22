@@ -122,8 +122,8 @@ function ReceptionModal({ order, onClose, userId }: { order: PurchaseOrder; onCl
   const conform = order.lines.every((l) => (qty[l.productId] ?? l.quantity) === l.quantity);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4">
-      <div className="glass animate-rise max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm sm:p-6">
+      <div className="glass animate-rise max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl p-5">
         <div className="flex items-start justify-between">
           <div>
             <h2 className="font-display text-lg font-bold uppercase">{order.ref}</h2>
