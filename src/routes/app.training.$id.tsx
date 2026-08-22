@@ -21,6 +21,7 @@ import { ProgressBar } from "@/components/tc/bits";
 import { cn } from "@/lib/utils";
 import { currentUser, toggleTrainingStep, trainingView, useStore } from "@/lib/tc/store";
 import { MediaGrid } from "@/components/tc/media-viewer";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { TrainingStep } from "@/lib/tc/ops";
 
 export const Route = createFileRoute("/app/training/$id")({
@@ -50,6 +51,8 @@ function TrainingDetail() {
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
   const [tab, setTab] = useState<"parcours" | "ressources" | "quiz">("parcours");
   const [sideWidth, setSideWidth] = useState(300);
+  const isMobile = useIsMobile();
+  const compact = !isMobile && sideWidth < 150;
 
   const startResize = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -315,6 +318,10 @@ function TrainingDetail() {
               </div>
             )}
 
+            <MediaGrid items={currentModule?.media ?? []} title="Contenu du module" />
+            {currentModule?.instructions && (
+              <p className="rounded-xl bg-secondary/40 p-2 text-[11px] text-muted-foreground">{currentModule.instructions}</p>
+            )}
             <MediaGrid items={current.media ?? []} title="Contenu de l'étape" />
 
             {current.procedure?.length ? (
