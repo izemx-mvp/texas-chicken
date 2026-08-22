@@ -62,7 +62,7 @@ export const Route = createFileRoute("/admin/trainings")({
   component: TrainingsAdminPage,
 });
 
-const EDIT_STEPS = ["Informations", "Médias", "Affectation", "Contenu", "Quiz", "Récapitulatif"];
+const EDIT_STEPS = ["Informations", "Affectation", "Contenu", "Quiz", "Récapitulatif"];
 const LEVELS: TrainingLevel[] = ["Débutant", "Intermédiaire", "Avancé"];
 
 function TrainingsAdminPage() {
@@ -458,30 +458,24 @@ function TrainingsAdminPage() {
                       className="w-full rounded-xl border border-border bg-secondary/40 px-3 py-2 text-sm outline-none"
                     />
                   </label>
+                  <div className="sm:col-span-2 grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
+                    <div>
+                      <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">Image de couverture</div>
+                      <ImageUpload value={draft.coverPhoto} onChange={(url) => patch({ coverPhoto: url })} />
+                    </div>
+                    <div>
+                      <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">Vidéo principale (import de fichier)</div>
+                      <VideoUpload value={draft.mainVideo} onChange={(url) => patch({ mainVideo: url ?? "" })} />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">Documents & fiches standard</div>
+                      <DocumentUpload value={draft.documents} onChange={(docs) => patch({ documents: docs })} />
+                    </div>
+                  </div>
                 </div>
               )}
 
               {step === 1 && (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">Image de couverture</div>
-                    <ImageUpload value={draft.coverPhoto} onChange={(url) => patch({ coverPhoto: url })} />
-                  </div>
-                  <div>
-                    <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">Vidéo principale (import de fichier)</div>
-                    <VideoUpload value={draft.mainVideo} onChange={(url) => patch({ mainVideo: url ?? "" })} />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">Documents & fiches standard</div>
-                    <DocumentUpload value={draft.documents} onChange={(docs) => patch({ documents: docs })} />
-                  </div>
-                </div>
-              )}
-
-
-
-              {step === 2 && (
                 <div className="space-y-4">
                   <div>
                     <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">Rôles ciblés</div>
@@ -553,7 +547,7 @@ function TrainingsAdminPage() {
                 </div>
               )}
 
-              {step === 3 && (
+              {step === 2 && (
                 <div className="space-y-3">
                   {draft.modules.map((m, mi) => (
                     <ModuleEditor
@@ -592,7 +586,7 @@ function TrainingsAdminPage() {
               )}
 
 
-              {step === 4 && (
+              {step === 3 && (
                 <div className="space-y-3">
                   {draft.quiz.map((q, qi) => (
                     <div key={qi} className="rounded-2xl border border-border p-3">
@@ -674,7 +668,7 @@ function TrainingsAdminPage() {
                 </div>
               )}
 
-              {step === 5 && (
+              {step === 4 && (
                 <div className="space-y-3">
                   <div className="rounded-2xl border border-border p-4">
                     <div className="font-display text-lg font-bold uppercase">{draft.title || "Sans titre"}</div>
