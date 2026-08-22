@@ -368,6 +368,21 @@ export interface TrainingMedia {
   duration?: number;
 }
 
+/**
+ * Question de quiz QCM. Une question peut accepter une seule bonne réponse
+ * ou plusieurs, et vaut un nombre de points défini par le créateur.
+ */
+export interface QuizQuestion {
+  id: ID;
+  question: string;
+  options: string[];
+  /** Indices des bonnes réponses. */
+  correct: number[];
+  /** true = plusieurs bonnes réponses attendues. */
+  multiple: boolean;
+  points: number;
+}
+
 export interface TrainingStep {
   id: ID;
   title: string;
@@ -390,6 +405,8 @@ export interface TrainingStep {
   media?: TrainingMedia[];
   /** Instructions détaillées de l'étape. */
   instructions?: string;
+  /** Quiz QCM rattaché à l'étape (peut être vide). */
+  quiz?: QuizQuestion[];
 }
 
 
@@ -398,19 +415,11 @@ export interface TrainingModule {
   title: string;
   /** Description / introduction du module. */
   description?: string;
-  /** Contenus directement rattachés au module (indépendants des étapes). */
-  media?: TrainingMedia[];
   /** Instructions générales du module. */
   instructions?: string;
   steps: TrainingStep[];
 }
 
-
-export interface TrainingQuiz {
-  question: string;
-  options: string[];
-  answer: number;
-}
 
 export interface Training {
   id: ID;
@@ -432,7 +441,6 @@ export interface Training {
 
   rules: string[];
   modules: TrainingModule[];
-  quiz: TrainingQuiz[];
   /** Affectation : restaurants concernés (vide = tout le réseau). */
   restaurantIds?: ID[];
   /** Affectation nominative complémentaire. */
@@ -440,6 +448,7 @@ export interface Training {
   createdAt?: string;
   status: "Publiée" | "Brouillon";
 }
+
 
 const VIDEOS = [
   "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
