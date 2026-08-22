@@ -1231,12 +1231,16 @@ export function submitStepQuiz(
   userId: string,
   stepId: string,
   answers: Record<string, number[]>,
-) {
+): { score: number; max: number } {
+  let score = 0;
+  let max = 0;
   setState((s) => {
     const training = s.trainings.find((t) => t.id === trainingId);
     const step = training ? trainingSteps(training).find((x) => x.id === stepId) : undefined;
     if (!step?.quiz?.length) return {};
     const earned = step.quiz.reduce((a, q) => a + scoreQuestion(q, answers[q.id]), 0);
+    score = earned;
+    max = step.quiz.reduce((a, q) => a + q.points, 0);
     const existing = s.trainingProgress.find((p) => p.trainingId === trainingId && p.userId === userId);
     const entry: TrainingProgress = {
       ...existing,
@@ -1254,7 +1258,9 @@ export function submitStepQuiz(
         : [...s.trainingProgress, entry],
     };
   });
+  return { score, max };
 }
+
 
 
 /* ---------------- administration des formations ---------------- */
