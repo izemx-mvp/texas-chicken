@@ -3,11 +3,11 @@ import { useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
-  Award,
   Check,
   CircleAlert,
   Download,
   FileText,
+  HelpCircle,
   Lightbulb,
   ListChecks,
   Lock,
@@ -19,8 +19,16 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/tc/bits";
 import { cn } from "@/lib/utils";
-import { currentUser, toggleTrainingStep, trainingView, useStore } from "@/lib/tc/store";
+import {
+  currentUser,
+  submitStepQuiz,
+  toggleTrainingStep,
+  trainingAdminStats,
+  trainingView,
+  useStore,
+} from "@/lib/tc/store";
 import { MediaGrid } from "@/components/tc/media-viewer";
+import { QuizPlayer } from "@/components/tc/quiz";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { TrainingStep } from "@/lib/tc/ops";
 
@@ -47,9 +55,9 @@ function TrainingDetail() {
   const state = useStore((s) => s);
   const me = currentUser();
   const view = useMemo(() => trainingView(id, me?.id, state), [id, me?.id, state]);
+  const stats = useMemo(() => trainingAdminStats(id, state), [id, state]);
   const [activeStep, setActiveStep] = useState<string | null>(null);
-  const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
-  const [tab, setTab] = useState<"parcours" | "ressources" | "quiz">("parcours");
+  const [tab, setTab] = useState<"parcours" | "ressources" | "resultats">("parcours");
   const [sideWidth, setSideWidth] = useState(300);
   const isMobile = useIsMobile();
   const compact = !isMobile && sideWidth < 150;
@@ -83,10 +91,14 @@ function TrainingDetail() {
   const currentIndex = current ? flat.findIndex((s) => s.id === current.id) : 0;
   const currentModule = t.modules.find((m) => m.steps.some((s) => s.id === current?.id));
 
-  const quizDone = t.quiz.every((_, i) => quizAnswers[i] !== undefined);
-  const quizScore = t.quiz.length
-    ? Math.round((t.quiz.filter((q, i) => quizAnswers[i] === q.answer).length / t.quiz.length) * 100)
-    : 100;
+  /** Réponses déjà enregistrées pour le quiz d'une étape. */
+  const savedAnswersFor = (step: TrainingStep) => {
+    const saved = progress?.quizAnswers ?? {};
+    const entries = (step.quiz ?? []).filter((q) => saved[q.id]).map((q) => [q.id, saved[q.id]!] as const);
+    return entries.length === (step.quiz?.length ?? 0) && entries.length
+      ? Object.fromEntries(entries)
+      : undefined;
+  };
 
   const goto = (i: number) => {
     const s = flat[i];
@@ -96,6 +108,7 @@ function TrainingDetail() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
+
 
   return (
     <div className="space-y-4">
