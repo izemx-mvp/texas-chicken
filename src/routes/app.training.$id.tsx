@@ -49,6 +49,22 @@ function TrainingDetail() {
   const [activeStep, setActiveStep] = useState<string | null>(null);
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
   const [tab, setTab] = useState<"parcours" | "ressources" | "quiz">("parcours");
+  const [sideWidth, setSideWidth] = useState(300);
+
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = sideWidth;
+    const move = (ev: MouseEvent) =>
+      setSideWidth(Math.min(460, Math.max(76, startW + ev.clientX - startX)));
+    const up = () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+    };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+  };
+
 
   if (!view || !me) {
     return (
