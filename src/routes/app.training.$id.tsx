@@ -272,9 +272,19 @@ function TrainingDetail() {
                                 <span className="min-w-0 flex-1 truncate">
                                   {num}. {s.title}
                                 </span>
+                                {s.quiz?.length ? (
+                                  <HelpCircle
+                                    aria-label="Étape avec quiz"
+                                    className={cn(
+                                      "h-3.5 w-3.5 shrink-0",
+                                      progress?.quizScores?.[s.id] !== undefined ? "text-success" : "text-gold",
+                                    )}
+                                  />
+                                ) : null}
                                 <span className="shrink-0 text-[10px] text-muted-foreground">{s.duration} min</span>
                               </>
                             )}
+
                           </button>
                         );
                       })}
