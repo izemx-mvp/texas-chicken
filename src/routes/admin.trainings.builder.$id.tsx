@@ -176,26 +176,13 @@ function TrainingBuilderPage() {
                 className="w-full rounded-xl border border-border bg-secondary/40 px-3 py-2 text-sm outline-none"
               />
             </label>
-            <div className="grid gap-4 border-t border-border pt-4 sm:col-span-2 sm:grid-cols-2">
-              <div>
-                <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Image d'ouverture
-                </div>
-                <ImageUpload value={draft.coverPhoto} onChange={(url) => patch({ coverPhoto: url })} />
+            <div className="border-t border-border pt-4 sm:col-span-2">
+              <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                Image d'ouverture
               </div>
-              <div>
-                <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Vidéo principale (import de fichier)
-                </div>
-                <VideoUpload value={draft.mainVideo} onChange={(url) => patch({ mainVideo: url ?? "" })} />
-              </div>
-              <div className="sm:col-span-2">
-                <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Documents & fiches standard
-                </div>
-                <DocumentUpload value={draft.documents} onChange={(docs) => patch({ documents: docs })} />
-              </div>
+              <ImageUpload value={draft.coverPhoto} onChange={(url) => patch({ coverPhoto: url })} />
             </div>
+
           </div>
         )}
 
