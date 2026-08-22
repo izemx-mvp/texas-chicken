@@ -190,19 +190,23 @@ function TrainingDetail() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
           <aside
             className="glass w-full shrink-0 overflow-hidden rounded-3xl p-2 lg:max-h-[78vh] lg:overflow-y-auto"
-            style={{ width: undefined }}
+            style={isMobile ? undefined : { width: sideWidth }}
           >
-            <div className="hidden lg:block" style={{ width: sideWidth }} />
-          <div className="space-y-3">
+            {!compact && (
+              <div className="px-2 py-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                Étapes — {view.doneSteps}/{view.totalSteps}
+              </div>
+            )}
+            <div className="space-y-3">
               {t.modules.map((m, mi) => {
                 const total = m.steps.length;
                 const okCount = m.steps.filter((s) => done.includes(s.id)).length;
                 return (
-                  <div key={m.id} className="glass rounded-3xl p-4">
+                  <div key={m.id} className="rounded-2xl border border-border/60 p-2">
                     <div className="mb-2 flex items-center gap-2">
                       <span
                         className={cn(
-                          "grid h-7 w-7 place-items-center rounded-lg text-xs font-bold",
+                          "grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-bold",
                           okCount === total
                             ? "bg-success/25 text-success"
                             : "bg-brand-gradient text-brand-foreground",
@@ -210,48 +214,51 @@ function TrainingDetail() {
                       >
                         {okCount === total ? <Check className="h-4 w-4" /> : mi + 1}
                       </span>
-                      <span className="font-display text-sm font-bold uppercase">{m.title}</span>
-                      <span className="ml-auto text-[10px] uppercase tracking-widest text-muted-foreground">
-                        {okCount}/{total}
-                      </span>
+                      {!compact && (
+                        <>
+                          <span className="font-display min-w-0 truncate text-sm font-bold uppercase">{m.title}</span>
+                          <span className="ml-auto shrink-0 text-[10px] uppercase tracking-widest text-muted-foreground">
+                            {okCount}/{total}
+                          </span>
+                        </>
+                      )}
                     </div>
 
-                    {m.instructions && (
-                      <p className="mb-2 rounded-xl bg-secondary/40 p-2 text-[11px] text-muted-foreground">{m.instructions}</p>
-                    )}
-
-                    <MediaGrid items={m.media ?? []} title="Contenu du module" className="mb-3" />
-
-                    <div className="mb-1 text-[10px] uppercase tracking-widest text-muted-foreground">
-                      Parcours du module — {total} étapes
-                    </div>
                     <div className="space-y-1">
                       {m.steps.map((s) => {
                         const isDone = done.includes(s.id);
+                        const num = flat.findIndex((f) => f.id === s.id) + 1;
                         return (
                           <button
                             key={s.id}
+                            title={s.title}
                             onClick={() => {
                               setActiveStep(s.id);
                               window.scrollTo({ top: 0, behavior: "smooth" });
                             }}
                             className={cn(
-                              "flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors",
+                              "flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-sm transition-colors",
                               s.id === current?.id ? "bg-brand/15" : "hover:bg-secondary/50",
                             )}
                           >
                             <span
                               className={cn(
-                                "grid h-5 w-5 shrink-0 place-items-center rounded-full border",
+                                "grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[9px] font-bold",
                                 isDone
                                   ? "border-success/60 bg-success/25 text-success"
                                   : "border-border text-muted-foreground",
                               )}
                             >
-                              {isDone ? <Check className="h-3 w-3" /> : <PlayCircle className="h-3 w-3" />}
+                              {isDone ? <Check className="h-3 w-3" /> : compact ? num : <PlayCircle className="h-3 w-3" />}
                             </span>
-                            <span className="min-w-0 flex-1 truncate">{s.title}</span>
-                            <span className="shrink-0 text-[10px] text-muted-foreground">{s.duration} min</span>
+                            {!compact && (
+                              <>
+                                <span className="min-w-0 flex-1 truncate">
+                                  {num}. {s.title}
+                                </span>
+                                <span className="shrink-0 text-[10px] text-muted-foreground">{s.duration} min</span>
+                              </>
+                            )}
                           </button>
                         );
                       })}
@@ -261,6 +268,7 @@ function TrainingDetail() {
               })}
             </div>
           </aside>
+
           <div
             onMouseDown={startResize}
             title="Redimensionner"
