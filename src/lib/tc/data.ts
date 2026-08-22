@@ -291,7 +291,7 @@ users.push({
   password: "Manager123!",
   restaurantId: "r1",
   role: "Manager",
-  roleId: "role-manager",
+  roleId: "role-staff",
   status: "Actif",
   lastLogin: `${dateMinus(0)} 07:52`,
   score: 89,
@@ -336,8 +336,8 @@ for (let i = 2; i <= 30; i++) {
         ? "Responsable restaurant"
         : "Manager",
     roleId: isAdmin
-      ? ["role-ops", "role-resto", "role-audit", "role-super"][i - 27]
-      : "role-manager",
+      ? ["role-admin", "role-admin", "role-admin", "role-super"][i - 27]
+      : "role-staff",
     status: i % 11 === 0 ? "Inactif" : "Actif",
     lastLogin: `${dateMinus(int(0, 9))} ${pad(int(6, 23))}:${pad(int(0, 59))}`,
     score: int(55, 99),
@@ -350,14 +350,14 @@ for (let i = 2; i <= 30; i++) {
 
 /* équipiers & encadrement restaurant (accès application avec permissions adaptées) */
 const STAFF_ROLES: [User["role"], string][] = [
-  ["Restaurant Manager", "role-manager"],
-  ["Assistant Manager", "role-assistant"],
-  ["Shift Leader", "role-shift"],
-  ["Crew Member", "role-crew"],
-  ["Cook", "role-cook"],
-  ["Cashier", "role-cashier"],
-  ["Drive-Thru Staff", "role-drive"],
-  ["Cleaning / Hygiene Staff", "role-clean"],
+  ["Restaurant Manager", "role-staff"],
+  ["Assistant Manager", "role-staff"],
+  ["Shift Leader", "role-staff"],
+  ["Crew Member", "role-staff"],
+  ["Cook", "role-staff"],
+  ["Cashier", "role-staff"],
+  ["Drive-Thru Staff", "role-staff"],
+  ["Cleaning / Hygiene Staff", "role-staff"],
 ];
 for (let i = 0; i < 40; i++) {
   const f = FIRST[(i * 7 + 2) % FIRST.length];
