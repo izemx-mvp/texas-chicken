@@ -156,11 +156,13 @@ export function login(email: string, password: string, space: "manager" | "admin
   );
   if (!user) return { ok: false as const, error: "Email ou mot de passe incorrect." };
   if (user.status !== "Actif") return { ok: false as const, error: "Ce compte est désactivé." };
-  const isManagerRole = user.role === "Manager" || user.role === "Responsable restaurant";
-  if (space === "manager" && !isManagerRole)
+  const permRole = state.roles.find((r) => r.id === user.roleId)?.name ?? "Staff";
+  const isSuper = permRole === "Super Admin";
+  if (space === "manager" && permRole === "Admin")
     return { ok: false as const, error: "Ce compte n'est pas un compte Restaurant Operations." };
-  if (space === "admin" && isManagerRole)
+  if (space === "admin" && !isSuper && permRole !== "Admin")
     return { ok: false as const, error: "Ce compte n'a pas accès à l'Administration." };
+
   setState({ session: { userId: user.id, space, at: new Date().toISOString() } });
   return { ok: true as const, user };
 }

@@ -28,7 +28,26 @@ export const Route = createFileRoute("/admin/users")({
   component: UsersPage,
 });
 
-const ROLES: UserRole[] = ["Manager", "Responsable restaurant", "Operations Admin", "Restaurant Admin", "Auditeur", "Super Admin"];
+const ROLES: UserRole[] = [
+  "Super Admin",
+  "Operations Admin",
+  "Operations Manager",
+  "Restaurant Admin",
+  "General Manager",
+  "Auditeur",
+  "Manager",
+  "Responsable restaurant",
+  "Restaurant Manager",
+  "Assistant Manager",
+  "Shift Leader",
+  "Crew Member",
+  "Cook",
+  "Cashier",
+  "Drive-Thru Staff",
+  "Cleaning / Hygiene Staff",
+  "Maintenance",
+];
+
 
 function UsersPage() {
   const users = useStore((s) => s.users);
