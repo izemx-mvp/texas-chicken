@@ -22,6 +22,7 @@ import {
   suppliers as seedSuppliers,
   purchaseOrders as seedPurchaseOrders,
   assigneesOf,
+  trainingMaxScore,
 } from "./ops";
 import type {
   ChatGroup,
@@ -29,10 +30,12 @@ import type {
   OrderLine,
   OrderStatus,
   PurchaseOrder,
+  QuizQuestion,
   Supplier,
   Training,
   TrainingProgress,
 } from "./ops";
+
 
 import type {
   Alert,
