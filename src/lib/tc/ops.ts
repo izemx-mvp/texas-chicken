@@ -819,6 +819,33 @@ export const trainingProgress: TrainingProgress[] = [];
     for (let i = 0; i < s.length; i++) h = (h * 33 + s.charCodeAt(i)) >>> 0;
     return h;
   };
+
+  /** Génère des réponses de quiz déterministes pour les étapes déjà validées. */
+  const seedQuiz = (tr: Training, doneIds: ID[], h: number) => {
+    const quizAnswers: Record<ID, number[]> = {};
+    const quizScores: Record<ID, number> = {};
+    let k = 0;
+    for (const m of tr.modules) {
+      for (const s of m.steps) {
+        if (!s.quiz?.length || !doneIds.includes(s.id)) continue;
+        let earned = 0;
+        for (const q of s.quiz) {
+          k++;
+          const right = (h + k * 7) % 6 !== 0; // ~83 % de bonnes réponses
+          if (right) {
+            quizAnswers[q.id] = [...q.correct];
+            earned += q.points;
+          } else {
+            const wrong = q.options.map((_, i) => i).filter((i) => !q.correct.includes(i));
+            quizAnswers[q.id] = wrong.length ? [wrong[(h + k) % wrong.length]!] : [];
+          }
+        }
+        quizScores[s.id] = earned;
+      }
+    }
+    return { quizAnswers, quizScores };
+  };
+
   // progression du manager de démonstration (états variés et lisibles)
   const seeds: [string, number][] = [
     ["tr1", 0.75],
@@ -832,14 +859,16 @@ export const trainingProgress: TrainingProgress[] = [];
     const tr = trainings.find((t) => t.id === tid);
     if (!tr) continue;
     const all = tr.modules.flatMap((m) => m.steps.map((s) => s.id));
+    const doneIds = all.slice(0, Math.round(all.length * ratio));
     trainingProgress.push({
       userId: managerUser.id,
       trainingId: tid,
-      completedStepIds: all.slice(0, Math.round(all.length * ratio)),
+      completedStepIds: doneIds,
       startedAt: shift(-20),
       completedAt: ratio >= 1 ? shift(-4) : undefined,
       lastActivity: shift(-2),
       dueDate: shift(tr.mandatory ? 6 : 20),
+      ...seedQuiz(tr, doneIds, hash(`${tid}-manager`)),
     });
   }
   // progression réseau : chaque utilisateur assigné a un état cohérent
@@ -852,18 +881,21 @@ export const trainingProgress: TrainingProgress[] = [];
       if (bucket <= 1) continue; // non démarré : aucune ligne de progression
       const ratio = bucket >= 5 && bucket <= 8 ? 1 : [0.2, 0.4, 0.65, 0.85][h % 4]!;
       const late = bucket === 9;
+      const doneIds = all.slice(0, Math.round(all.length * ratio));
       trainingProgress.push({
         userId: u.id,
         trainingId: tr.id,
-        completedStepIds: all.slice(0, Math.round(all.length * ratio)),
+        completedStepIds: doneIds,
         startedAt: shift(-(10 + (h % 40))),
         completedAt: ratio >= 1 ? shift(-(1 + (h % 12))) : undefined,
         lastActivity: shift(-(h % 9)),
         dueDate: shift(late ? -(2 + (h % 5)) : 5 + (h % 20)),
+        ...seedQuiz(tr, doneIds, h),
       });
     }
   }
 }
+
 
 
 /* ========================= APPROVISIONNEMENT ========================= */
