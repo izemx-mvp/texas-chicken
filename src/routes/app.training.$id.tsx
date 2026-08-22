@@ -485,7 +485,7 @@ function TrainingDetail() {
               <tbody>
                 {(stats?.results ?? []).map((r) => (
                   <tr key={r.user.id} className="border-t border-border/60">
-                    <td className="px-4 py-2 font-medium">{r.user.fullName}</td>
+                    <td className="px-4 py-2 font-medium">{r.user.firstName} {r.user.lastName}</td>
                     <td className="px-4 py-2 text-muted-foreground">{r.restaurantName}</td>
                     <td className="px-4 py-2 text-muted-foreground">{r.completedAt ?? r.lastActivity ?? "—"}</td>
                     <td className="px-4 py-2">
