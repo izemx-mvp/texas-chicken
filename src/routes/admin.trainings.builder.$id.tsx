@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SectionTitle } from "@/components/tc/bits";
 import { TCSelect } from "@/components/tc/select";
-import { DocumentUpload, ImageUpload, MediaUploader, VideoUpload } from "@/components/tc/upload";
+import { ImageUpload, MediaUploader } from "@/components/tc/upload";
 import { MemberPicker } from "@/components/tc/member-picker";
 import { QuizEditor } from "@/components/tc/quiz";
 import { cn } from "@/lib/utils";
