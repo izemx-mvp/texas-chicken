@@ -648,24 +648,8 @@ export const trainings: Training[] = TRAINING_DEFS.map((d, i) => {
     description: `Contenu de référence du module « ${m[0]} » : à consulter avant de démarrer les étapes.`,
     instructions:
       "Visionnez d'abord les contenus du module, puis déroulez les étapes dans l'ordre. Chaque étape doit être validée par le Shift Leader lors de la première exécution.",
-    media: [
-      mkMedia(`tr${i + 1}-m${mi + 1}-v1`, "video", `${m[0]} — Introduction`, {
-        url: VIDEOS[(i + mi) % VIDEOS.length]!,
-      }),
-      ...(mi % 2 === 0
-        ? [
-            mkMedia(`tr${i + 1}-m${mi + 1}-v2`, "video", `${m[0]} — Démonstration terrain`, {
-              url: VIDEOS[(i + mi + 1) % VIDEOS.length]!,
-              duration: 142,
-            }),
-          ]
-        : []),
-      mkMedia(`tr${i + 1}-m${mi + 1}-d1`, "document", `${m[0]} — Standard Texas Chicken`),
-      mkMedia(`tr${i + 1}-m${mi + 1}-i1`, "image", `${m[0]} — Visuel de référence`, {
-        url: STEP_IMAGES[(i + mi) % STEP_IMAGES.length]!,
-      }),
-    ],
     steps: m[1].map((title, si) => {
+
       stepN++;
       const media: TrainingMedia[] = [
         mkMedia(`tr${i + 1}-s${stepN}-v1`, "video", `${title} — Démonstration`, {
