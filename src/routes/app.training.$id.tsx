@@ -3,11 +3,11 @@ import { useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
-  Award,
   Check,
   CircleAlert,
   Download,
   FileText,
+  HelpCircle,
   Lightbulb,
   ListChecks,
   Lock,
@@ -19,8 +19,16 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/tc/bits";
 import { cn } from "@/lib/utils";
-import { currentUser, toggleTrainingStep, trainingView, useStore } from "@/lib/tc/store";
+import {
+  currentUser,
+  submitStepQuiz,
+  toggleTrainingStep,
+  trainingAdminStats,
+  trainingView,
+  useStore,
+} from "@/lib/tc/store";
 import { MediaGrid } from "@/components/tc/media-viewer";
+import { QuizPlayer } from "@/components/tc/quiz";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { TrainingStep } from "@/lib/tc/ops";
 
@@ -47,9 +55,9 @@ function TrainingDetail() {
   const state = useStore((s) => s);
   const me = currentUser();
   const view = useMemo(() => trainingView(id, me?.id, state), [id, me?.id, state]);
+  const stats = useMemo(() => trainingAdminStats(id, state), [id, state]);
   const [activeStep, setActiveStep] = useState<string | null>(null);
-  const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
-  const [tab, setTab] = useState<"parcours" | "ressources" | "quiz">("parcours");
+  const [tab, setTab] = useState<"parcours" | "ressources" | "resultats">("parcours");
   const [sideWidth, setSideWidth] = useState(300);
   const isMobile = useIsMobile();
   const compact = !isMobile && sideWidth < 150;
@@ -83,10 +91,14 @@ function TrainingDetail() {
   const currentIndex = current ? flat.findIndex((s) => s.id === current.id) : 0;
   const currentModule = t.modules.find((m) => m.steps.some((s) => s.id === current?.id));
 
-  const quizDone = t.quiz.every((_, i) => quizAnswers[i] !== undefined);
-  const quizScore = t.quiz.length
-    ? Math.round((t.quiz.filter((q, i) => quizAnswers[i] === q.answer).length / t.quiz.length) * 100)
-    : 100;
+  /** Réponses déjà enregistrées pour le quiz d'une étape. */
+  const savedAnswersFor = (step: TrainingStep) => {
+    const saved = progress?.quizAnswers ?? {};
+    const entries = (step.quiz ?? []).filter((q) => saved[q.id]).map((q) => [q.id, saved[q.id]!] as const);
+    return entries.length === (step.quiz?.length ?? 0) && entries.length
+      ? Object.fromEntries(entries)
+      : undefined;
+  };
 
   const goto = (i: number) => {
     const s = flat[i];
@@ -96,6 +108,7 @@ function TrainingDetail() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
+
 
   return (
     <div className="space-y-4">
@@ -173,7 +186,7 @@ function TrainingDetail() {
           [
             ["parcours", "Parcours"],
             ["ressources", "Ressources"],
-            ["quiz", "Quiz"],
+            ["resultats", "Résultats"],
           ] as const
         ).map(([k, l]) => (
           <button
@@ -259,9 +272,19 @@ function TrainingDetail() {
                                 <span className="min-w-0 flex-1 truncate">
                                   {num}. {s.title}
                                 </span>
+                                {s.quiz?.length ? (
+                                  <HelpCircle
+                                    aria-label="Étape avec quiz"
+                                    className={cn(
+                                      "h-3.5 w-3.5 shrink-0",
+                                      progress?.quizScores?.[s.id] !== undefined ? "text-success" : "text-gold",
+                                    )}
+                                  />
+                                ) : null}
                                 <span className="shrink-0 text-[10px] text-muted-foreground">{s.duration} min</span>
                               </>
                             )}
+
                           </button>
                         );
                       })}
@@ -311,18 +334,22 @@ function TrainingDetail() {
 
             <p className="text-sm text-muted-foreground">{current.content}</p>
 
-            {current.instructions && (
-              <div className="rounded-2xl border border-border bg-secondary/30 p-3 text-xs text-muted-foreground">
-                <div className="mb-1 text-[10px] uppercase tracking-widest text-gold">Instructions</div>
-                {current.instructions}
-              </div>
-            )}
-
-            <MediaGrid items={currentModule?.media ?? []} title="Contenu du module" />
-            {currentModule?.instructions && (
-              <p className="rounded-xl bg-secondary/40 p-2 text-[11px] text-muted-foreground">{currentModule.instructions}</p>
-            )}
             <MediaGrid items={current.media ?? []} title="Contenu de l'étape" />
+
+            {current.quiz?.length ? (
+              <div className="rounded-2xl border border-border bg-secondary/20 p-4">
+                <QuizPlayer
+                  key={current.id}
+                  questions={current.quiz}
+                  savedAnswers={savedAnswersFor(current)}
+                  onSubmit={(answers) => {
+                    const res = submitStepQuiz(t.id, me.id, current.id, answers);
+                    toast.success(`Quiz enregistré — ${res.score}/${res.max} points`);
+                  }}
+                />
+              </div>
+            ) : null}
+
 
             {current.procedure?.length ? (
               <div>
@@ -394,8 +421,8 @@ function TrainingDetail() {
                   toast.success("Étape validée");
                   if (currentIndex < flat.length - 1) goto(currentIndex + 1);
                   else {
-                    setTab("quiz");
-                    toast.success("Parcours terminé — passez le quiz de validation");
+                    setTab("resultats");
+                    toast.success("Parcours terminé — consultez vos résultats");
                   }
                 }}
               >
@@ -441,69 +468,64 @@ function TrainingDetail() {
         </div>
       )}
 
-      {tab === "quiz" && (
-        <div className="glass rounded-3xl p-5">
-          <div className="mb-1 font-display text-sm font-bold uppercase">Validation des acquis</div>
-          <p className="mb-3 text-[11px] text-muted-foreground">
-            Score minimum requis : 80 %. {view.completed ? "Toutes les étapes sont validées." : "Terminez d'abord toutes les étapes du parcours."}
-          </p>
-          <div className="space-y-4">
-            {t.quiz.map((q, qi) => (
-              <div key={q.question}>
-                <div className="text-sm font-medium">{q.question}</div>
-                <div className="mt-2 grid gap-1">
-                  {q.options.map((o, oi) => {
-                    const picked = quizAnswers[qi];
-                    const state2 =
-                      picked === undefined ? "idle" : oi === q.answer ? "good" : picked === oi ? "bad" : "idle";
-                    return (
-                      <button
-                        key={o}
-                        onClick={() => setQuizAnswers((a) => ({ ...a, [qi]: oi }))}
+      {tab === "resultats" && (
+        <div className="glass overflow-hidden rounded-3xl">
+          <div className="flex flex-wrap items-center justify-between gap-2 p-5 pb-3">
+            <div>
+              <div className="font-display text-sm font-bold uppercase">Résultats des participants</div>
+              <p className="text-[11px] text-muted-foreground">
+                Score maximum : {view.maxScore} points · moyenne réseau {stats?.avgScorePercent ?? 0}%
+              </p>
+            </div>
+            <div className="rounded-2xl border border-gold/30 bg-gold/10 px-3 py-1.5 text-xs text-gold">
+              Mon score : {view.score}/{view.maxScore} ({view.scorePercent}%)
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-left text-xs">
+              <thead className="bg-secondary/40 text-[10px] uppercase tracking-widest text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-2">Nom</th>
+                  <th className="px-4 py-2">Restaurant</th>
+                  <th className="px-4 py-2">Date</th>
+                  <th className="px-4 py-2">Score</th>
+                  <th className="px-4 py-2">Pourcentage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(stats?.results ?? []).map((r) => (
+                  <tr key={r.user.id} className="border-t border-border/60">
+                    <td className="px-4 py-2 font-medium">{r.user.firstName} {r.user.lastName}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{r.restaurantName}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{r.completedAt ?? r.lastActivity ?? "—"}</td>
+                    <td className="px-4 py-2">
+                      {r.score}/{r.maxScore}
+                    </td>
+                    <td className="px-4 py-2">
+                      <span
                         className={cn(
-                          "rounded-xl border px-3 py-2 text-left text-xs transition-colors",
-                          state2 === "good"
-                            ? "border-success/60 bg-success/15 text-success"
-                            : state2 === "bad"
-                              ? "border-destructive/60 bg-destructive/10 text-destructive"
-                              : "border-border hover:bg-secondary/50",
+                          "rounded-full px-2 py-0.5 text-[10px] font-bold",
+                          r.scorePercent >= 80 ? "bg-success/20 text-success" : "bg-secondary/60 text-muted-foreground",
                         )}
                       >
-                        {o}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+                        {r.scorePercent}%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {!stats?.results.length && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                      Aucun participant n'a encore terminé cette formation.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-          {quizDone && (
-            <div
-              className={cn(
-                "mt-4 flex items-center gap-3 rounded-2xl border p-4 text-xs",
-                quizScore >= 80 && view.completed
-                  ? "border-success/50 bg-success/10"
-                  : "border-border bg-secondary/40",
-              )}
-            >
-              <Award className={cn("h-6 w-6", quizScore >= 80 ? "text-success" : "text-muted-foreground")} />
-              <div>
-                <div className="font-display text-sm font-bold uppercase">Score : {quizScore}%</div>
-                <div className="text-muted-foreground">
-                  {quizScore >= 80 && view.completed
-                    ? "Formation validée — attestation enregistrée dans votre dossier."
-                    : quizScore >= 80
-                      ? "Quiz réussi. Validez toutes les étapes du parcours pour finaliser."
-                      : "Score insuffisant — revoyez les modules puis retentez le quiz."}
-                </div>
-              </div>
-              <Button variant="ghost" className="ml-auto" onClick={() => setQuizAnswers({})}>
-                Recommencer
-              </Button>
-            </div>
-          )}
         </div>
       )}
+
     </div>
   );
 }

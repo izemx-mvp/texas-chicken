@@ -37,10 +37,12 @@ import { Route as LoginManagerRouteImport } from './routes/login.manager'
 import { Route as AdminExecutionIdRouteImport } from './routes/admin.execution.$id'
 import { Route as AdminRestaurantsIndexRouteImport } from './routes/admin.restaurants.index'
 import { Route as AdminRestaurantsIdRouteImport } from './routes/admin.restaurants.$id'
+import { Route as AdminTrainingsIndexRouteImport } from './routes/admin.trainings.index'
 import { Route as AppProcessIdRouteImport } from './routes/app.process.$id'
 import { Route as AppTaskIdRouteImport } from './routes/app.task.$id'
 import { Route as AppTrainingIdRouteImport } from './routes/app.training.$id'
 import { Route as AppTrainingsIndexRouteImport } from './routes/app.trainings.index'
+import { Route as AdminTrainingsBuilderIdRouteImport } from './routes/admin.trainings.builder.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -182,6 +184,11 @@ const AdminRestaurantsIdRoute = AdminRestaurantsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AdminRestaurantsRoute,
 } as any)
+const AdminTrainingsIndexRoute = AdminTrainingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminTrainingsRoute,
+} as any)
 const AppProcessIdRoute = AppProcessIdRouteImport.update({
   id: '/process/$id',
   path: '/process/$id',
@@ -202,6 +209,11 @@ const AppTrainingsIndexRoute = AppTrainingsIndexRouteImport.update({
   path: '/trainings/',
   getParentRoute: () => AppRoute,
 } as any)
+const AdminTrainingsBuilderIdRoute = AdminTrainingsBuilderIdRouteImport.update({
+  id: '/builder/$id',
+  path: '/builder/$id',
+  getParentRoute: () => AdminTrainingsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -216,7 +228,7 @@ export interface FileRoutesByFullPath {
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/restaurants': typeof AdminRestaurantsRouteWithChildren
-  '/admin/trainings': typeof AdminTrainingsRoute
+  '/admin/trainings': typeof AdminTrainingsRouteWithChildren
   '/admin/users': typeof AdminUsersRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/analytics': typeof AppAnalyticsRoute
@@ -235,7 +247,9 @@ export interface FileRoutesByFullPath {
   '/app/task/$id': typeof AppTaskIdRoute
   '/app/training/$id': typeof AppTrainingIdRoute
   '/admin/restaurants/': typeof AdminRestaurantsIndexRoute
+  '/admin/trainings/': typeof AdminTrainingsIndexRoute
   '/app/trainings/': typeof AppTrainingsIndexRoute
+  '/admin/trainings/builder/$id': typeof AdminTrainingsBuilderIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -247,7 +261,6 @@ export interface FileRoutesByTo {
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/profile': typeof AdminProfileRoute
-  '/admin/trainings': typeof AdminTrainingsRoute
   '/admin/users': typeof AdminUsersRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/analytics': typeof AppAnalyticsRoute
@@ -266,7 +279,9 @@ export interface FileRoutesByTo {
   '/app/task/$id': typeof AppTaskIdRoute
   '/app/training/$id': typeof AppTrainingIdRoute
   '/admin/restaurants': typeof AdminRestaurantsIndexRoute
+  '/admin/trainings': typeof AdminTrainingsIndexRoute
   '/app/trainings': typeof AppTrainingsIndexRoute
+  '/admin/trainings/builder/$id': typeof AdminTrainingsBuilderIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -282,7 +297,7 @@ export interface FileRoutesById {
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/restaurants': typeof AdminRestaurantsRouteWithChildren
-  '/admin/trainings': typeof AdminTrainingsRoute
+  '/admin/trainings': typeof AdminTrainingsRouteWithChildren
   '/admin/users': typeof AdminUsersRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/analytics': typeof AppAnalyticsRoute
@@ -301,7 +316,9 @@ export interface FileRoutesById {
   '/app/task/$id': typeof AppTaskIdRoute
   '/app/training/$id': typeof AppTrainingIdRoute
   '/admin/restaurants/': typeof AdminRestaurantsIndexRoute
+  '/admin/trainings/': typeof AdminTrainingsIndexRoute
   '/app/trainings/': typeof AppTrainingsIndexRoute
+  '/admin/trainings/builder/$id': typeof AdminTrainingsBuilderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -337,7 +354,9 @@ export interface FileRouteTypes {
     | '/app/task/$id'
     | '/app/training/$id'
     | '/admin/restaurants/'
+    | '/admin/trainings/'
     | '/app/trainings/'
+    | '/admin/trainings/builder/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -349,7 +368,6 @@ export interface FileRouteTypes {
     | '/admin/orders'
     | '/admin/processes'
     | '/admin/profile'
-    | '/admin/trainings'
     | '/admin/users'
     | '/app/alerts'
     | '/app/analytics'
@@ -368,7 +386,9 @@ export interface FileRouteTypes {
     | '/app/task/$id'
     | '/app/training/$id'
     | '/admin/restaurants'
+    | '/admin/trainings'
     | '/app/trainings'
+    | '/admin/trainings/builder/$id'
   id:
     | '__root__'
     | '/'
@@ -402,7 +422,9 @@ export interface FileRouteTypes {
     | '/app/task/$id'
     | '/app/training/$id'
     | '/admin/restaurants/'
+    | '/admin/trainings/'
     | '/app/trainings/'
+    | '/admin/trainings/builder/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -612,6 +634,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRestaurantsIdRouteImport
       parentRoute: typeof AdminRestaurantsRoute
     }
+    '/admin/trainings/': {
+      id: '/admin/trainings/'
+      path: '/'
+      fullPath: '/admin/trainings/'
+      preLoaderRoute: typeof AdminTrainingsIndexRouteImport
+      parentRoute: typeof AdminTrainingsRoute
+    }
     '/app/process/$id': {
       id: '/app/process/$id'
       path: '/process/$id'
@@ -640,6 +669,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTrainingsIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/admin/trainings/builder/$id': {
+      id: '/admin/trainings/builder/$id'
+      path: '/builder/$id'
+      fullPath: '/admin/trainings/builder/$id'
+      preLoaderRoute: typeof AdminTrainingsBuilderIdRouteImport
+      parentRoute: typeof AdminTrainingsRoute
+    }
   }
 }
 
@@ -656,6 +692,20 @@ const AdminRestaurantsRouteChildren: AdminRestaurantsRouteChildren = {
 const AdminRestaurantsRouteWithChildren =
   AdminRestaurantsRoute._addFileChildren(AdminRestaurantsRouteChildren)
 
+interface AdminTrainingsRouteChildren {
+  AdminTrainingsIndexRoute: typeof AdminTrainingsIndexRoute
+  AdminTrainingsBuilderIdRoute: typeof AdminTrainingsBuilderIdRoute
+}
+
+const AdminTrainingsRouteChildren: AdminTrainingsRouteChildren = {
+  AdminTrainingsIndexRoute: AdminTrainingsIndexRoute,
+  AdminTrainingsBuilderIdRoute: AdminTrainingsBuilderIdRoute,
+}
+
+const AdminTrainingsRouteWithChildren = AdminTrainingsRoute._addFileChildren(
+  AdminTrainingsRouteChildren,
+)
+
 interface AdminRouteChildren {
   AdminAlertsRoute: typeof AdminAlertsRoute
   AdminBuilderRoute: typeof AdminBuilderRoute
@@ -665,7 +715,7 @@ interface AdminRouteChildren {
   AdminProcessesRoute: typeof AdminProcessesRoute
   AdminProfileRoute: typeof AdminProfileRoute
   AdminRestaurantsRoute: typeof AdminRestaurantsRouteWithChildren
-  AdminTrainingsRoute: typeof AdminTrainingsRoute
+  AdminTrainingsRoute: typeof AdminTrainingsRouteWithChildren
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminExecutionIdRoute: typeof AdminExecutionIdRoute
@@ -680,7 +730,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminProcessesRoute: AdminProcessesRoute,
   AdminProfileRoute: AdminProfileRoute,
   AdminRestaurantsRoute: AdminRestaurantsRouteWithChildren,
-  AdminTrainingsRoute: AdminTrainingsRoute,
+  AdminTrainingsRoute: AdminTrainingsRouteWithChildren,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminExecutionIdRoute: AdminExecutionIdRoute,

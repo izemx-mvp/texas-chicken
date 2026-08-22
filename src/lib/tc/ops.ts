@@ -368,6 +368,21 @@ export interface TrainingMedia {
   duration?: number;
 }
 
+/**
+ * Question de quiz QCM. Une question peut accepter une seule bonne réponse
+ * ou plusieurs, et vaut un nombre de points défini par le créateur.
+ */
+export interface QuizQuestion {
+  id: ID;
+  question: string;
+  options: string[];
+  /** Indices des bonnes réponses. */
+  correct: number[];
+  /** true = plusieurs bonnes réponses attendues. */
+  multiple: boolean;
+  points: number;
+}
+
 export interface TrainingStep {
   id: ID;
   title: string;
@@ -390,6 +405,8 @@ export interface TrainingStep {
   media?: TrainingMedia[];
   /** Instructions détaillées de l'étape. */
   instructions?: string;
+  /** Quiz QCM rattaché à l'étape (peut être vide). */
+  quiz?: QuizQuestion[];
 }
 
 
@@ -398,19 +415,11 @@ export interface TrainingModule {
   title: string;
   /** Description / introduction du module. */
   description?: string;
-  /** Contenus directement rattachés au module (indépendants des étapes). */
-  media?: TrainingMedia[];
   /** Instructions générales du module. */
   instructions?: string;
   steps: TrainingStep[];
 }
 
-
-export interface TrainingQuiz {
-  question: string;
-  options: string[];
-  answer: number;
-}
 
 export interface Training {
   id: ID;
@@ -432,7 +441,6 @@ export interface Training {
 
   rules: string[];
   modules: TrainingModule[];
-  quiz: TrainingQuiz[];
   /** Affectation : restaurants concernés (vide = tout le réseau). */
   restaurantIds?: ID[];
   /** Affectation nominative complémentaire. */
@@ -440,6 +448,7 @@ export interface Training {
   createdAt?: string;
   status: "Publiée" | "Brouillon";
 }
+
 
 const VIDEOS = [
   "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
@@ -639,24 +648,8 @@ export const trainings: Training[] = TRAINING_DEFS.map((d, i) => {
     description: `Contenu de référence du module « ${m[0]} » : à consulter avant de démarrer les étapes.`,
     instructions:
       "Visionnez d'abord les contenus du module, puis déroulez les étapes dans l'ordre. Chaque étape doit être validée par le Shift Leader lors de la première exécution.",
-    media: [
-      mkMedia(`tr${i + 1}-m${mi + 1}-v1`, "video", `${m[0]} — Introduction`, {
-        url: VIDEOS[(i + mi) % VIDEOS.length]!,
-      }),
-      ...(mi % 2 === 0
-        ? [
-            mkMedia(`tr${i + 1}-m${mi + 1}-v2`, "video", `${m[0]} — Démonstration terrain`, {
-              url: VIDEOS[(i + mi + 1) % VIDEOS.length]!,
-              duration: 142,
-            }),
-          ]
-        : []),
-      mkMedia(`tr${i + 1}-m${mi + 1}-d1`, "document", `${m[0]} — Standard Texas Chicken`),
-      mkMedia(`tr${i + 1}-m${mi + 1}-i1`, "image", `${m[0]} — Visuel de référence`, {
-        url: STEP_IMAGES[(i + mi) % STEP_IMAGES.length]!,
-      }),
-    ],
     steps: m[1].map((title, si) => {
+
       stepN++;
       const media: TrainingMedia[] = [
         mkMedia(`tr${i + 1}-s${stepN}-v1`, "video", `${title} — Démonstration`, {
@@ -709,7 +702,39 @@ export const trainings: Training[] = TRAINING_DEFS.map((d, i) => {
         warnings: si % 2 === 0 ? ["Toute non-conformité doit être signalée immédiatement au Shift Leader."] : [],
         document: { name: `${title} — fiche geste.pdf`, type: "PDF" },
         image: STEP_IMAGES[(i + si + mi) % STEP_IMAGES.length]!,
+        quiz:
+          si === m[1].length - 1
+            ? [
+                {
+                  id: `tr${i + 1}-s${stepN}-q1`,
+                  question: `« ${m[0]} » : quel est le point de contrôle le plus critique ?`,
+                  options: [
+                    "Le respect du standard Texas Chicken",
+                    "La rapidité seule",
+                    "L'improvisation du collaborateur",
+                    "L'avis du client",
+                  ],
+                  correct: [0],
+                  multiple: false,
+                  points: 1,
+                },
+                {
+                  id: `tr${i + 1}-s${stepN}-q2`,
+                  question: `Quels éléments sont obligatoires avant de valider « ${title} » ?`,
+                  options: [
+                    "Le contrôle visuel du résultat",
+                    "La validation par le Shift Leader",
+                    "Une photo publiée sur les réseaux",
+                    "Le nettoyage du poste",
+                  ],
+                  correct: [0, 1, 3],
+                  multiple: true,
+                  points: 2,
+                },
+              ]
+            : undefined,
       };
+
     }),
   }));
 
@@ -743,24 +768,22 @@ export const trainings: Training[] = TRAINING_DEFS.map((d, i) => {
       d.mandatory ? "Formation obligatoire — à compléter sous 30 jours." : "Formation recommandée.",
     ],
     modules,
-    quiz: [
-      {
-        question: `Quel est le point le plus critique de « ${d.title} » ?`,
-        options: ["Le respect du standard Texas Chicken", "La rapidité seule", "L'improvisation"],
-        answer: 0,
-      },
-      {
-        question: "Que faire en cas de non-conformité constatée ?",
-        options: ["Continuer le service", "Signaler immédiatement au Shift Leader", "Attendre le lendemain"],
-        answer: 1,
-      },
-    ],
     restaurantIds: i % 4 === 3 ? restaurants.slice(0, 4).map((r) => r.id) : [],
     userIds: [],
     createdAt: shift(-200 + i * 14),
     status: i === 8 ? "Brouillon" : "Publiée",
   };
 });
+
+/** Toutes les questions de quiz d'une formation (toutes étapes confondues). */
+export function trainingQuestions(t: Training): QuizQuestion[] {
+  return t.modules.flatMap((m) => m.steps.flatMap((s) => s.quiz ?? []));
+}
+
+/** Score maximum atteignable sur une formation. */
+export function trainingMaxScore(t: Training): number {
+  return trainingQuestions(t).reduce((a, q) => a + (q.points || 0), 0);
+}
 
 export interface TrainingProgress {
   userId: ID;
@@ -770,7 +793,12 @@ export interface TrainingProgress {
   completedAt?: string;
   lastActivity?: string;
   dueDate?: string;
+  /** Réponses données par question (indices d'options). */
+  quizAnswers?: Record<ID, number[]>;
+  /** Points obtenus par étape contenant un quiz. */
+  quizScores?: Record<ID, number>;
 }
+
 
 /** Utilisateurs concernés par une formation (rôles + restaurants + nominatif). */
 export function assigneesOf(t: Training, pool = users) {
@@ -791,6 +819,33 @@ export const trainingProgress: TrainingProgress[] = [];
     for (let i = 0; i < s.length; i++) h = (h * 33 + s.charCodeAt(i)) >>> 0;
     return h;
   };
+
+  /** Génère des réponses de quiz déterministes pour les étapes déjà validées. */
+  const seedQuiz = (tr: Training, doneIds: ID[], h: number) => {
+    const quizAnswers: Record<ID, number[]> = {};
+    const quizScores: Record<ID, number> = {};
+    let k = 0;
+    for (const m of tr.modules) {
+      for (const s of m.steps) {
+        if (!s.quiz?.length || !doneIds.includes(s.id)) continue;
+        let earned = 0;
+        for (const q of s.quiz) {
+          k++;
+          const right = (h + k * 7) % 6 !== 0; // ~83 % de bonnes réponses
+          if (right) {
+            quizAnswers[q.id] = [...q.correct];
+            earned += q.points;
+          } else {
+            const wrong = q.options.map((_, i) => i).filter((i) => !q.correct.includes(i));
+            quizAnswers[q.id] = wrong.length ? [wrong[(h + k) % wrong.length]!] : [];
+          }
+        }
+        quizScores[s.id] = earned;
+      }
+    }
+    return { quizAnswers, quizScores };
+  };
+
   // progression du manager de démonstration (états variés et lisibles)
   const seeds: [string, number][] = [
     ["tr1", 0.75],
@@ -804,14 +859,16 @@ export const trainingProgress: TrainingProgress[] = [];
     const tr = trainings.find((t) => t.id === tid);
     if (!tr) continue;
     const all = tr.modules.flatMap((m) => m.steps.map((s) => s.id));
+    const doneIds = all.slice(0, Math.round(all.length * ratio));
     trainingProgress.push({
       userId: managerUser.id,
       trainingId: tid,
-      completedStepIds: all.slice(0, Math.round(all.length * ratio)),
+      completedStepIds: doneIds,
       startedAt: shift(-20),
       completedAt: ratio >= 1 ? shift(-4) : undefined,
       lastActivity: shift(-2),
       dueDate: shift(tr.mandatory ? 6 : 20),
+      ...seedQuiz(tr, doneIds, hash(`${tid}-manager`)),
     });
   }
   // progression réseau : chaque utilisateur assigné a un état cohérent
@@ -824,18 +881,21 @@ export const trainingProgress: TrainingProgress[] = [];
       if (bucket <= 1) continue; // non démarré : aucune ligne de progression
       const ratio = bucket >= 5 && bucket <= 8 ? 1 : [0.2, 0.4, 0.65, 0.85][h % 4]!;
       const late = bucket === 9;
+      const doneIds = all.slice(0, Math.round(all.length * ratio));
       trainingProgress.push({
         userId: u.id,
         trainingId: tr.id,
-        completedStepIds: all.slice(0, Math.round(all.length * ratio)),
+        completedStepIds: doneIds,
         startedAt: shift(-(10 + (h % 40))),
         completedAt: ratio >= 1 ? shift(-(1 + (h % 12))) : undefined,
         lastActivity: shift(-(h % 9)),
         dueDate: shift(late ? -(2 + (h % 5)) : 5 + (h % 20)),
+        ...seedQuiz(tr, doneIds, h),
       });
     }
   }
 }
+
 
 
 /* ========================= APPROVISIONNEMENT ========================= */
