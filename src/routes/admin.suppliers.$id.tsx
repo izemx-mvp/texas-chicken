@@ -248,7 +248,7 @@ function SupplierProducts({ supplier }: { supplier: Supplier }) {
                         setDraft({
                           id: p.id,
                           name: p.name,
-                          reference: (p as { reference?: string }).reference ?? "",
+                          reference: p.reference ?? "",
                           category: p.category,
                           unit: p.unit,
                           price: p.price,
