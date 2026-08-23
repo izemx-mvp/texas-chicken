@@ -743,7 +743,8 @@ export function dayReport(
             : undefined,
       result: status === "Terminé" ? "Conforme" : status,
     };
-  });
+  }
+
 }
 
 /* -------------------- agrégats de la journée -------------------- */
