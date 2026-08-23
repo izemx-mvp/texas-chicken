@@ -648,8 +648,16 @@ export interface ShiftTeamMember {
 
 /** Équipe d'un shift à une date : rôles, présences, remplacements et conflits. */
 export function shiftTeam(shiftId: string, date: string, s: State = state): ShiftTeamMember[] {
+  const seen = new Set<string>();
   return s.shiftAssignments
     .filter((a) => a.shiftId === shiftId && a.date === date && a.status !== "Annulé")
+    // Une personne n'apparaît qu'une fois par shift et par date.
+    .filter((a) => {
+      const key = a.replacementUserId ?? a.userId;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
     .map((a) => {
       const planned = s.users.find((u) => u.id === a.userId);
       const replacement = a.replacementUserId ? s.users.find((u) => u.id === a.replacementUserId) : undefined;
