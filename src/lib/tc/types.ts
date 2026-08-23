@@ -382,6 +382,9 @@ export interface ShiftTask {
   videoUrl?: string;
   guide?: string[];
   date?: string;
+  /** Shift d'exécution : id de shift, "all" (tous les shifts) ou absent (indépendant des shifts). */
+  shiftId?: ID | typeof ALL_SHIFTS;
+
   startedAt?: string;
   completedAt?: string;
 }
