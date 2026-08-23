@@ -39,10 +39,11 @@ function DeliveriesPage() {
   const [open, setOpen] = useState<PurchaseOrder | null>(null);
 
   const list = orders.filter((o) => {
-    if (tab === "Attendues") return ["Envoyée", "En préparation", "En livraison", "En retard"].includes(o.status);
-    if (tab === "En livraison") return o.status === "En livraison";
+    if (tab === "Attendues")
+      return ["Envoyée", "Confirmée", "En préparation", "Expédiée", "En livraison", "En retard"].includes(o.status);
+    if (tab === "En livraison") return o.status === "En livraison" || o.status === "Expédiée";
     if (tab === "En retard") return o.status === "En retard";
-    return o.status === "Reçue" || o.status === "Clôturée";
+    return ["Reçue", "Livrée", "Clôturée"].includes(o.status);
   });
 
   const supplierName = (id: string) => state.suppliers.find((s) => s.id === id)?.name ?? "Fournisseur";
@@ -118,7 +119,7 @@ function ReceptionModal({ order, onClose, userId }: { order: PurchaseOrder; onCl
     Object.fromEntries(order.lines.map((l) => [l.productId, l.receivedQuantity ?? l.quantity])),
   );
   const [comment, setComment] = useState("");
-  const received = order.status === "Reçue" || order.status === "Clôturée";
+  const received = ["Reçue", "Livrée", "Clôturée"].includes(order.status);
   const conform = order.lines.every((l) => (qty[l.productId] ?? l.quantity) === l.quantity);
 
   return (

@@ -18,10 +18,11 @@ import { Route as AdminAlertsRouteImport } from './routes/admin.alerts'
 import { Route as AdminBuilderRouteImport } from './routes/admin.builder'
 import { Route as AdminEvidenceRouteImport } from './routes/admin.evidence'
 import { Route as AdminGroupsRouteImport } from './routes/admin.groups'
-import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminProcessesRouteImport } from './routes/admin.processes'
 import { Route as AdminProfileRouteImport } from './routes/admin.profile'
 import { Route as AdminRestaurantsRouteImport } from './routes/admin.restaurants'
+import { Route as AdminShiftsRouteImport } from './routes/admin.shifts'
+import { Route as AdminSuppliersRouteImport } from './routes/admin.suppliers'
 import { Route as AdminTrainingsRouteImport } from './routes/admin.trainings'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AppIndexRouteImport } from './routes/app.index'
@@ -37,6 +38,8 @@ import { Route as LoginManagerRouteImport } from './routes/login.manager'
 import { Route as AdminExecutionIdRouteImport } from './routes/admin.execution.$id'
 import { Route as AdminRestaurantsIndexRouteImport } from './routes/admin.restaurants.index'
 import { Route as AdminRestaurantsIdRouteImport } from './routes/admin.restaurants.$id'
+import { Route as AdminSuppliersIndexRouteImport } from './routes/admin.suppliers.index'
+import { Route as AdminSuppliersIdRouteImport } from './routes/admin.suppliers.$id'
 import { Route as AdminTrainingsIndexRouteImport } from './routes/admin.trainings.index'
 import { Route as AppProcessIdRouteImport } from './routes/app.process.$id'
 import { Route as AppTaskIdRouteImport } from './routes/app.task.$id'
@@ -89,11 +92,6 @@ const AdminGroupsRoute = AdminGroupsRouteImport.update({
   path: '/groups',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminOrdersRoute = AdminOrdersRouteImport.update({
-  id: '/orders',
-  path: '/orders',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminProcessesRoute = AdminProcessesRouteImport.update({
   id: '/processes',
   path: '/processes',
@@ -107,6 +105,16 @@ const AdminProfileRoute = AdminProfileRouteImport.update({
 const AdminRestaurantsRoute = AdminRestaurantsRouteImport.update({
   id: '/restaurants',
   path: '/restaurants',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminShiftsRoute = AdminShiftsRouteImport.update({
+  id: '/shifts',
+  path: '/shifts',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSuppliersRoute = AdminSuppliersRouteImport.update({
+  id: '/suppliers',
+  path: '/suppliers',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminTrainingsRoute = AdminTrainingsRouteImport.update({
@@ -184,6 +192,16 @@ const AdminRestaurantsIdRoute = AdminRestaurantsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AdminRestaurantsRoute,
 } as any)
+const AdminSuppliersIndexRoute = AdminSuppliersIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminSuppliersRoute,
+} as any)
+const AdminSuppliersIdRoute = AdminSuppliersIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminSuppliersRoute,
+} as any)
 const AdminTrainingsIndexRoute = AdminTrainingsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -224,10 +242,11 @@ export interface FileRoutesByFullPath {
   '/admin/builder': typeof AdminBuilderRoute
   '/admin/evidence': typeof AdminEvidenceRoute
   '/admin/groups': typeof AdminGroupsRoute
-  '/admin/orders': typeof AdminOrdersRoute
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/restaurants': typeof AdminRestaurantsRouteWithChildren
+  '/admin/shifts': typeof AdminShiftsRoute
+  '/admin/suppliers': typeof AdminSuppliersRouteWithChildren
   '/admin/trainings': typeof AdminTrainingsRouteWithChildren
   '/admin/users': typeof AdminUsersRoute
   '/app/alerts': typeof AppAlertsRoute
@@ -243,10 +262,12 @@ export interface FileRoutesByFullPath {
   '/app/': typeof AppIndexRoute
   '/admin/execution/$id': typeof AdminExecutionIdRoute
   '/admin/restaurants/$id': typeof AdminRestaurantsIdRoute
+  '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/app/process/$id': typeof AppProcessIdRoute
   '/app/task/$id': typeof AppTaskIdRoute
   '/app/training/$id': typeof AppTrainingIdRoute
   '/admin/restaurants/': typeof AdminRestaurantsIndexRoute
+  '/admin/suppliers/': typeof AdminSuppliersIndexRoute
   '/admin/trainings/': typeof AdminTrainingsIndexRoute
   '/app/trainings/': typeof AppTrainingsIndexRoute
   '/admin/trainings/builder/$id': typeof AdminTrainingsBuilderIdRoute
@@ -258,9 +279,9 @@ export interface FileRoutesByTo {
   '/admin/builder': typeof AdminBuilderRoute
   '/admin/evidence': typeof AdminEvidenceRoute
   '/admin/groups': typeof AdminGroupsRoute
-  '/admin/orders': typeof AdminOrdersRoute
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/profile': typeof AdminProfileRoute
+  '/admin/shifts': typeof AdminShiftsRoute
   '/admin/users': typeof AdminUsersRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/analytics': typeof AppAnalyticsRoute
@@ -275,10 +296,12 @@ export interface FileRoutesByTo {
   '/app': typeof AppIndexRoute
   '/admin/execution/$id': typeof AdminExecutionIdRoute
   '/admin/restaurants/$id': typeof AdminRestaurantsIdRoute
+  '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/app/process/$id': typeof AppProcessIdRoute
   '/app/task/$id': typeof AppTaskIdRoute
   '/app/training/$id': typeof AppTrainingIdRoute
   '/admin/restaurants': typeof AdminRestaurantsIndexRoute
+  '/admin/suppliers': typeof AdminSuppliersIndexRoute
   '/admin/trainings': typeof AdminTrainingsIndexRoute
   '/app/trainings': typeof AppTrainingsIndexRoute
   '/admin/trainings/builder/$id': typeof AdminTrainingsBuilderIdRoute
@@ -293,10 +316,11 @@ export interface FileRoutesById {
   '/admin/builder': typeof AdminBuilderRoute
   '/admin/evidence': typeof AdminEvidenceRoute
   '/admin/groups': typeof AdminGroupsRoute
-  '/admin/orders': typeof AdminOrdersRoute
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/restaurants': typeof AdminRestaurantsRouteWithChildren
+  '/admin/shifts': typeof AdminShiftsRoute
+  '/admin/suppliers': typeof AdminSuppliersRouteWithChildren
   '/admin/trainings': typeof AdminTrainingsRouteWithChildren
   '/admin/users': typeof AdminUsersRoute
   '/app/alerts': typeof AppAlertsRoute
@@ -312,10 +336,12 @@ export interface FileRoutesById {
   '/app/': typeof AppIndexRoute
   '/admin/execution/$id': typeof AdminExecutionIdRoute
   '/admin/restaurants/$id': typeof AdminRestaurantsIdRoute
+  '/admin/suppliers/$id': typeof AdminSuppliersIdRoute
   '/app/process/$id': typeof AppProcessIdRoute
   '/app/task/$id': typeof AppTaskIdRoute
   '/app/training/$id': typeof AppTrainingIdRoute
   '/admin/restaurants/': typeof AdminRestaurantsIndexRoute
+  '/admin/suppliers/': typeof AdminSuppliersIndexRoute
   '/admin/trainings/': typeof AdminTrainingsIndexRoute
   '/app/trainings/': typeof AppTrainingsIndexRoute
   '/admin/trainings/builder/$id': typeof AdminTrainingsBuilderIdRoute
@@ -331,10 +357,11 @@ export interface FileRouteTypes {
     | '/admin/builder'
     | '/admin/evidence'
     | '/admin/groups'
-    | '/admin/orders'
     | '/admin/processes'
     | '/admin/profile'
     | '/admin/restaurants'
+    | '/admin/shifts'
+    | '/admin/suppliers'
     | '/admin/trainings'
     | '/admin/users'
     | '/app/alerts'
@@ -350,10 +377,12 @@ export interface FileRouteTypes {
     | '/app/'
     | '/admin/execution/$id'
     | '/admin/restaurants/$id'
+    | '/admin/suppliers/$id'
     | '/app/process/$id'
     | '/app/task/$id'
     | '/app/training/$id'
     | '/admin/restaurants/'
+    | '/admin/suppliers/'
     | '/admin/trainings/'
     | '/app/trainings/'
     | '/admin/trainings/builder/$id'
@@ -365,9 +394,9 @@ export interface FileRouteTypes {
     | '/admin/builder'
     | '/admin/evidence'
     | '/admin/groups'
-    | '/admin/orders'
     | '/admin/processes'
     | '/admin/profile'
+    | '/admin/shifts'
     | '/admin/users'
     | '/app/alerts'
     | '/app/analytics'
@@ -382,10 +411,12 @@ export interface FileRouteTypes {
     | '/app'
     | '/admin/execution/$id'
     | '/admin/restaurants/$id'
+    | '/admin/suppliers/$id'
     | '/app/process/$id'
     | '/app/task/$id'
     | '/app/training/$id'
     | '/admin/restaurants'
+    | '/admin/suppliers'
     | '/admin/trainings'
     | '/app/trainings'
     | '/admin/trainings/builder/$id'
@@ -399,10 +430,11 @@ export interface FileRouteTypes {
     | '/admin/builder'
     | '/admin/evidence'
     | '/admin/groups'
-    | '/admin/orders'
     | '/admin/processes'
     | '/admin/profile'
     | '/admin/restaurants'
+    | '/admin/shifts'
+    | '/admin/suppliers'
     | '/admin/trainings'
     | '/admin/users'
     | '/app/alerts'
@@ -418,10 +450,12 @@ export interface FileRouteTypes {
     | '/app/'
     | '/admin/execution/$id'
     | '/admin/restaurants/$id'
+    | '/admin/suppliers/$id'
     | '/app/process/$id'
     | '/app/task/$id'
     | '/app/training/$id'
     | '/admin/restaurants/'
+    | '/admin/suppliers/'
     | '/admin/trainings/'
     | '/app/trainings/'
     | '/admin/trainings/builder/$id'
@@ -501,13 +535,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminGroupsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/orders': {
-      id: '/admin/orders'
-      path: '/orders'
-      fullPath: '/admin/orders'
-      preLoaderRoute: typeof AdminOrdersRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/processes': {
       id: '/admin/processes'
       path: '/processes'
@@ -527,6 +554,20 @@ declare module '@tanstack/react-router' {
       path: '/restaurants'
       fullPath: '/admin/restaurants'
       preLoaderRoute: typeof AdminRestaurantsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/shifts': {
+      id: '/admin/shifts'
+      path: '/shifts'
+      fullPath: '/admin/shifts'
+      preLoaderRoute: typeof AdminShiftsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/suppliers': {
+      id: '/admin/suppliers'
+      path: '/suppliers'
+      fullPath: '/admin/suppliers'
+      preLoaderRoute: typeof AdminSuppliersRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/trainings': {
@@ -634,6 +675,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRestaurantsIdRouteImport
       parentRoute: typeof AdminRestaurantsRoute
     }
+    '/admin/suppliers/': {
+      id: '/admin/suppliers/'
+      path: '/'
+      fullPath: '/admin/suppliers/'
+      preLoaderRoute: typeof AdminSuppliersIndexRouteImport
+      parentRoute: typeof AdminSuppliersRoute
+    }
+    '/admin/suppliers/$id': {
+      id: '/admin/suppliers/$id'
+      path: '/$id'
+      fullPath: '/admin/suppliers/$id'
+      preLoaderRoute: typeof AdminSuppliersIdRouteImport
+      parentRoute: typeof AdminSuppliersRoute
+    }
     '/admin/trainings/': {
       id: '/admin/trainings/'
       path: '/'
@@ -692,6 +747,20 @@ const AdminRestaurantsRouteChildren: AdminRestaurantsRouteChildren = {
 const AdminRestaurantsRouteWithChildren =
   AdminRestaurantsRoute._addFileChildren(AdminRestaurantsRouteChildren)
 
+interface AdminSuppliersRouteChildren {
+  AdminSuppliersIdRoute: typeof AdminSuppliersIdRoute
+  AdminSuppliersIndexRoute: typeof AdminSuppliersIndexRoute
+}
+
+const AdminSuppliersRouteChildren: AdminSuppliersRouteChildren = {
+  AdminSuppliersIdRoute: AdminSuppliersIdRoute,
+  AdminSuppliersIndexRoute: AdminSuppliersIndexRoute,
+}
+
+const AdminSuppliersRouteWithChildren = AdminSuppliersRoute._addFileChildren(
+  AdminSuppliersRouteChildren,
+)
+
 interface AdminTrainingsRouteChildren {
   AdminTrainingsIndexRoute: typeof AdminTrainingsIndexRoute
   AdminTrainingsBuilderIdRoute: typeof AdminTrainingsBuilderIdRoute
@@ -711,10 +780,11 @@ interface AdminRouteChildren {
   AdminBuilderRoute: typeof AdminBuilderRoute
   AdminEvidenceRoute: typeof AdminEvidenceRoute
   AdminGroupsRoute: typeof AdminGroupsRoute
-  AdminOrdersRoute: typeof AdminOrdersRoute
   AdminProcessesRoute: typeof AdminProcessesRoute
   AdminProfileRoute: typeof AdminProfileRoute
   AdminRestaurantsRoute: typeof AdminRestaurantsRouteWithChildren
+  AdminShiftsRoute: typeof AdminShiftsRoute
+  AdminSuppliersRoute: typeof AdminSuppliersRouteWithChildren
   AdminTrainingsRoute: typeof AdminTrainingsRouteWithChildren
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -726,10 +796,11 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminBuilderRoute: AdminBuilderRoute,
   AdminEvidenceRoute: AdminEvidenceRoute,
   AdminGroupsRoute: AdminGroupsRoute,
-  AdminOrdersRoute: AdminOrdersRoute,
   AdminProcessesRoute: AdminProcessesRoute,
   AdminProfileRoute: AdminProfileRoute,
   AdminRestaurantsRoute: AdminRestaurantsRouteWithChildren,
+  AdminShiftsRoute: AdminShiftsRoute,
+  AdminSuppliersRoute: AdminSuppliersRouteWithChildren,
   AdminTrainingsRoute: AdminTrainingsRouteWithChildren,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,

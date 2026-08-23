@@ -384,7 +384,45 @@ export interface ShiftTask {
   date?: string;
   /** Shift d'exécution : id de shift, "all" (tous les shifts) ou absent (indépendant des shifts). */
   shiftId?: ID | typeof ALL_SHIFTS;
+  /** Tâche applicable à plusieurs shifts précis. */
+  shiftIds?: ID[];
+  /** Employé responsable de la tâche sur le shift (sinon tâche collective). */
+  assigneeId?: ID;
+
 
   startedAt?: string;
   completedAt?: string;
+}
+
+/* ---------------- Affectation des équipes aux shifts ---------------- */
+
+export type AssignmentStatus =
+  | "Prévu"
+  | "Présent"
+  | "En retard"
+  | "Absent"
+  | "Remplacé"
+  | "Annulé";
+
+/**
+ * Affectation d'un employé à un shift pour une DATE donnée.
+ * Un employé n'est jamais lié définitivement à un shift : une affectation existe
+ * par jour, ce qui permet de changer de shift d'un jour à l'autre.
+ */
+export interface ShiftAssignment {
+  id: ID;
+  restaurantId: ID;
+  shiftId: ID;
+  userId: ID;
+  /** YYYY-MM-DD */
+  date: string;
+  /** Rôle tenu sur ce shift (issu du référentiel de rôles métier). */
+  role: string;
+  status: AssignmentStatus;
+  /** Employé remplaçant lorsque le titulaire est absent. */
+  replacementUserId?: ID;
+  reason?: string;
+  note?: string;
+  createdAt: string;
+  history: { at: string; label: string }[];
 }
