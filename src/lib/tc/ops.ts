@@ -913,11 +913,26 @@ export interface Supplier {
   name: string;
   category: string;
   contact: string;
+  /** Email obligatoire : il est utilisé pour l'envoi des bons de commande. */
   email: string;
   phone: string;
+  address: string;
+  city: string;
+  status: "Actif" | "Inactif";
+  notes?: string;
   leadTimeDays: number;
   products: SupplierProduct[];
 }
+
+export const SUPPLIER_CATEGORIES = [
+  "Alimentaire",
+  "Boissons",
+  "Surgelés",
+  "Entretien",
+  "Packaging",
+  "Équipement",
+  "Services",
+] as const;
 
 const SUPPLIER_DEFS: [string, string, string, string[]][] = [
   [
@@ -957,15 +972,55 @@ const SUPPLIER_DEFS: [string, string, string, string[]][] = [
     "pack@boxmaroc.ma",
     ["Boîtes 8 pièces|carton|150", "Sacs kraft|carton|110", "Gobelets 50cl|carton|165", "Serviettes|carton|60"],
   ],
+  [
+    "Atlas Fruits & Légumes",
+    "Alimentaire",
+    "commandes@atlasfruits.ma",
+    ["Tomates|kg|12", "Oignons|kg|9", "Pommes de terre|sac 25kg|180", "Citrons|kg|16"],
+  ],
+  [
+    "Maroc Froid Équipement",
+    "Équipement",
+    "sav@marocfroid.ma",
+    ["Filtre friteuse|unité|240", "Thermomètre sonde|unité|320", "Joint chambre froide|mètre|95"],
+  ],
+  [
+    "Hygiène Pro Services",
+    "Services",
+    "planning@hygienepro.ma",
+    ["Dératisation mensuelle|prestation|900", "Nettoyage hotte|prestation|1400", "Analyse laboratoire|prestation|450"],
+  ],
 ];
 
 export const suppliers: Supplier[] = SUPPLIER_DEFS.map(([name, category, email, prods], i) => ({
   id: `sup${i + 1}`,
   name,
   category,
-  contact: ["Karim Idrissi", "Nadia Berrada", "Hassan Ouali", "Salma Tazi", "Omar Fassi"][i]!,
+  contact: [
+    "Karim Idrissi",
+    "Nadia Berrada",
+    "Hassan Ouali",
+    "Salma Tazi",
+    "Omar Fassi",
+    "Leila Amrani",
+    "Youssef Benjelloun",
+    "Rachid Alaoui",
+  ][i]!,
   email,
   phone: `+212 5 22 ${pad(30 + i)} ${pad(10 + i)} ${pad(40 + i)}`,
+  address: [
+    "Zone industrielle Sidi Bernoussi, Lot 42, Casablanca",
+    "Route de Rabat km 12, Ain Sebaa, Casablanca",
+    "Parc logistique Nouaceur, Hall 7, Casablanca",
+    "Quartier industriel Sidi Ghanem, Marrakech",
+    "Zone franche Tanger Med, Bloc C, Tanger",
+    "Marché de gros, Hall 3, Casablanca",
+    "Rue de l'Industrie 18, Ain Sebaa, Casablanca",
+    "Avenue Hassan II 220, Rabat",
+  ][i]!,
+  city: ["Casablanca", "Casablanca", "Casablanca", "Marrakech", "Tanger", "Casablanca", "Casablanca", "Rabat"][i]!,
+  status: i === 4 ? "Inactif" : "Actif",
+  notes: i === 0 ? "Fournisseur principal viande — contrat cadre 2026." : undefined,
   leadTimeDays: 1 + (i % 3),
   products: prods.map((p, pi) => {
     const [pname, unit, price] = p.split("|");
@@ -981,7 +1036,12 @@ export const suppliers: Supplier[] = SUPPLIER_DEFS.map(([name, category, email, 
 
 export type OrderStatus =
   | "Brouillon"
+  | "À envoyer"
   | "Envoyée"
+  | "Confirmée"
+  | "Expédiée"
+  | "Livrée"
+  | "Annulée"
   | "En préparation"
   | "En livraison"
   | "Reçue"
@@ -1009,6 +1069,11 @@ export interface PurchaseOrder {
   status: OrderStatus;
   lines: OrderLine[];
   note?: string;
+  /** Envoi email au fournisseur (simulé côté prototype). */
+  sentAt?: string;
+  emailTo?: string;
+  emailSubject?: string;
+  emailBody?: string;
   reception?: {
     at: string;
     by: ID;
@@ -1033,6 +1098,12 @@ const ORDER_SEEDS: [number, string, OrderStatus, number, number][] = [
   [3, "r5", "En retard", 9, -3],
   [0, "r6", "En préparation", 1, 2],
   [2, "r7", "Envoyée", 0, 3],
+  [5, "r1", "Livrée", 4, -1],
+  [6, "r2", "Confirmée", 1, 2],
+  [7, "r3", "Brouillon", 0, 4],
+  [5, "r4", "Expédiée", 2, 0],
+  [6, "r8", "Annulée", 7, -1],
+  [7, "r1", "À envoyer", 0, 3],
 ];
 
 export const purchaseOrders: PurchaseOrder[] = ORDER_SEEDS.map(([si, rid, status, ago, due], i) => {
@@ -1045,18 +1116,18 @@ export const purchaseOrders: PurchaseOrder[] = ORDER_SEEDS.map(([si, rid, status
     price: p.price,
     priority: li === 0 && i % 4 === 0 ? "Urgente" : "Normale",
     receivedQuantity:
-      status === "Reçue" || status === "Clôturée"
+      status === "Reçue" || status === "Livrée" || status === "Clôturée"
         ? 4 + ((i + li) % 9) * 2 - (i === 8 && li === 1 ? 3 : 0)
         : undefined,
   }));
   const createdAt = `${shift(-ago)} ${pad(8 + (i % 6))}:${pad((i * 13) % 60)}`;
   const history = [{ at: createdAt, label: "Bon de commande créé" }];
-  if (status !== "Brouillon") history.push({ at: createdAt, label: `Envoyé à ${sup.name}` });
-  if (["En préparation", "En livraison", "Reçue", "Clôturée"].includes(status))
+  if (status !== "Brouillon" && status !== "À envoyer") history.push({ at: createdAt, label: `Envoyé à ${sup.name}` });
+  if (["En préparation", "En livraison", "Expédiée", "Reçue", "Livrée", "Clôturée", "Confirmée"].includes(status))
     history.push({ at: `${shift(-ago + 1)} 09:00`, label: "Préparation fournisseur confirmée" });
-  if (["En livraison", "Reçue", "Clôturée"].includes(status))
+  if (["En livraison", "Expédiée", "Reçue", "Livrée", "Clôturée"].includes(status))
     history.push({ at: `${shift(-ago + 2)} 07:30`, label: "Départ transporteur" });
-  if (["Reçue", "Clôturée"].includes(status))
+  if (["Reçue", "Livrée", "Clôturée"].includes(status))
     history.push({ at: `${shift(due)} 11:20`, label: "Livraison réceptionnée au restaurant" });
   if (status === "En retard") history.push({ at: `${shift(due)} 18:00`, label: "Retard de livraison constaté" });
 
@@ -1071,8 +1142,11 @@ export const purchaseOrders: PurchaseOrder[] = ORDER_SEEDS.map(([si, rid, status
     status,
     lines,
     note: i % 5 === 0 ? "Livraison à réceptionner avant le rush du midi." : undefined,
+    sentAt: status === "Brouillon" || status === "À envoyer" ? undefined : createdAt,
+    emailTo: sup.email,
+    emailSubject: `Commande ${`BC-2026-${pad(100 + i)}`} — Texas Chicken`,
     reception:
-      status === "Reçue" || status === "Clôturée"
+      status === "Reçue" || status === "Livrée" || status === "Clôturée"
         ? {
             at: `${shift(due)} 11:20`,
             by: managerUser.id,
@@ -1084,7 +1158,31 @@ export const purchaseOrders: PurchaseOrder[] = ORDER_SEEDS.map(([si, rid, status
   };
 });
 
-export const ORDER_FLOW: OrderStatus[] = ["Envoyée", "En préparation", "En livraison", "Reçue", "Clôturée"];
+export const ORDER_FLOW: OrderStatus[] = [
+  "Brouillon",
+  "À envoyer",
+  "Envoyée",
+  "Confirmée",
+  "En préparation",
+  "Expédiée",
+  "Livrée",
+  "Clôturée",
+];
+
+export const ORDER_STATUSES: OrderStatus[] = [
+  "Brouillon",
+  "À envoyer",
+  "Envoyée",
+  "Confirmée",
+  "En préparation",
+  "En livraison",
+  "Expédiée",
+  "Reçue",
+  "Livrée",
+  "En retard",
+  "Clôturée",
+  "Annulée",
+];
 
 export const TODAY_REF = TODAY;
 export const restaurantsRef = restaurants;

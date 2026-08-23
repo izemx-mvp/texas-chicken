@@ -15,6 +15,7 @@ import {
 } from "@/lib/tc/store";
 import { SHIFT_NOW, TODAY } from "@/lib/tc/data";
 import { ShiftPhasePill } from "@/components/tc/shift-bits";
+import { ShiftTeamCard } from "@/components/tc/shift-planner";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/")({
@@ -159,6 +160,18 @@ function ShiftCommandCenter() {
               planifiées.
             </p>
           )}
+        </section>
+      )}
+
+      {currentShift && (
+        <section className="space-y-3">
+          <SectionTitle title="Équipe du shift" subtitle="Qui travaille maintenant, rôles et remplacements" />
+          <ShiftTeamCard
+            shift={currentShift}
+            date={TODAY}
+            restaurantId={rid}
+            reports={dayReport(TODAY, TODAY, state, rid)}
+          />
         </section>
       )}
 

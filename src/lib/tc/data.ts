@@ -8,7 +8,9 @@ import type {
   Restaurant,
   Role,
   Shift,
+  ShiftAssignment,
   ShiftTask,
+
   Standard,
   User,
   Zone,
@@ -927,4 +929,86 @@ export const fraudAlerts: FraudAlert[] = [];
       });
     }
   }
+}
+
+/* ---------------- affectations d'équipes aux shifts ---------------- */
+/**
+ * Planning réel : une affectation par employé, par shift et par DATE.
+ * Les employés changent de shift d'un jour à l'autre (rotation), certains sont
+ * absents et remplacés, d'autres arrivent en retard.
+ */
+export const shiftAssignments: ShiftAssignment[] = [];
+{
+  const OFFSETS = Array.from({ length: 15 }, (_, i) => i - 7); // J-7 → J+7
+  let n = 0;
+  restaurants.forEach((r, ri) => {
+    const rShifts = shifts.filter((s) => s.restaurantId === r.id && s.active);
+    if (!rShifts.length) return;
+    const staff = users.filter((u) => u.restaurantId === r.id && u.status === "Actif");
+    if (staff.length < 3) return;
+
+    OFFSETS.forEach((off, di) => {
+      const date = off <= 0 ? dateMinus(-off) : datePlus(off);
+      rShifts.forEach((sh, si) => {
+        const size = 3 + ((ri + si + di) % 3); // 3 à 5 employés par shift
+        for (let k = 0; k < size; k++) {
+          // rotation : le même employé change de shift selon les jours
+          const u = staff[(k * rShifts.length + si + di * 2 + ri) % staff.length]!;
+          if (!u) continue;
+          const seed = (n * 7 + di * 3 + si) % 23;
+          let status: ShiftAssignment["status"] = "Prévu";
+          let replacementUserId: string | undefined;
+          let reason: string | undefined;
+          if (off < 0) {
+            status = seed === 4 ? "Absent" : seed === 9 ? "Remplacé" : seed === 15 ? "En retard" : "Présent";
+          } else if (off === 0) {
+            status = seed === 6 ? "Remplacé" : seed === 12 ? "Absent" : seed % 3 === 0 ? "Présent" : "Prévu";
+          }
+          if (status === "Remplacé") {
+            const rep = staff[(k + di + 3) % staff.length];
+            if (rep && rep.id !== u.id) {
+              replacementUserId = rep.id;
+              reason = ["Maladie", "Congé exceptionnel", "Urgence familiale", "Formation"][seed % 4];
+            } else {
+              status = "Présent";
+            }
+          }
+          if (status === "Absent") reason = ["Absence non justifiée", "Arrêt maladie", "Congé"][seed % 3];
+          n++;
+          const at = `${date} ${pad(6 + (seed % 5))}:${pad((seed * 7) % 60)}`;
+          const history: { at: string; label: string }[] = [{ at, label: `Affecté au shift ${sh.name}` }];
+          if (replacementUserId) {
+            const rep = users.find((x) => x.id === replacementUserId);
+            history.push({ at, label: `Remplacé par ${rep?.firstName} ${rep?.lastName} — ${reason}` });
+          }
+          if (status === "Absent") history.push({ at, label: `Absence constatée — ${reason}` });
+          if (status === "En retard") history.push({ at, label: "Arrivée tardive (≈ 20 min)" });
+          shiftAssignments.push({
+            id: `sa${n}`,
+            restaurantId: r.id,
+            shiftId: sh.id,
+            userId: u.id,
+            date,
+            role: u.role,
+            status,
+            replacementUserId,
+            reason,
+            createdAt: at,
+            history,
+          });
+        }
+      });
+    });
+  });
+}
+
+// responsables de tâches sur le restaurant opérationnel (r1) pour la journée en cours
+{
+  const todays = shiftAssignments.filter((a) => a.restaurantId === restaurants[0]!.id && a.date === TODAY);
+  shiftTasks.forEach((t, i) => {
+    if (i % 3 === 2) return; // certaines tâches restent collectives (tout le shift)
+    const pool = todays.filter((a) => a.shiftId === t.shiftId && a.status !== "Absent");
+    const a = pool[i % Math.max(1, pool.length)];
+    if (a) t.assigneeId = a.replacementUserId ?? a.userId;
+  });
 }

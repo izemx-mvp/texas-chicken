@@ -9,6 +9,7 @@ import {
   restaurants as seedRestaurants,
   roles as seedRoles,
   shifts as seedShifts,
+  shiftAssignments as seedShiftAssignments,
   shiftTasks as seedShiftTasks,
   standards as seedStandards,
   users as seedUsers,
@@ -49,6 +50,7 @@ import type {
   Restaurant,
   Role,
   Shift,
+  ShiftAssignment,
   ShiftTask,
   Standard,
   User,
@@ -74,6 +76,7 @@ export interface State {
   fraudAlerts: FraudAlert[];
   roles: Role[];
   shifts: Shift[];
+  shiftAssignments: ShiftAssignment[];
   shiftTasks: ShiftTask[];
   usedPhotoHashes: string[];
   chatGroups: ChatGroup[];
@@ -97,6 +100,7 @@ let state: State = {
   fraudAlerts: seedFraudAlerts,
   roles: seedRoles,
   shifts: seedShifts,
+  shiftAssignments: seedShiftAssignments,
   shiftTasks: seedShiftTasks,
   usedPhotoHashes: [],
   chatGroups: seedChatGroups,
@@ -470,6 +474,246 @@ export function shiftDayReports(
     out.push({ shift: null, reports: orphans, stats: dayStats(orphans), phase: "À venir" });
   }
   return out;
+}
+
+
+/* -------------------- affectations d'équipes (Shift → Équipe → Rôles) -------------------- */
+
+export interface AssignmentInput {
+  restaurantId: string;
+  shiftId: string;
+  userId: string;
+  date: string;
+  role?: string;
+  status?: ShiftAssignment["status"];
+  note?: string;
+}
+
+/** Affectations d'un restaurant pour une date (et éventuellement un shift). */
+export function assignmentsFor(
+  restaurantId: string,
+  date: string,
+  shiftId?: string,
+  s: State = state,
+): ShiftAssignment[] {
+  return s.shiftAssignments.filter(
+    (a) =>
+      a.restaurantId === restaurantId &&
+      a.date === date &&
+      (!shiftId || a.shiftId === shiftId) &&
+      a.status !== "Annulé",
+  );
+}
+
+/** Historique complet des affectations d'un employé (toutes dates, tous shifts). */
+export function userAssignments(userId: string, s: State = state): ShiftAssignment[] {
+  return s.shiftAssignments
+    .filter((a) => a.userId === userId || a.replacementUserId === userId)
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+/**
+ * Conflits d'horaire : l'employé est-il déjà affecté, à cette date, à un shift
+ * dont les horaires chevauchent celui visé (minuit compris) ?
+ */
+export function assignmentConflicts(
+  userId: string,
+  date: string,
+  shiftId: string,
+  s: State = state,
+  ignoreId?: string,
+): { assignment: ShiftAssignment; shift: Shift }[] {
+  const target = s.shifts.find((x) => x.id === shiftId);
+  if (!target) return [];
+  return s.shiftAssignments
+    .filter(
+      (a) =>
+        a.id !== ignoreId &&
+        a.date === date &&
+        a.shiftId !== shiftId &&
+        a.status !== "Annulé" &&
+        (a.userId === userId || a.replacementUserId === userId),
+    )
+    .map((a) => ({ assignment: a, shift: s.shifts.find((x) => x.id === a.shiftId)! }))
+    .filter((x) => x.shift && shiftsOverlap(x.shift, target));
+}
+
+/** Message d'avertissement prêt à afficher (null si aucun conflit). */
+export function conflictMessage(userId: string, date: string, shiftId: string, ignoreId?: string): string | null {
+  const list = assignmentConflicts(userId, date, shiftId, state, ignoreId);
+  if (!list.length) return null;
+  const u = state.users.find((x) => x.id === userId);
+  const c = list[0]!;
+  return `Conflit d'horaire : ${u ? `${u.firstName} ${u.lastName}` : "cet employé"} est déjà affecté au shift « ${c.shift.name} » (${shiftLabel(c.shift)}) sur cette période.`;
+}
+
+/** Affecte un employé à un shift pour une date. Le conflit est signalé, jamais bloquant. */
+export function assignEmployee(input: AssignmentInput): { id: string; conflict: string | null } {
+  const user = state.users.find((u) => u.id === input.userId);
+  const shift = state.shifts.find((x) => x.id === input.shiftId);
+  const conflict = conflictMessage(input.userId, input.date, input.shiftId);
+  const at = nowStamp();
+  const a: ShiftAssignment = {
+    id: uid("sa"),
+    restaurantId: input.restaurantId,
+    shiftId: input.shiftId,
+    userId: input.userId,
+    date: input.date,
+    role: input.role ?? user?.role ?? "Crew Member",
+    status: input.status ?? "Prévu",
+    note: input.note,
+    createdAt: at,
+    history: [
+      { at, label: `Affecté au shift ${shift?.name ?? ""} le ${input.date}` },
+      ...(conflict ? [{ at, label: conflict }] : []),
+    ],
+  };
+  setState((s) => ({ shiftAssignments: [...s.shiftAssignments, a] }));
+  return { id: a.id, conflict };
+}
+
+/** Affectation récurrente sur une période (dates incluses). */
+export function assignEmployeeRange(
+  input: Omit<AssignmentInput, "date">,
+  from: string,
+  to: string,
+): { created: number; conflicts: string[] } {
+  const dates: string[] = [];
+  let d = from;
+  let guard = 0;
+  while (d <= to && guard < 120) {
+    dates.push(d);
+    d = shiftDate(d, 1);
+    guard++;
+  }
+  const conflicts: string[] = [];
+  dates.forEach((date) => {
+    const already = state.shiftAssignments.some(
+      (a) => a.date === date && a.shiftId === input.shiftId && a.userId === input.userId && a.status !== "Annulé",
+    );
+    if (already) return;
+    const res = assignEmployee({ ...input, date });
+    if (res.conflict) conflicts.push(`${date} — ${res.conflict}`);
+  });
+  return { created: dates.length, conflicts };
+}
+
+export function updateAssignment(id: string, patch: Partial<ShiftAssignment>, label?: string) {
+  const at = nowStamp();
+  setState((s) => ({
+    shiftAssignments: s.shiftAssignments.map((a) =>
+      a.id === id
+        ? { ...a, ...patch, history: [...a.history, { at, label: label ?? "Affectation modifiée" }] }
+        : a,
+    ),
+  }));
+}
+
+export function setAssignmentStatus(id: string, status: ShiftAssignment["status"], reason?: string) {
+  updateAssignment(id, { status, reason }, `Statut : ${status}${reason ? ` — ${reason}` : ""}`);
+}
+
+/** Remplacement : on conserve le titulaire prévu, le remplaçant, la date, le shift et la raison. */
+export function replaceAssignment(id: string, replacementUserId: string, reason: string) {
+  const rep = state.users.find((u) => u.id === replacementUserId);
+  updateAssignment(
+    id,
+    { status: "Remplacé", replacementUserId, reason },
+    `Remplacé par ${rep ? `${rep.firstName} ${rep.lastName}` : "un collègue"}${reason ? ` — ${reason}` : ""}`,
+  );
+}
+
+export function cancelReplacement(id: string) {
+  updateAssignment(id, { status: "Prévu", replacementUserId: undefined, reason: undefined }, "Remplacement annulé");
+}
+
+export function removeAssignment(id: string) {
+  setState((s) => ({ shiftAssignments: s.shiftAssignments.filter((a) => a.id !== id) }));
+}
+
+/** Employé réellement présent sur l'affectation (remplaçant le cas échéant). */
+export function effectiveUserId(a: ShiftAssignment) {
+  return a.replacementUserId ?? a.userId;
+}
+
+export interface ShiftTeamMember {
+  assignment: ShiftAssignment;
+  user: User | undefined;
+  planned: User | undefined;
+  replacement: User | undefined;
+  role: string;
+  status: ShiftAssignment["status"];
+  conflict: boolean;
+}
+
+/** Équipe d'un shift à une date : rôles, présences, remplacements et conflits. */
+export function shiftTeam(shiftId: string, date: string, s: State = state): ShiftTeamMember[] {
+  return s.shiftAssignments
+    .filter((a) => a.shiftId === shiftId && a.date === date && a.status !== "Annulé")
+    .map((a) => {
+      const planned = s.users.find((u) => u.id === a.userId);
+      const replacement = a.replacementUserId ? s.users.find((u) => u.id === a.replacementUserId) : undefined;
+      return {
+        assignment: a,
+        user: replacement ?? planned,
+        planned,
+        replacement,
+        role: a.role,
+        status: a.status,
+        conflict: assignmentConflicts(a.userId, date, a.shiftId, s, a.id).length > 0,
+      };
+    })
+    .sort((x, y) => x.role.localeCompare(y.role));
+}
+
+export interface ShiftAnalytics {
+  planned: number;
+  present: number;
+  absent: number;
+  replaced: number;
+  attendance: number;
+  total: number;
+  done: number;
+  remaining: number;
+  late: number;
+  progress: number;
+  compliance: number;
+}
+
+/** Indicateurs d'un shift : équipe + avancement des tâches. */
+export function shiftAnalytics(
+  shiftId: string,
+  date: string,
+  reports: DayTaskReport[],
+  s: State = state,
+): ShiftAnalytics {
+  const team = shiftTeam(shiftId, date, s);
+  const present = team.filter((m) => m.status === "Présent" || m.status === "En retard" || m.status === "Remplacé").length;
+  const absent = team.filter((m) => m.status === "Absent").length;
+  const list = reports.filter((r) => r.shiftId === shiftId || r.task.shiftId === ALL_SHIFTS);
+  const st = dayStats(list);
+  return {
+    planned: team.length,
+    present,
+    absent,
+    replaced: team.filter((m) => !!m.replacement).length,
+    attendance: team.length ? Math.round((present / team.length) * 100) : 0,
+    total: st.total,
+    done: st.done,
+    remaining: st.total - st.done,
+    late: st.late,
+    progress: st.progress,
+    compliance: st.compliance,
+  };
+}
+
+/** Employé responsable d'une tâche (affectation nominative). */
+export function taskAssignee(task: ShiftTask, s: State = state): User | undefined {
+  return task.assigneeId ? s.users.find((u) => u.id === task.assigneeId) : undefined;
+}
+
+export function assignTask(taskId: string, userId: string | undefined) {
+  updateTask(taskId, { assigneeId: userId });
 }
 
 /* -------------------- KPIs -------------------- */
@@ -1575,6 +1819,98 @@ export function orderTotal(o: PurchaseOrder) {
   return o.lines.reduce((a, l) => a + l.quantity * l.price, 0);
 }
 
+/* ---- fournisseurs ---- */
+
+export function supplierOrders(supplierId: string, s: State = state) {
+  return s.purchaseOrders
+    .filter((o) => o.supplierId === supplierId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export interface SupplierStats {
+  orders: number;
+  pending: number;
+  received: number;
+  lastOrder?: string;
+  volume: number;
+}
+
+export function supplierStats(supplierId: string, s: State = state): SupplierStats {
+  const list = supplierOrders(supplierId, s);
+  return {
+    orders: list.length,
+    pending: list.filter((o) =>
+      ["À envoyer", "Envoyée", "Confirmée", "En préparation", "En livraison", "Expédiée", "En retard"].includes(o.status),
+    ).length,
+    received: list.filter((o) => ["Reçue", "Livrée", "Clôturée"].includes(o.status)).length,
+    lastOrder: list[0]?.createdAt.slice(0, 10),
+    volume: list.reduce((a, o) => a + orderTotal(o), 0),
+  };
+}
+
+export function validateSupplier(sup: Partial<Supplier>): string | null {
+  if (!sup.name?.trim()) return "Le nom de l'entreprise est obligatoire.";
+  if (!sup.email?.trim()) return "L'email est obligatoire : il sert à l'envoi des commandes.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sup.email)) return "Format d'email invalide.";
+  if (!sup.contact?.trim()) return "Le nom du contact est obligatoire.";
+  return null;
+}
+
+export function addSupplier(sup: Omit<Supplier, "id" | "products"> & { products?: Supplier["products"] }): string | null {
+  const err = validateSupplier(sup);
+  if (err) return err;
+  const created: Supplier = { ...sup, id: uid("sup"), products: sup.products ?? [] };
+  setState((s) => ({ suppliers: [created, ...s.suppliers] }));
+  return null;
+}
+
+export function updateSupplier(id: string, patch: Partial<Supplier>): string | null {
+  const current = state.suppliers.find((x) => x.id === id);
+  if (!current) return "Fournisseur introuvable.";
+  const next = { ...current, ...patch };
+  const err = validateSupplier(next);
+  if (err) return err;
+  setState((s) => ({ suppliers: s.suppliers.map((x) => (x.id === id ? next : x)) }));
+  return null;
+}
+
+export function toggleSupplier(id: string) {
+  const current = state.suppliers.find((x) => x.id === id);
+  if (!current) return;
+  updateSupplier(id, { status: current.status === "Actif" ? "Inactif" : "Actif" });
+}
+
+export function removeSupplier(id: string) {
+  setState((s) => ({ suppliers: s.suppliers.filter((x) => x.id !== id) }));
+}
+
+/* ---- commandes ---- */
+
+export function orderEmail(order: PurchaseOrder, s: State = state) {
+  const supplier = s.suppliers.find((x) => x.id === order.supplierId);
+  const restaurant = s.restaurants.find((r) => r.id === order.restaurantId);
+  const subject = `Commande ${order.ref} — Texas Chicken ${restaurant?.city ?? ""}`.trim();
+  const body = `Bonjour ${supplier?.contact ?? ""},
+
+Veuillez trouver en pièce jointe notre commande ${order.ref} pour le restaurant ${restaurant?.name ?? ""} (${restaurant?.address ?? ""}).
+
+Livraison souhaitée le ${order.expectedAt}.
+${order.note ? `\nInformation complémentaire : ${order.note}\n` : ""}
+Merci de nous confirmer la bonne réception de cette commande ainsi que la date d'expédition.
+
+Cordialement,
+Texas Chicken — Service Approvisionnement
+approvisionnement@texaschicken-demo.com`;
+  return {
+    to: supplier?.email ?? "",
+    subject,
+    body,
+    attachment: `Commande_${order.ref}.pdf`,
+    supplier,
+    restaurant,
+  };
+}
+
 export function createOrder(input: {
   supplierId: string;
   restaurantId: string;
@@ -1582,6 +1918,7 @@ export function createOrder(input: {
   note?: string;
   createdBy: string;
   expectedAt: string;
+  status?: OrderStatus;
 }) {
   const ref = `BC-2026-${String(200 + state.purchaseOrders.length).padStart(3, "0")}`;
   const at = nowStamp();
@@ -1594,16 +1931,42 @@ export function createOrder(input: {
     createdBy: input.createdBy,
     createdAt: at,
     expectedAt: input.expectedAt,
-    status: "Envoyée",
+    status: input.status ?? "À envoyer",
     lines: input.lines,
     note: input.note,
-    history: [
-      { at, label: "Bon de commande créé" },
-      { at, label: `Envoyé à ${supplier?.name ?? "fournisseur"}` },
-    ],
+    emailTo: supplier?.email,
+    history: [{ at, label: "Bon de commande créé" }],
   };
   setState((s) => ({ purchaseOrders: [order, ...s.purchaseOrders] }));
   return order;
+}
+
+/** Envoi (simulé) du bon de commande par email au fournisseur. */
+export function sendOrder(id: string) {
+  const order = state.purchaseOrders.find((o) => o.id === id);
+  if (!order) return null;
+  const mail = orderEmail(order);
+  const at = nowStamp();
+  setState((s) => ({
+    purchaseOrders: s.purchaseOrders.map((o) =>
+      o.id === id
+        ? {
+            ...o,
+            status: "Envoyée" as OrderStatus,
+            sentAt: at,
+            emailTo: mail.to,
+            emailSubject: mail.subject,
+            emailBody: mail.body,
+            history: [...o.history, { at, label: `Commande envoyée à ${mail.to} (pièce jointe ${mail.attachment})` }],
+          }
+        : o,
+    ),
+  }));
+  return mail;
+}
+
+export function cancelOrder(id: string, reason?: string) {
+  setOrderStatus(id, "Annulée", reason ? `Commande annulée — ${reason}` : "Commande annulée");
 }
 
 export function setOrderStatus(id: string, status: OrderStatus, label?: string) {
@@ -1626,7 +1989,7 @@ export function receiveOrder(
       o.id === id
         ? {
             ...o,
-            status: "Reçue" as OrderStatus,
+            status: "Livrée" as OrderStatus,
             lines: o.lines.map((l) => ({
               ...l,
               receivedQuantity: data.receivedQuantities?.[l.productId] ?? l.quantity,
@@ -1652,10 +2015,12 @@ export interface DeliveryStats {
 
 export function deliveryStats(list: PurchaseOrder[]): DeliveryStats {
   return {
-    attendues: list.filter((o) => ["Envoyée", "En préparation", "En livraison", "En retard"].includes(o.status)).length,
-    envoyees: list.filter((o) => o.status === "Envoyée").length,
-    enLivraison: list.filter((o) => o.status === "En livraison").length,
-    recues: list.filter((o) => o.status === "Reçue" || o.status === "Clôturée").length,
+    attendues: list.filter((o) =>
+      ["Envoyée", "Confirmée", "En préparation", "En livraison", "Expédiée", "En retard"].includes(o.status),
+    ).length,
+    envoyees: list.filter((o) => o.status === "Envoyée" || o.status === "Confirmée").length,
+    enLivraison: list.filter((o) => o.status === "En livraison" || o.status === "Expédiée").length,
+    recues: list.filter((o) => ["Reçue", "Livrée", "Clôturée"].includes(o.status)).length,
     enRetard: list.filter((o) => o.status === "En retard").length,
   };
 }
