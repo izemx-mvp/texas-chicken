@@ -15,6 +15,7 @@ import {
 } from "@/lib/tc/store";
 import { SHIFT_NOW, TODAY } from "@/lib/tc/data";
 import { ShiftPhasePill } from "@/components/tc/shift-bits";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/")({
   head: () => ({
