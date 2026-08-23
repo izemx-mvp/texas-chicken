@@ -26,13 +26,17 @@ import {
   executionDetail,
   longDateLabel,
   processDayReports,
+  restaurantShifts,
   shiftDate,
+  shiftDayReports,
+  shiftPhase,
   useActiveDate,
   useStore,
   type DayTaskReport,
   type ProcessDayReport,
 } from "@/lib/tc/store";
-import { TODAY } from "@/lib/tc/data";
+import { ShiftBadge, ShiftPhasePill } from "./shift-bits";
+import { SHIFT_NOW, TODAY } from "@/lib/tc/data";
 import { PRIORITIES_LIST, STATUS_LIST } from "@/lib/tc/view-options";
 import { TCSelect } from "./select";
 
@@ -67,6 +71,7 @@ export function TaskBoard({
   const [status, setStatus] = useState("Tous statuts");
   const [priority, setPriority] = useState("Toutes priorités");
   const [processId, setProcessId] = useState("Tous processus");
+  const [shiftId, setShiftId] = useState("Tous shifts");
 
   const allReports = useMemo(() => dayReport(date, TODAY, state, restaurantId), [date, state, restaurantId]);
   const procReports = useMemo(
@@ -74,6 +79,8 @@ export function TaskBoard({
     [date, state, restaurantId],
   );
   const kind = dayKind(date, TODAY);
+  const rid = restaurantId ?? state.restaurants[0]?.id ?? "r1";
+  const shifts = useMemo(() => restaurantShifts(rid, state), [rid, state]);
 
   const reports = useMemo(
     () =>
@@ -83,14 +90,23 @@ export function TaskBoard({
         if (status !== "Tous statuts" && r.status !== status) return false;
         if (priority !== "Toutes priorités" && t.priority !== priority) return false;
         if (processId !== "Tous processus" && t.processId !== processId) return false;
+        if (shiftId !== "Tous shifts" && r.shiftId !== shiftId && t.shiftId !== "all") return false;
         const term = q.trim().toLowerCase();
         if (term && !`${t.name} ${t.zone} ${t.role}`.toLowerCase().includes(term)) return false;
         return true;
       }),
-    [allReports, zone, status, priority, processId, q],
+    [allReports, zone, status, priority, processId, shiftId, q],
   );
 
   const stats = useMemo(() => dayStats(reports), [reports]);
+  // Journée organisée par shift (uniquement si le restaurant a des shifts configurés)
+  const groups = useMemo(
+    () =>
+      shifts.length && shiftId === "Tous shifts"
+        ? shiftDayReports(reports, rid, SHIFT_NOW, state).filter((g) => g.reports.length > 0)
+        : null,
+    [shifts, shiftId, reports, rid, state],
+  );
 
   const monthDays = useMemo(() => {
     const d = new Date(`${date}T12:00:00`);
@@ -195,6 +211,14 @@ export function TaskBoard({
             <Select value={zone} onChange={setZone} options={zones} />
             <Select value={status} onChange={setStatus} options={["Tous statuts", ...STATUS_LIST]} />
             <Select value={priority} onChange={setPriority} options={["Toutes priorités", ...PRIORITIES_LIST]} />
+            {shifts.length > 0 && (
+              <Select
+                value={shiftId}
+                onChange={setShiftId}
+                options={["Tous shifts", ...shifts.map((sh) => sh.id)]}
+                labels={Object.fromEntries(shifts.map((sh) => [sh.id, `${sh.name} · ${sh.start}–${sh.end}`]))}
+              />
+            )}
             <Select
               value={processId}
               onChange={setProcessId}
@@ -277,17 +301,54 @@ export function TaskBoard({
           ))}
         </div>
       ) : (
-        <div className="space-y-2">
-          {reports.map((r) => (
-            <ReportRow
-              key={r.task.id}
-              r={r}
-              date={date}
-              {...(restaurantId ? { restaurantId } : {})}
-              open={openId === r.task.id}
-              onToggle={() => setOpenId(openId === r.task.id ? null : r.task.id)}
-            />
-          ))}
+        <div className="space-y-3">
+          {groups
+            ? groups.map((g) => (
+                <section key={g.shift?.id ?? "hors-shift"} className="space-y-2">
+                  <header className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-secondary/30 px-3 py-2">
+                    <span className="font-display text-sm font-bold uppercase">
+                      {g.shift ? g.shift.name : "Hors shift"}
+                    </span>
+                    {g.shift && (
+                      <span className="tabular text-xs font-semibold text-gold">
+                        {g.shift.start} → {g.shift.end}
+                      </span>
+                    )}
+                    {g.shift && date === TODAY && <ShiftPhasePill phase={g.phase} />}
+                    <span className="ml-auto text-[11px] text-muted-foreground">
+                      {g.reports.length} tâche{g.reports.length > 1 ? "s" : ""} ·{" "}
+                      {kind === "future" ? 0 : g.stats.progress} % · {g.stats.late} en retard
+                    </span>
+                  </header>
+                  <div className="space-y-2 sm:pl-3">
+                    {g.reports.map((r) => (
+                      <ReportRow
+                        key={r.task.id}
+                        r={r}
+                        date={date}
+                        {...(restaurantId ? { restaurantId } : {})}
+                        open={openId === r.task.id}
+                        onToggle={() => setOpenId(openId === r.task.id ? null : r.task.id)}
+                      />
+                    ))}
+                    {g.reports.length === 0 && (
+                      <p className="rounded-2xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+                        Aucune tâche planifiée sur ce shift.
+                      </p>
+                    )}
+                  </div>
+                </section>
+              ))
+            : reports.map((r) => (
+                <ReportRow
+                  key={r.task.id}
+                  r={r}
+                  date={date}
+                  {...(restaurantId ? { restaurantId } : {})}
+                  open={openId === r.task.id}
+                  onToggle={() => setOpenId(openId === r.task.id ? null : r.task.id)}
+                />
+              ))}
           {reports.length === 0 && (
             <p className="glass rounded-2xl p-6 text-center text-sm text-muted-foreground">
               Aucune tâche pour cette date avec ces filtres.
@@ -419,6 +480,13 @@ function ReportRow({
           <span className="block truncate text-[11px] text-muted-foreground">
             {r.task.zone} · {r.stepsDone}/{r.stepsTotal} étapes · priorité {r.task.priority}
           </span>
+          {(r.shiftName || r.task.shiftId === "all") && (
+            <ShiftBadge
+              className="mt-1"
+              name={r.task.shiftId === "all" ? "Tous les shifts" : r.shiftName!}
+              {...(r.task.shiftId === "all" ? {} : { time: r.shiftTime! })}
+            />
+          )}
         </span>
         {r.fraud && <ShieldAlert className="h-4 w-4 shrink-0 text-destructive" />}
         {r.task.evidenceRequired && <Camera className="h-4 w-4 shrink-0 text-gold" />}
