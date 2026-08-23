@@ -81,23 +81,7 @@ function SupplierDetail() {
         </div>
       </header>
 
-      <section className="glass rounded-3xl p-5">
-        <h3 className="mb-3 flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wider">
-          <Package className="h-4 w-4 text-gold" /> Catalogue produits ({supplier.products.length})
-        </h3>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {supplier.products.map((p) => (
-            <div key={p.id} className="rounded-2xl border border-border bg-secondary/25 p-3">
-              <div className="truncate text-sm font-semibold">{p.name}</div>
-              <div className="text-[11px] text-muted-foreground">
-                {p.category} · {p.unit}
-              </div>
-              <div className="tabular mt-1 text-sm font-semibold text-gold">{money(p.price)}</div>
-            </div>
-          ))}
-          {supplier.products.length === 0 && <p className="text-sm text-muted-foreground">Catalogue vide.</p>}
-        </div>
-      </section>
+      <SupplierProducts supplier={supplier} />
 
       <section className="glass rounded-3xl p-5">
         <h3 className="mb-3 font-display text-sm font-bold uppercase tracking-wider">Historique des commandes ({orders.length})</h3>
