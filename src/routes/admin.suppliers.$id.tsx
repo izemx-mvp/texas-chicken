@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Eye, Mail, Package, ShoppingCart, Truck } from "lucide-react";
+import { ArrowLeft, Eye, Mail, Package, Pencil, Plus, ShoppingCart, Trash2, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { KpiCard, StatusPill } from "@/components/tc/bits";
 import { TCModal } from "@/components/tc/modal";
