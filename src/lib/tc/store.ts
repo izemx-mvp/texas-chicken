@@ -632,6 +632,10 @@ export type DayKind = "past" | "today" | "future";
 
 export interface DayTaskReport {
   task: ShiftTask;
+  /** Shift d'exécution résolu (undefined si tâche hors shift ou restaurant sans shift). */
+  shiftId?: string;
+  shiftName?: string;
+  shiftTime?: string;
   planned: string;
   startedAt?: string;
   completedAt?: string;
@@ -668,7 +672,14 @@ export function dayReport(
   const kind = dayKind(date, today);
   const rid = restaurantId ?? s.restaurants[0]?.id ?? "r1";
   const uid2 = s.users.find((u) => u.restaurantId === rid)?.id ?? s.session?.userId ?? "u2";
-  return tasks.map((task, i) => {
+  const shifts = restaurantShifts(rid, s);
+  const withShift = (r: DayTaskReport): DayTaskReport => {
+    const sh = taskShift(r.task, shifts);
+    return sh ? { ...r, shiftId: sh.id, shiftName: sh.name, shiftTime: shiftLabel(sh) } : r;
+  };
+  return tasks.map((task, i) => withShift(buildReport(task, i)));
+
+  function buildReport(task: ShiftTask, i: number): DayTaskReport {
     if (kind === "today") {
       const ev = s.evidence.find((e) => e.id === task.evidenceId);
       const submitted =
