@@ -7,8 +7,20 @@ import { TCModal } from "@/components/tc/modal";
 import { OrderPreview, money } from "@/components/tc/order-document";
 import { OrderWizard } from "@/components/tc/order-wizard";
 import { Button } from "@/components/ui/button";
-import { orderTotal, sendOrder, setOrderStatus, supplierOrders, supplierStats, useStore } from "@/lib/tc/store";
-import type { PurchaseOrder } from "@/lib/tc/ops";
+import { Input } from "@/components/ui/input";
+import { TCSelect } from "@/components/tc/select";
+import {
+  addSupplierProduct,
+  orderTotal,
+  removeSupplierProduct,
+  sendOrder,
+  setOrderStatus,
+  supplierOrders,
+  supplierStats,
+  updateSupplierProduct,
+  useStore,
+} from "@/lib/tc/store";
+import { SUPPLIER_CATEGORIES, type PurchaseOrder, type Supplier } from "@/lib/tc/ops";
 
 export const Route = createFileRoute("/admin/suppliers/$id")({
   head: () => ({
