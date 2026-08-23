@@ -906,6 +906,8 @@ export interface SupplierProduct {
   unit: string;
   price: number;
   category: string;
+  /** Référence catalogue du fournisseur (optionnelle). */
+  reference?: string;
 }
 
 export interface Supplier {

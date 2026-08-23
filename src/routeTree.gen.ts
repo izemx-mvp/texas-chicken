@@ -21,7 +21,6 @@ import { Route as AdminGroupsRouteImport } from './routes/admin.groups'
 import { Route as AdminProcessesRouteImport } from './routes/admin.processes'
 import { Route as AdminProfileRouteImport } from './routes/admin.profile'
 import { Route as AdminRestaurantsRouteImport } from './routes/admin.restaurants'
-import { Route as AdminShiftsRouteImport } from './routes/admin.shifts'
 import { Route as AdminSuppliersRouteImport } from './routes/admin.suppliers'
 import { Route as AdminTrainingsRouteImport } from './routes/admin.trainings'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
@@ -105,11 +104,6 @@ const AdminProfileRoute = AdminProfileRouteImport.update({
 const AdminRestaurantsRoute = AdminRestaurantsRouteImport.update({
   id: '/restaurants',
   path: '/restaurants',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminShiftsRoute = AdminShiftsRouteImport.update({
-  id: '/shifts',
-  path: '/shifts',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminSuppliersRoute = AdminSuppliersRouteImport.update({
@@ -245,7 +239,6 @@ export interface FileRoutesByFullPath {
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/restaurants': typeof AdminRestaurantsRouteWithChildren
-  '/admin/shifts': typeof AdminShiftsRoute
   '/admin/suppliers': typeof AdminSuppliersRouteWithChildren
   '/admin/trainings': typeof AdminTrainingsRouteWithChildren
   '/admin/users': typeof AdminUsersRoute
@@ -281,7 +274,6 @@ export interface FileRoutesByTo {
   '/admin/groups': typeof AdminGroupsRoute
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/profile': typeof AdminProfileRoute
-  '/admin/shifts': typeof AdminShiftsRoute
   '/admin/users': typeof AdminUsersRoute
   '/app/alerts': typeof AppAlertsRoute
   '/app/analytics': typeof AppAnalyticsRoute
@@ -319,7 +311,6 @@ export interface FileRoutesById {
   '/admin/processes': typeof AdminProcessesRoute
   '/admin/profile': typeof AdminProfileRoute
   '/admin/restaurants': typeof AdminRestaurantsRouteWithChildren
-  '/admin/shifts': typeof AdminShiftsRoute
   '/admin/suppliers': typeof AdminSuppliersRouteWithChildren
   '/admin/trainings': typeof AdminTrainingsRouteWithChildren
   '/admin/users': typeof AdminUsersRoute
@@ -360,7 +351,6 @@ export interface FileRouteTypes {
     | '/admin/processes'
     | '/admin/profile'
     | '/admin/restaurants'
-    | '/admin/shifts'
     | '/admin/suppliers'
     | '/admin/trainings'
     | '/admin/users'
@@ -396,7 +386,6 @@ export interface FileRouteTypes {
     | '/admin/groups'
     | '/admin/processes'
     | '/admin/profile'
-    | '/admin/shifts'
     | '/admin/users'
     | '/app/alerts'
     | '/app/analytics'
@@ -433,7 +422,6 @@ export interface FileRouteTypes {
     | '/admin/processes'
     | '/admin/profile'
     | '/admin/restaurants'
-    | '/admin/shifts'
     | '/admin/suppliers'
     | '/admin/trainings'
     | '/admin/users'
@@ -554,13 +542,6 @@ declare module '@tanstack/react-router' {
       path: '/restaurants'
       fullPath: '/admin/restaurants'
       preLoaderRoute: typeof AdminRestaurantsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/shifts': {
-      id: '/admin/shifts'
-      path: '/shifts'
-      fullPath: '/admin/shifts'
-      preLoaderRoute: typeof AdminShiftsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/suppliers': {
@@ -783,7 +764,6 @@ interface AdminRouteChildren {
   AdminProcessesRoute: typeof AdminProcessesRoute
   AdminProfileRoute: typeof AdminProfileRoute
   AdminRestaurantsRoute: typeof AdminRestaurantsRouteWithChildren
-  AdminShiftsRoute: typeof AdminShiftsRoute
   AdminSuppliersRoute: typeof AdminSuppliersRouteWithChildren
   AdminTrainingsRoute: typeof AdminTrainingsRouteWithChildren
   AdminUsersRoute: typeof AdminUsersRoute
@@ -799,7 +779,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminProcessesRoute: AdminProcessesRoute,
   AdminProfileRoute: AdminProfileRoute,
   AdminRestaurantsRoute: AdminRestaurantsRouteWithChildren,
-  AdminShiftsRoute: AdminShiftsRoute,
   AdminSuppliersRoute: AdminSuppliersRouteWithChildren,
   AdminTrainingsRoute: AdminTrainingsRouteWithChildren,
   AdminUsersRoute: AdminUsersRoute,

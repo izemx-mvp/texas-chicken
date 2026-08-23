@@ -34,6 +34,7 @@ import type {
   PurchaseOrder,
   QuizQuestion,
   Supplier,
+  SupplierProduct,
   Training,
   TrainingProgress,
 } from "./ops";
@@ -1890,6 +1891,52 @@ export function toggleSupplier(id: string) {
 
 export function removeSupplier(id: string) {
   setState((s) => ({ suppliers: s.suppliers.filter((x) => x.id !== id) }));
+}
+
+/* ---- produits d'un fournisseur (Fournisseur → Produits) ---- */
+
+export function validateSupplierProduct(p: Partial<SupplierProduct>): string | null {
+  if (!p.name?.trim()) return "Le nom du produit est obligatoire.";
+  if (!p.unit?.trim()) return "L'unité est obligatoire (carton, kg, L…).";
+  if (p.price === undefined || Number.isNaN(p.price) || p.price < 0) return "Prix invalide.";
+  return null;
+}
+
+export function addSupplierProduct(supplierId: string, p: Omit<SupplierProduct, "id">): string | null {
+  const err = validateSupplierProduct(p);
+  if (err) return err;
+  const created: SupplierProduct = { ...p, id: uid("prd") };
+  setState((s) => ({
+    suppliers: s.suppliers.map((x) => (x.id === supplierId ? { ...x, products: [...x.products, created] } : x)),
+  }));
+  return null;
+}
+
+export function updateSupplierProduct(
+  supplierId: string,
+  productId: string,
+  patch: Partial<SupplierProduct>,
+): string | null {
+  const sup = state.suppliers.find((x) => x.id === supplierId);
+  const current = sup?.products.find((p) => p.id === productId);
+  if (!current) return "Produit introuvable.";
+  const next = { ...current, ...patch };
+  const err = validateSupplierProduct(next);
+  if (err) return err;
+  setState((s) => ({
+    suppliers: s.suppliers.map((x) =>
+      x.id === supplierId ? { ...x, products: x.products.map((p) => (p.id === productId ? next : p)) } : x,
+    ),
+  }));
+  return null;
+}
+
+export function removeSupplierProduct(supplierId: string, productId: string) {
+  setState((s) => ({
+    suppliers: s.suppliers.map((x) =>
+      x.id === supplierId ? { ...x, products: x.products.filter((p) => p.id !== productId) } : x,
+    ),
+  }));
 }
 
 /* ---- commandes ---- */
