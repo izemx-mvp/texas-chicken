@@ -721,7 +721,49 @@ for (let i = 1; i <= 128; i++) {
   });
 }
 
-/* ---------------- shift tasks (manager scenario) ---------------- */
+/* ---------------- shifts par restaurant ---------------- */
+// Chaque restaurant fonctionne avec son propre nombre de shifts (1, 2, 3 ou 4).
+// Certains restaurants restent volontairement sans shift configuré : la plateforme
+// doit continuer à fonctionner exactement comme avant pour eux.
+const SHIFT_TEMPLATES: { name: string; start: string; end: string; description: string }[][] = [
+  [
+    { name: "Matin", start: "06:00", end: "14:00", description: "Ouverture, mise en place et contrôles d'hygiène." },
+    { name: "Après-midi", start: "14:00", end: "18:00", description: "Service continu, contrôles température et salle." },
+    { name: "Soir", start: "18:00", end: "00:00", description: "Service du soir, fermeture, nettoyage et caisse." },
+  ],
+  [
+    { name: "Matin", start: "07:00", end: "15:00", description: "Ouverture et préparation du service." },
+    { name: "Soir", start: "15:00", end: "23:00", description: "Service du soir et fermeture." },
+  ],
+  [
+    { name: "Matin", start: "06:00", end: "12:00", description: "Ouverture et contrôles d'hygiène." },
+    { name: "Midi", start: "12:00", end: "17:00", description: "Rush du midi et réassort." },
+    { name: "Soir", start: "17:00", end: "22:00", description: "Service du soir." },
+    { name: "Nuit", start: "22:00", end: "06:00", description: "Service de nuit et nettoyage approfondi (traverse minuit)." },
+  ],
+  [{ name: "Journée continue", start: "08:00", end: "23:00", description: "Un seul shift continu." }],
+];
+
+export const shifts: Shift[] = [];
+restaurants.forEach((r, i) => {
+  // 2 restaurants du réseau n'ont pas encore de shift configuré (compatibilité).
+  if (i === 6 || i === 13) return;
+  const tpl = SHIFT_TEMPLATES[i % SHIFT_TEMPLATES.length]!;
+  tpl.forEach((t, k) => {
+    shifts.push({
+      id: `sh-${r.id}-${k + 1}`,
+      restaurantId: r.id,
+      name: t.name,
+      start: t.start,
+      end: t.end,
+      description: t.description,
+      // un shift inactif pour illustrer l'état « désactivé »
+      active: !(i === 3 && k === tpl.length - 1),
+    });
+  });
+});
+
+
 const SHIFT_PROCESSES = ["p1", "p3", "p4", "p5", "p7", "p2"];
 export const shiftTasks: ShiftTask[] = [];
 // heure « courante » du shift simulé : tout ce qui précède est traité, la suite reste à faire
