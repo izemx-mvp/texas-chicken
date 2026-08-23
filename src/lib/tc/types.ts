@@ -341,7 +341,27 @@ export interface Role {
   permissions: Record<string, PermissionName[]>;
 }
 
+/**
+ * Shift opérationnel d'un restaurant (Restaurant → Shift → Tâches → Étapes → Contrôles).
+ * `end` peut être inférieur à `start` : le shift traverse alors minuit (ex. 22:00 → 06:00).
+ */
+export interface Shift {
+  id: ID;
+  restaurantId: ID;
+  name: string;
+  /** Heure de début HH:MM */
+  start: string;
+  /** Heure de fin HH:MM ("00:00" = minuit) */
+  end: string;
+  description?: string;
+  active: boolean;
+}
+
+/** Tâche applicable à tous les shifts du restaurant. */
+export const ALL_SHIFTS = "all" as const;
+
 export interface ShiftTask {
+
   id: ID;
   processId: ID;
   stepId: ID;
