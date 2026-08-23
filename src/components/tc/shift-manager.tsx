@@ -60,13 +60,15 @@ export function ShiftManager({ restaurantId }: { restaurantId: string }) {
   );
 
   /** Employés rattachés au restaurant (managers inclus, aucun système séparé). */
-  const staff = useMemo(
-    () =>
-      state.users.filter(
-        (u) => u.restaurantId === restaurantId || (u.restaurantIds ?? []).includes(restaurantId),
-      ),
-    [state.users, restaurantId],
-  );
+  const staff = useMemo(() => {
+    const seen = new Set<string>();
+    return state.users.filter((u) => {
+      if (u.restaurantId !== restaurantId && !(u.restaurantIds ?? []).includes(restaurantId)) return false;
+      if (seen.has(u.id)) return false;
+      seen.add(u.id);
+      return true;
+    });
+  }, [state.users, restaurantId]);
 
   const openEdit = (shiftId?: string) => {
     setError(null);
@@ -80,7 +82,7 @@ export function ShiftManager({ restaurantId }: { restaurantId: string }) {
       end: sh.end,
       description: sh.description ?? "",
       active: sh.active,
-      members: assignmentsFor(restaurantId, date, sh.id, state).map(effectiveUserId),
+      members: Array.from(new Set(assignmentsFor(restaurantId, date, sh.id, state).map(effectiveUserId))),
     });
   };
 
