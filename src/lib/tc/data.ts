@@ -7,6 +7,7 @@ import type {
   ProcessStep,
   Restaurant,
   Role,
+  Shift,
   ShiftTask,
   Standard,
   User,
@@ -764,6 +765,7 @@ restaurants.forEach((r, i) => {
 });
 
 
+/* ---------------- shift tasks (manager scenario) ---------------- */
 const SHIFT_PROCESSES = ["p1", "p3", "p4", "p5", "p7", "p2"];
 export const shiftTasks: ShiftTask[] = [];
 // heure « courante » du shift simulé : tout ce qui précède est traité, la suite reste à faire
