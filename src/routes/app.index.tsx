@@ -2,7 +2,20 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Clock, Flame, ListChecks, Timer } from "lucide-react";
 import { ComplianceRing, KpiCard, ProgressBar, SectionTitle, StatusPill, SkeletonRows, useFakeLoading } from "@/components/tc/bits";
-import { currentUser, nextShiftTask, useStore } from "@/lib/tc/store";
+import {
+  currentUser,
+  dayReport,
+  nextShiftTask,
+  restaurantShifts,
+  shiftDayReports,
+  shiftPhase,
+  shiftRange,
+  toMinutes,
+  useStore,
+} from "@/lib/tc/store";
+import { SHIFT_NOW, TODAY } from "@/lib/tc/data";
+import { ShiftPhasePill } from "@/components/tc/shift-bits";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/")({
   head: () => ({
@@ -43,9 +56,17 @@ function ShiftCommandCenter() {
   const compliance = restaurant?.compliance ?? 89;
   const rejected = evidence.filter((e) => e.status === "Rejetée" || e.status === "Dupliquée").length;
 
-  const end = new Date(now);
-  end.setHours(16, 0, 0, 0);
-  const minsLeft = Math.max(0, Math.round((end.getTime() - now.getTime()) / 60000));
+  // Shift courant du restaurant : le dashboard se recadre sur le shift en cours.
+  const state = useStore((s) => s);
+  const rid = user?.restaurantId ?? state.restaurants[0]?.id ?? "r1";
+  const shifts = restaurantShifts(rid, state);
+  const currentShift = shifts.find((sh) => shiftPhase(sh, SHIFT_NOW) === "En cours") ?? null;
+  const shiftGroups = shiftDayReports(dayReport(TODAY, TODAY, state, rid), rid, SHIFT_NOW, state);
+  const currentGroup = shiftGroups.find((g) => g.shift?.id === currentShift?.id) ?? null;
+
+  const minsLeft = currentShift
+    ? Math.max(0, shiftRange(currentShift).end - toMinutes(SHIFT_NOW))
+    : Math.max(0, 16 * 60 - toMinutes(SHIFT_NOW));
 
   const shiftProcesses = [...new Set(tasks.map((t) => t.processId))].map((pid) => {
     const p = processes.find((x) => x.id === pid)!;
@@ -76,7 +97,10 @@ function ShiftCommandCenter() {
           <ComplianceRing value={compliance} />
           <div className="min-w-[190px] flex-1 space-y-3">
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <Info label="Shift" value="08:00 → 16:00" />
+              <Info
+                label="Shift"
+                value={currentShift ? `${currentShift.name} · ${currentShift.start} → ${currentShift.end}` : "Journée complète"}
+              />
               <Info label="Heure" value={now.toTimeString().slice(0, 8)} />
               <Info label="Temps restant" value={`${Math.floor(minsLeft / 60)}h ${minsLeft % 60}m`} />
               <Info label="Alertes" value={String(alerts.length)} />
@@ -91,6 +115,52 @@ function ShiftCommandCenter() {
           </div>
         </div>
       </div>
+
+      {shifts.length > 0 && (
+        <section className="glass rounded-3xl p-5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="font-display text-sm font-bold uppercase tracking-wider">Journée par shift</h3>
+            <span className="text-[11px] text-muted-foreground">
+              {currentShift ? `Shift en cours : ${currentShift.name}` : "Aucun shift en cours"}
+            </span>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {shiftGroups.map((g) => (
+              <div
+                key={g.shift?.id ?? "hors-shift"}
+                className={cn(
+                  "rounded-2xl border p-3",
+                  g.shift && g.shift.id === currentShift?.id
+                    ? "border-gold/60 bg-gold/10"
+                    : "border-border bg-secondary/25",
+                )}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-display text-sm font-bold uppercase">{g.shift ? g.shift.name : "Hors shift"}</span>
+                  {g.shift && <ShiftPhasePill className="ml-auto" phase={g.phase} />}
+                </div>
+                {g.shift && (
+                  <p className="tabular mt-0.5 text-xs font-semibold text-gold">
+                    {g.shift.start} → {g.shift.end}
+                  </p>
+                )}
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {g.stats.done}/{g.stats.total} tâches · {g.stats.late} en retard
+                </p>
+                <div className="mt-2">
+                  <ProgressBar value={g.stats.progress} />
+                </div>
+              </div>
+            ))}
+          </div>
+          {currentGroup && (
+            <p className="mt-3 text-[11px] text-muted-foreground">
+              Progression du shift en cours : {currentGroup.stats.progress} % · {currentGroup.stats.total} tâches
+              planifiées.
+            </p>
+          )}
+        </section>
+      )}
 
       {next && (
         <Link

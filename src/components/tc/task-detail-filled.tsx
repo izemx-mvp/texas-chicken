@@ -14,7 +14,7 @@ import {
 import { StatusPill } from "./bits";
 import { EvidenceGallery, EvidenceThumb } from "./evidence-gallery";
 import { cn } from "@/lib/utils";
-import type { ExecutionDetail } from "@/lib/tc/store";
+import { restaurantShifts, shiftLabel, taskShift, type ExecutionDetail } from "@/lib/tc/store";
 
 /**
  * Détail complet d'une tâche, présenté exactement comme l'écran d'exécution
@@ -27,7 +27,14 @@ export function TaskDetailFilled({ exec, className }: { exec: ExecutionDetail; c
   const done = exec.status === "Terminé";
   const future = exec.status === "À faire" && !exec.completedAt;
 
+  const shift = exec.restaurant ? taskShift(task, restaurantShifts(exec.restaurant.id)) : undefined;
+
   const meta: [string, string][] = [
+    ...(task.shiftId === "all"
+      ? ([["Shift", "Tous les shifts"]] as [string, string][])
+      : shift
+        ? ([["Shift", `${shift.name} · ${shiftLabel(shift)}`]] as [string, string][])
+        : []),
     ["Zone", task.zone],
     ["Rôle", task.role],
     ["Heure prévue", task.time],

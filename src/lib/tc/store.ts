@@ -8,6 +8,7 @@ import {
   processes as seedProcesses,
   restaurants as seedRestaurants,
   roles as seedRoles,
+  shifts as seedShifts,
   shiftTasks as seedShiftTasks,
   standards as seedStandards,
   users as seedUsers,
@@ -47,6 +48,7 @@ import type {
   Process,
   Restaurant,
   Role,
+  Shift,
   ShiftTask,
   Standard,
   User,
@@ -71,6 +73,7 @@ export interface State {
   alerts: Alert[];
   fraudAlerts: FraudAlert[];
   roles: Role[];
+  shifts: Shift[];
   shiftTasks: ShiftTask[];
   usedPhotoHashes: string[];
   chatGroups: ChatGroup[];
@@ -93,6 +96,7 @@ let state: State = {
   alerts: seedAlerts,
   fraudAlerts: seedFraudAlerts,
   roles: seedRoles,
+  shifts: seedShifts,
   shiftTasks: seedShiftTasks,
   usedPhotoHashes: [],
   chatGroups: seedChatGroups,
@@ -317,6 +321,157 @@ export function finishTask(id: string, patch: Partial<ShiftTask> = {}) {
   updateTask(id, { status: "Terminé", completedAt: at, ...patch });
 }
 
+
+/* -------------------- shifts (Restaurant → Shift → Tâches) -------------------- */
+export type ShiftPhase = "En cours" | "À venir" | "Terminé" | "Désactivé";
+
+export const ALL_SHIFTS = "all";
+
+export function toMinutes(time: string) {
+  const [h = "0", m = "0"] = time.split(":");
+  return Number(h) * 60 + Number(m);
+}
+
+/** Bornes normalisées d'un shift : gère le passage par minuit (18:00 → 00:00, 22:00 → 06:00). */
+export function shiftRange(sh: Shift) {
+  const start = toMinutes(sh.start);
+  let end = toMinutes(sh.end);
+  if (end <= start) end += 1440;
+  return { start, end, duration: end - start, overnight: end > 1440 };
+}
+
+export function isTimeInShift(sh: Shift, time: string) {
+  const { start, end } = shiftRange(sh);
+  const m = toMinutes(time);
+  return (m >= start && m < end) || (m + 1440 >= start && m + 1440 < end);
+}
+
+export function shiftLabel(sh: Shift) {
+  return `${sh.start} → ${sh.end}`;
+}
+
+/** Shifts d'un restaurant, triés par heure de début. */
+export function restaurantShifts(restaurantId: string, s: State = state): Shift[] {
+  return s.shifts
+    .filter((sh) => sh.restaurantId === restaurantId)
+    .sort((a, b) => toMinutes(a.start) - toMinutes(b.start));
+}
+
+/** État du shift par rapport à une heure de référence. */
+export function shiftPhase(sh: Shift, nowTime: string): ShiftPhase {
+  if (!sh.active) return "Désactivé";
+  if (isTimeInShift(sh, nowTime)) return "En cours";
+  const { start, end } = shiftRange(sh);
+  const m = toMinutes(nowTime);
+  const v = m < start ? m + 1440 : m;
+  return v >= end ? "Terminé" : "À venir";
+}
+
+/** Deux shifts se chevauchent-ils (minuit inclus) ? */
+export function shiftsOverlap(a: Shift, b: Shift) {
+  const ra = shiftRange(a);
+  const rb = shiftRange(b);
+  const seg = (r: { start: number; end: number }) =>
+    r.end > 1440
+      ? [
+          [r.start, 1440],
+          [0, r.end - 1440],
+        ]
+      : [[r.start, r.end]];
+  for (const [as, ae] of seg(ra)) {
+    for (const [bs, be] of seg(rb)) {
+      if (as! < be! && bs! < ae!) return true;
+    }
+  }
+  return false;
+}
+
+/** Validation métier d'un shift : horaires valides + absence de chevauchement. */
+export function validateShift(sh: Shift, s: State = state): string | null {
+  if (!sh.name.trim()) return "Le nom du shift est obligatoire.";
+  if (!/^\d{2}:\d{2}$/.test(sh.start) || !/^\d{2}:\d{2}$/.test(sh.end)) return "Horaires invalides.";
+  if (sh.start === sh.end) return "L'heure de début et de fin ne peuvent pas être identiques.";
+  const others = restaurantShifts(sh.restaurantId, s).filter((x) => x.id !== sh.id && x.active);
+  if (sh.active) {
+    const clash = others.find((o) => shiftsOverlap(o, sh));
+    if (clash) return `Chevauchement avec le shift « ${clash.name} » (${shiftLabel(clash)}).`;
+  }
+  return null;
+}
+
+export function addShift(sh: Omit<Shift, "id">): string | null {
+  const shift: Shift = { ...sh, id: uid("sh") };
+  const err = validateShift(shift);
+  if (err) return err;
+  setState((s) => ({ shifts: [...s.shifts, shift] }));
+  return null;
+}
+
+export function updateShift(id: string, patch: Partial<Shift>): string | null {
+  const current = state.shifts.find((x) => x.id === id);
+  if (!current) return "Shift introuvable.";
+  const next = { ...current, ...patch };
+  const err = validateShift(next);
+  if (err) return err;
+  setState((s) => ({ shifts: s.shifts.map((x) => (x.id === id ? next : x)) }));
+  return null;
+}
+
+export function removeShift(id: string) {
+  setState((s) => ({
+    shifts: s.shifts.filter((x) => x.id !== id),
+    // les tâches rattachées redeviennent indépendantes du shift (aucune donnée perdue)
+    shiftTasks: s.shiftTasks.map((t) => (t.shiftId === id ? { ...t, shiftId: undefined } : t)),
+  }));
+}
+
+export function toggleShift(id: string) {
+  const current = state.shifts.find((x) => x.id === id);
+  if (!current) return null;
+  return updateShift(id, { active: !current.active });
+}
+
+/**
+ * Shift d'une tâche : rattachement explicite, "all" (tous les shifts) ou déduction
+ * par l'heure planifiée. Renvoie undefined si le restaurant n'a pas de shift.
+ */
+export function taskShift(task: ShiftTask, shifts: Shift[]): Shift | undefined {
+  if (!shifts.length) return undefined;
+  if (task.shiftId && task.shiftId !== ALL_SHIFTS) {
+    const explicit = shifts.find((sh) => sh.id === task.shiftId);
+    if (explicit) return explicit;
+  }
+  if (task.shiftId === ALL_SHIFTS) return undefined;
+  return shifts.find((sh) => isTimeInShift(sh, task.time));
+}
+
+export interface ShiftDayReport {
+  shift: Shift | null;
+  /** Tâches applicables à tous les shifts / hors shift (shift === null). */
+  reports: DayTaskReport[];
+  stats: DayStats;
+  phase: ShiftPhase;
+}
+
+/** Journée organisée par shift : « Aujourd'hui » et calendrier Manager. */
+export function shiftDayReports(
+  reports: DayTaskReport[],
+  restaurantId: string,
+  nowTime: string,
+  s: State = state,
+): ShiftDayReport[] {
+  const shifts = restaurantShifts(restaurantId, s);
+  const out: ShiftDayReport[] = shifts.map((sh) => {
+    const list = reports.filter((r) => r.shiftId === sh.id || r.task.shiftId === ALL_SHIFTS);
+    return { shift: sh, reports: list, stats: dayStats(list), phase: shiftPhase(sh, nowTime) };
+  });
+  const orphans = reports.filter((r) => !r.shiftId && r.task.shiftId !== ALL_SHIFTS);
+  if (orphans.length) {
+    out.push({ shift: null, reports: orphans, stats: dayStats(orphans), phase: "À venir" });
+  }
+  return out;
+}
+
 /* -------------------- KPIs -------------------- */
 export function kpis(s: State = state) {
   const activeRest = s.restaurants.filter((r) => r.status === "Actif");
@@ -477,6 +632,10 @@ export type DayKind = "past" | "today" | "future";
 
 export interface DayTaskReport {
   task: ShiftTask;
+  /** Shift d'exécution résolu (undefined si tâche hors shift ou restaurant sans shift). */
+  shiftId?: string;
+  shiftName?: string;
+  shiftTime?: string;
   planned: string;
   startedAt?: string;
   completedAt?: string;
@@ -513,7 +672,14 @@ export function dayReport(
   const kind = dayKind(date, today);
   const rid = restaurantId ?? s.restaurants[0]?.id ?? "r1";
   const uid2 = s.users.find((u) => u.restaurantId === rid)?.id ?? s.session?.userId ?? "u2";
-  return tasks.map((task, i) => {
+  const shifts = restaurantShifts(rid, s);
+  const withShift = (r: DayTaskReport): DayTaskReport => {
+    const sh = taskShift(r.task, shifts);
+    return sh ? { ...r, shiftId: sh.id, shiftName: sh.name, shiftTime: shiftLabel(sh) } : r;
+  };
+  return tasks.map((task, i) => withShift(buildReport(task, i)));
+
+  function buildReport(task: ShiftTask, i: number): DayTaskReport {
     if (kind === "today") {
       const ev = s.evidence.find((e) => e.id === task.evidenceId);
       const submitted =
@@ -577,7 +743,8 @@ export function dayReport(
             : undefined,
       result: status === "Terminé" ? "Conforme" : status,
     };
-  });
+  }
+
 }
 
 /* -------------------- agrégats de la journée -------------------- */

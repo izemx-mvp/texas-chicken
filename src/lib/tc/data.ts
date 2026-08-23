@@ -7,6 +7,7 @@ import type {
   ProcessStep,
   Restaurant,
   Role,
+  Shift,
   ShiftTask,
   Standard,
   User,
@@ -721,6 +722,49 @@ for (let i = 1; i <= 128; i++) {
   });
 }
 
+/* ---------------- shifts par restaurant ---------------- */
+// Chaque restaurant fonctionne avec son propre nombre de shifts (1, 2, 3 ou 4).
+// Certains restaurants restent volontairement sans shift configuré : la plateforme
+// doit continuer à fonctionner exactement comme avant pour eux.
+const SHIFT_TEMPLATES: { name: string; start: string; end: string; description: string }[][] = [
+  [
+    { name: "Matin", start: "06:00", end: "14:00", description: "Ouverture, mise en place et contrôles d'hygiène." },
+    { name: "Après-midi", start: "14:00", end: "18:00", description: "Service continu, contrôles température et salle." },
+    { name: "Soir", start: "18:00", end: "00:00", description: "Service du soir, fermeture, nettoyage et caisse." },
+  ],
+  [
+    { name: "Matin", start: "07:00", end: "15:00", description: "Ouverture et préparation du service." },
+    { name: "Soir", start: "15:00", end: "23:00", description: "Service du soir et fermeture." },
+  ],
+  [
+    { name: "Matin", start: "06:00", end: "12:00", description: "Ouverture et contrôles d'hygiène." },
+    { name: "Midi", start: "12:00", end: "17:00", description: "Rush du midi et réassort." },
+    { name: "Soir", start: "17:00", end: "22:00", description: "Service du soir." },
+    { name: "Nuit", start: "22:00", end: "06:00", description: "Service de nuit et nettoyage approfondi (traverse minuit)." },
+  ],
+  [{ name: "Journée continue", start: "08:00", end: "23:00", description: "Un seul shift continu." }],
+];
+
+export const shifts: Shift[] = [];
+restaurants.forEach((r, i) => {
+  // 2 restaurants du réseau n'ont pas encore de shift configuré (compatibilité).
+  if (i === 6 || i === 13) return;
+  const tpl = SHIFT_TEMPLATES[i % SHIFT_TEMPLATES.length]!;
+  tpl.forEach((t, k) => {
+    shifts.push({
+      id: `sh-${r.id}-${k + 1}`,
+      restaurantId: r.id,
+      name: t.name,
+      start: t.start,
+      end: t.end,
+      description: t.description,
+      // un shift inactif pour illustrer l'état « désactivé »
+      active: !(i === 3 && k === tpl.length - 1),
+    });
+  });
+});
+
+
 /* ---------------- shift tasks (manager scenario) ---------------- */
 const SHIFT_PROCESSES = ["p1", "p3", "p4", "p5", "p7", "p2"];
 export const shiftTasks: ShiftTask[] = [];
@@ -758,6 +802,28 @@ export const SHIFT_NOW = "11:30";
 
 // ordre chronologique global du shift (toutes tâches, tous processus confondus)
 shiftTasks.sort((a, b) => (a.time === b.time ? a.id.localeCompare(b.id) : a.time.localeCompare(b.time)));
+
+// association des tâches au shift correspondant du restaurant opérationnel (r1)
+{
+  const mins = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  const rShifts = shifts.filter((s) => s.restaurantId === restaurants[0]!.id);
+  shiftTasks.forEach((t, i) => {
+    // quelques tâches transverses s'appliquent à tous les shifts du restaurant
+    if (i % 13 === 6) {
+      t.shiftId = "all";
+      return;
+    }
+    const m = mins(t.time);
+    const found = rShifts.find((sh) => {
+      const a = mins(sh.start);
+      let b = mins(sh.end);
+      if (b <= a) b += 1440;
+      const v = m < a ? m + 1440 : m;
+      return v >= a && v < b;
+    });
+    if (found) t.shiftId = found.id;
+  });
+}
 
 // statuts cohérents avec la chronologie : passé = traité, présent = en cours, futur = à faire
 {
