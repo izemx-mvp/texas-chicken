@@ -34,6 +34,7 @@ import type {
   PurchaseOrder,
   QuizQuestion,
   Supplier,
+  SupplierProduct,
   Training,
   TrainingProgress,
 } from "./ops";
