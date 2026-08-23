@@ -803,6 +803,28 @@ export const SHIFT_NOW = "11:30";
 // ordre chronologique global du shift (toutes tâches, tous processus confondus)
 shiftTasks.sort((a, b) => (a.time === b.time ? a.id.localeCompare(b.id) : a.time.localeCompare(b.time)));
 
+// association des tâches au shift correspondant du restaurant opérationnel (r1)
+{
+  const mins = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  const rShifts = shifts.filter((s) => s.restaurantId === restaurants[0]!.id);
+  shiftTasks.forEach((t, i) => {
+    // quelques tâches transverses s'appliquent à tous les shifts du restaurant
+    if (i % 13 === 6) {
+      t.shiftId = "all";
+      return;
+    }
+    const m = mins(t.time);
+    const found = rShifts.find((sh) => {
+      const a = mins(sh.start);
+      let b = mins(sh.end);
+      if (b <= a) b += 1440;
+      const v = m < a ? m + 1440 : m;
+      return v >= a && v < b;
+    });
+    if (found) t.shiftId = found.id;
+  });
+}
+
 // statuts cohérents avec la chronologie : passé = traité, présent = en cours, futur = à faire
 {
   let currentAssigned = false;
