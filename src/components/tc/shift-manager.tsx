@@ -18,7 +18,6 @@ import {
   useStore,
 } from "@/lib/tc/store";
 import { SHIFT_NOW, TODAY } from "@/lib/tc/data";
-import type { Shift } from "@/lib/tc/types";
 
 interface Draft {
   id?: string;

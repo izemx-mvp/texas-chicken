@@ -4,6 +4,7 @@ import { ArrowLeft, Camera, MapPin, ShieldAlert, Users } from "lucide-react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ComplianceRing, KpiCard, StatusPill } from "@/components/tc/bits";
 import { TaskBoard } from "@/components/tc/task-board";
+import { ShiftManager } from "@/components/tc/shift-manager";
 import texasLogo from "@/assets/texas-chicken-logo.svg";
 import { cn } from "@/lib/utils";
 import { restaurantStats, useStore } from "@/lib/tc/store";
@@ -30,7 +31,7 @@ function RestaurantPage() {
   const { id } = useParams({ from: "/admin/restaurants/$id" });
   const state = useStore((s) => s);
   const restaurant = state.restaurants.find((r) => r.id === id);
-  const [tab, setTab] = useState<"dashboard" | "tasks">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "shifts" | "tasks">("dashboard");
 
   if (!restaurant) {
     return (
@@ -90,7 +91,7 @@ function RestaurantPage() {
       </header>
 
       <div className="flex gap-1 rounded-xl border border-border p-1">
-        {(["dashboard", "tasks"] as const).map((t) => (
+        {(["dashboard", "shifts", "tasks"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -99,7 +100,7 @@ function RestaurantPage() {
               tab === t ? "bg-brand/20 text-foreground" : "text-muted-foreground",
             )}
           >
-            {t === "dashboard" ? "Dashboard" : "Tâches"}
+            {t === "dashboard" ? "Dashboard" : t === "shifts" ? "Shifts" : "Tâches"}
           </button>
         ))}
       </div>
@@ -180,6 +181,10 @@ function RestaurantPage() {
               {alerts.length === 0 && <p className="text-sm text-muted-foreground">Aucune alerte.</p>}
             </div>
           </div>
+        </div>
+      ) : tab === "shifts" ? (
+        <div className="glass rounded-3xl p-5">
+          <ShiftManager restaurantId={restaurant.id} />
         </div>
       ) : (
         <div className="glass rounded-3xl p-5">
