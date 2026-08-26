@@ -58,11 +58,12 @@ export function TCModal({
     xl: "max-w-5xl",
   }[size];
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[120] flex items-center justify-center overflow-hidden bg-black/70 p-3 backdrop-blur-sm sm:p-6"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
+
       <div
         className={cn(
           "glass animate-rise flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-hidden rounded-3xl sm:max-h-[min(90dvh,52rem)]",
