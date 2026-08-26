@@ -341,6 +341,141 @@ chatGroups.forEach((g, gi) => {
   });
 });
 
+/* ------------------- conversations individuelles (1:1) ------------------- */
+/** "jour|heure|0=ancre 1=interlocuteur|texte" */
+const DIRECT_DEFS: [ID, ID, string[]][] = [
+  [
+    managerUser.id,
+    byRole("Shift Leader", "r1"),
+    [
+      "-2|07:12|1|Bonjour chef, ouverture terminée. Températures conformes.",
+      "-2|07:20|0|Parfait, pense aux preuves photo sur la chambre froide.",
+      "-1|14:05|1|La checklist du shift matin est terminée ✅",
+      "0|08:02|0|Peux-tu couvrir le rush de midi en caisse 2 ?",
+      "0|08:06|1|Oui, je m'organise avec l'équipe.",
+    ],
+  ],
+  [
+    managerUser.id,
+    byRole("Cook", "r1"),
+    [
+      "-3|10:20|1|La friteuse 2 chauffe lentement, 168°C au lieu de 175°C.",
+      "-3|10:24|0|Ok, je bloque la friteuse et j'ouvre un ticket maintenance.",
+      "-1|09:15|1|Le contrôle de la chambre froide est terminé.",
+      "0|11:30|0|Merci Youssef, pense à tracer le lot de marinade.",
+    ],
+  ],
+  [
+    managerUser.id,
+    byRole("Crew Member", "r1"),
+    [
+      "-1|18:40|1|Je serai présente au shift de 14h demain.",
+      "-1|18:45|0|Noté, je t'affecte sur l'emballage drive.",
+      "0|09:50|1|Merci ! J'ai aussi terminé la formation Food Safety 🎓",
+    ],
+  ],
+  [
+    managerUser.id,
+    byRole("Cashier", "r1"),
+    [
+      "-2|13:10|1|Le ticket caisse 2 est toujours bloqué pendant le rush.",
+      "-2|13:14|0|Bascule les clients sur la caisse 1, technicien prévu demain.",
+      "0|12:20|1|Caisse 2 réparée, tout fonctionne 👍",
+    ],
+  ],
+  [
+    managerUser.id,
+    byRole("Cleaning / Hygiene Staff", "r1"),
+    [
+      "-1|15:00|1|Salle, terrasse et sanitaires nettoyés, preuves envoyées 📸",
+      "-1|15:06|0|Impeccable, merci.",
+      "0|10:05|1|Il me manque du produit dégraissant pour la zone cuisson.",
+      "0|10:12|0|Je l'ajoute à la commande fournisseur du jour.",
+    ],
+  ],
+  [
+    managerUser.id,
+    adminUser.id,
+    [
+      "-4|09:00|1|Bonjour, la synthèse conformité de Casablanca est attendue vendredi.",
+      "-4|09:22|0|Bien reçu, je l'envoie jeudi soir.",
+      "-1|17:40|1|Bravo pour les 96 % de conformité sur le shift du soir 👏",
+      "0|08:30|0|Merci ! Livraison surgelés à 18:00 aujourd'hui, deux personnes en réception.",
+    ],
+  ],
+  [
+    adminUser.id,
+    byRole("Restaurant Manager", "r2"),
+    [
+      "-3|08:40|1|La chambre froide de Rabat est instable, 5,8°C ce matin.",
+      "-3|08:52|0|Intervention programmée mercredi, thermostat commandé.",
+      "-1|08:05|1|Chambre froide réparée ✅ 2,9°C stables.",
+      "0|09:10|0|Parfait, merci pour le suivi.",
+    ],
+  ],
+  [
+    adminUser.id,
+    byRole("Operations Admin"),
+    [
+      "-2|10:00|1|Deux alertes anti-fraude à traiter : preuves dupliquées à Marrakech.",
+      "-2|10:15|0|Je contacte le manager concerné aujourd'hui.",
+      "0|08:45|1|Revue hebdo à 15:00, ordre du jour envoyé.",
+    ],
+  ],
+  [
+    adminUser.id,
+    byRole("Auditeur"),
+    [
+      "-5|11:20|1|Rapport d'audit hebdomadaire déposé sur la plateforme.",
+      "-5|11:30|0|Merci, je le diffuse aux managers.",
+      "0|09:40|1|Audit hygiène réseau planifié la semaine prochaine.",
+    ],
+  ],
+  [
+    adminUser.id,
+    byRole("Maintenance"),
+    [
+      "-2|16:10|1|Résistance de la friteuse 2 remplacée à Casablanca ✅",
+      "-2|16:20|0|Super, je referme le ticket.",
+      "0|09:25|1|Machine à glaçons Rabat à surveiller, bruit anormal.",
+    ],
+  ],
+];
+
+DIRECT_DEFS.forEach(([anchor, other, lines], i) => {
+  if (anchor === other) return;
+  const id = `dm${i + 1}`;
+  const u = users.find((x) => x.id === other);
+  chatGroups.push({
+    id,
+    name: u ? `${u.firstName} ${u.lastName}` : "Conversation",
+    description: u?.role ?? "",
+    type: "Groupe personnalisé",
+    restaurantId: u?.restaurantId ?? null,
+    avatar: "",
+    memberIds: [anchor, other],
+    adminId: anchor,
+    adminIds: [anchor],
+    createdAt: shift(-60 - i),
+    status: "Actif",
+    direct: true,
+  });
+  lines.forEach((line, k) => {
+    const [day, time, who, text] = line.split("|");
+    const author = who === "0" ? anchor : other;
+    const unread = k >= lines.length - 1 && author === other && i % 2 === 0;
+    chatMessages.push({
+      id: `m${id}-${k}`,
+      groupId: id,
+      userId: author,
+      text: text!,
+      at: `${shift(Number(day))} ${time}`,
+      readBy: unread ? [author] : [anchor, other],
+    });
+  });
+});
+
+
 /** Membres réellement actifs dans une conversation (utile pour l'affichage). */
 export const groupCast = CASTS;
 
