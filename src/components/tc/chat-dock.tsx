@@ -125,7 +125,9 @@ export function ChatDock() {
   const unread = totalUnread(me?.id, state);
 
   const [tab, setTab] = useState<"direct" | "groups">("direct");
+  const [expanded, setExpanded] = useState(false);
   const [q, setQ] = useState("");
+
   const [text, setText] = useState("");
   const [pending, setPending] = useState<ChatAttachment[]>([]);
   const [emoji, setEmoji] = useState(false);
