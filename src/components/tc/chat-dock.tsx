@@ -8,13 +8,17 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import {
   ArrowLeft,
   Image as ImageIcon,
+  Maximize2,
   MessagesSquare,
+  Minimize2,
   Paperclip,
   Plus,
+  Settings,
   Trash2,
   Search,
   Send,
   Smile,
+  UserPlus,
   Users,
   X,
 } from "lucide-react";
@@ -22,6 +26,7 @@ import { cn } from "@/lib/utils";
 import {
   can,
   currentUser,
+  directChatWith,
   groupsForUser,
   markGroupRead,
   messagesOf,
@@ -40,6 +45,7 @@ import { MemberPicker } from "./member-picker";
 import { TCSelect } from "./select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
 
 /* ------------------------ état global du dock ------------------------ */
 type DockState = { open: boolean; groupId: string | null };
