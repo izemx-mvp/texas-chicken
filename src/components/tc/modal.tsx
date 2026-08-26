@@ -58,7 +58,7 @@ export function TCModal({
     >
       <div
         className={cn(
-          "glass animate-rise flex max-h-[min(92vh,52rem)] w-full flex-col overflow-hidden rounded-3xl",
+          "glass animate-rise flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-hidden rounded-3xl sm:max-h-[min(90dvh,52rem)]",
           width,
           className,
         )}
