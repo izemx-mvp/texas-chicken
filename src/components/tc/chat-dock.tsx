@@ -570,13 +570,18 @@ export function ChatDock() {
 
       {active && details && (
         <TCModal
-          title={active.name}
-          subtitle={`${active.type} · ${active.memberIds.length} membres`}
+          title={labelOf(active)}
+          subtitle={
+            active.direct
+              ? `${peerOf(active)?.role ?? ""} · ${restaurantName(active.restaurantId)}`
+              : `${active.type} · ${active.memberIds.length} membres`
+          }
           onClose={() => {
             setDetails(false);
             setEditGroup(null);
           }}
           size="md"
+
           footer={
             <div className="flex items-center justify-between gap-2">
               <Button
