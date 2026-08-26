@@ -32,6 +32,9 @@ export function TCModal({
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
 }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -44,7 +47,9 @@ export function TCModal({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
+
+
 
   const width = {
     sm: "max-w-md",
