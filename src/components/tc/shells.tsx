@@ -17,7 +17,6 @@ import {
   LogOut,
   Menu,
   Users as UsersIcon,
-  MessagesSquare,
   PackageSearch,
   GraduationCap,
   Truck,
@@ -49,7 +48,6 @@ export const ADMIN_NAV: NavItem[] = [
   { to: "/admin/restaurants", label: "Restaurants", module: "Restaurants", icon: Building2 },
   { to: "/admin/processes", label: "Processus & Contrôles", module: "Processus", icon: Workflow },
   { to: "/admin/trainings", label: "Formations", module: "Formations", icon: GraduationCap },
-  { to: "/admin/groups", label: "Groupes", module: "Groupes", icon: MessagesSquare },
   { to: "/admin/suppliers", label: "Fournisseurs", module: "Commandes", icon: PackageSearch },
   { to: "/admin/users", label: "Utilisateurs", module: "Utilisateurs", icon: UsersIcon },
 ];

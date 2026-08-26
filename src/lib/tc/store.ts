@@ -1470,9 +1470,53 @@ export function groupsForUser(userId: string | undefined, s: State = state) {
   const me = s.users.find((u) => u.id === userId);
   const isSuper = !!me && isSuperAdmin(me);
   return s.chatGroups.filter(
-    (g) => g.status === "Actif" && (isSuper || g.memberIds.includes(userId)),
+    (g) =>
+      g.status === "Actif" &&
+      (g.direct ? g.memberIds.includes(userId) : isSuper || g.memberIds.includes(userId)),
   );
 }
+
+/** Conversations individuelles (onglet « Conversations » du chat). */
+export function directChatsFor(userId: string | undefined, s: State = state) {
+  return groupsForUser(userId, s).filter((g) => g.direct);
+}
+
+/** Conversations de groupe (onglet « Groupes » du chat). */
+export function groupChatsFor(userId: string | undefined, s: State = state) {
+  return groupsForUser(userId, s).filter((g) => !g.direct);
+}
+
+/** Interlocuteur d'une conversation individuelle. */
+export function directPeer(group: ChatGroup, userId: string | undefined, s: State = state) {
+  const id = group.memberIds.find((m) => m !== userId) ?? group.memberIds[0];
+  return s.users.find((u) => u.id === id);
+}
+
+/** Ouvre (ou crée) la conversation individuelle entre deux utilisateurs. */
+export function directChatWith(meId: string, otherId: string) {
+  const found = state.chatGroups.find(
+    (g) => g.direct && g.memberIds.length === 2 && g.memberIds.includes(meId) && g.memberIds.includes(otherId),
+  );
+  if (found) return found.id;
+  const u = state.users.find((x) => x.id === otherId);
+  const group: ChatGroup = {
+    id: uid("dm"),
+    name: u ? `${u.firstName} ${u.lastName}` : "Conversation",
+    description: u?.role ?? "",
+    type: "Groupe personnalisé",
+    restaurantId: u?.restaurantId ?? null,
+    avatar: "",
+    memberIds: [meId, otherId],
+    adminId: meId,
+    adminIds: [meId],
+    createdAt: state.activeDate,
+    status: "Actif",
+    direct: true,
+  };
+  setState((s) => ({ chatGroups: [group, ...s.chatGroups] }));
+  return group.id;
+}
+
 
 export function messagesOf(groupId: string, s: State = state) {
   return s.chatMessages

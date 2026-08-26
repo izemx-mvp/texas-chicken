@@ -255,6 +255,11 @@ export function ShiftManager({ restaurantId }: { restaurantId: string }) {
               <h4 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                 Informations du shift
               </h4>
+              <Field label="Restaurant">
+                <div className="rounded-xl border border-border bg-secondary/30 px-3 py-2 text-sm font-semibold">
+                  {state.restaurants.find((r) => r.id === restaurantId)?.name ?? "Restaurant"}
+                </div>
+              </Field>
               <Field label="Nom du shift">
                 <Input
                   value={draft.name}
@@ -262,6 +267,7 @@ export function ShiftManager({ restaurantId }: { restaurantId: string }) {
                   placeholder="Matin, Soir, Nuit…"
                 />
               </Field>
+
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Début">
                   <Input type="time" value={draft.start} onChange={(e) => setDraft({ ...draft, start: e.target.value })} />
@@ -411,7 +417,7 @@ function MemberSelector({
         </div>
       )}
 
-      <div className="grid max-h-80 gap-1.5 overflow-y-auto rounded-2xl border border-border p-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+      <div className="grid max-h-[min(18rem,32dvh)] gap-1.5 overflow-y-auto rounded-2xl border border-border p-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
         {list.map((u) => {
           const on = value.includes(u.id);
           return (
