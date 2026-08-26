@@ -666,6 +666,22 @@ export function ChatDock() {
                 onChange={(ids) => setEditGroup({ ...editGroup, memberIds: ids })}
               />
             </div>
+          ) : active.direct ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4 rounded-2xl border border-border bg-secondary/30 p-4">
+                <UserAvatar user={peerOf(active)} size={72} presence rounded="rounded-2xl" />
+                <div className="min-w-0">
+                  <div className="font-display text-lg font-bold uppercase">{labelOf(active)}</div>
+                  <div className="text-xs text-muted-foreground">{peerOf(active)?.email}</div>
+                  <div className="mt-1 text-[10px] uppercase tracking-widest text-gold">
+                    {peerOf(active)?.role} · {restaurantName(active.restaurantId)}
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Conversation individuelle — {messagesOf(active.id, state).length} messages échangés.
+              </p>
+            </div>
           ) : (
             <div className="space-y-4">
               <div className="flex items-center gap-4 rounded-2xl border border-border bg-secondary/30 p-4">
@@ -674,7 +690,7 @@ export function ChatDock() {
                   <div className="font-display text-lg font-bold uppercase">{active.name}</div>
                   <div className="text-xs text-muted-foreground">{active.description}</div>
                   <div className="mt-1 text-[10px] uppercase tracking-widest text-gold">
-                    {active.type} · {state.restaurants.find((r) => r.id === active.restaurantId)?.name ?? "Réseau / siège"}
+                    {active.type} · {restaurantName(active.restaurantId)}
                   </div>
                 </div>
               </div>
@@ -703,6 +719,100 @@ export function ChatDock() {
           )}
         </TCModal>
       )}
+
+      {active && confirmDelete && (
+        <TCModal
+          title="Supprimer le groupe"
+          subtitle={active.name}
+          onClose={() => setConfirmDelete(false)}
+          size="sm"
+          footer={
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setConfirmDelete(false)}>
+                Annuler
+              </Button>
+              <Button
+                onClick={() => {
+                  removeGroup(active.id);
+                  toast.success("Groupe supprimé");
+                  setConfirmDelete(false);
+                  setDetails(false);
+                  setDock({ groupId: null });
+                }}
+              >
+                Supprimer définitivement
+              </Button>
+            </div>
+          }
+        >
+          <p className="text-sm text-muted-foreground">
+            Cette action supprime le groupe et son historique de messages pour tous les membres.
+          </p>
+        </TCModal>
+      )}
+
+      {newGroup && (
+        <TCModal
+          title="Nouveau groupe"
+          subtitle="Créer un espace de discussion opérationnel"
+          onClose={() => setNewGroup(null)}
+          size="md"
+          footer={
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setNewGroup(null)}>
+                Annuler
+              </Button>
+              <Button onClick={saveNewGroup}>Créer le groupe</Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <PhotoUpload
+              value={newGroup.avatar}
+              onChange={(url) => setNewGroup({ ...newGroup, avatar: url ?? "" })}
+              label="Photo du groupe"
+              hint="JPG ou PNG — carré recommandé"
+            />
+            <label className="block">
+              <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">Nom</span>
+              <Input
+                value={newGroup.name}
+                onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
+                placeholder="Ex. Ouverture Casablanca"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">
+                Description
+              </span>
+              <Input
+                value={newGroup.description}
+                onChange={(e) => setNewGroup({ ...newGroup, description: e.target.value })}
+                placeholder="Objectif du groupe"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">
+                Restaurant
+              </span>
+              <TCSelect
+                value={newGroup.restaurantId ?? ""}
+                onChange={(v) => setNewGroup({ ...newGroup, restaurantId: v || null })}
+                searchable
+                options={[
+                  { value: "", label: "Réseau / siège" },
+                  ...state.restaurants.map((r) => ({ value: r.id, label: r.name, description: r.city })),
+                ]}
+              />
+            </label>
+            <MemberPicker
+              value={newGroup.memberIds}
+              onChange={(ids) => setNewGroup({ ...newGroup, memberIds: ids })}
+            />
+          </div>
+        </TCModal>
+      )}
+
     </>
   );
 }
