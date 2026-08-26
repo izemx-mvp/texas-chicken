@@ -281,7 +281,12 @@ export function ChatDock() {
       {/* Fenêtre flottante */}
       {open && (
         <div
-          className="glass fixed bottom-40 right-4 z-[100] flex h-[68vh] w-[min(24rem,calc(100vw-2rem))] origin-bottom-right flex-col overflow-hidden rounded-3xl border border-border shadow-2xl shadow-black/40 lg:bottom-24 lg:right-6 lg:h-[34rem]"
+          className={cn(
+            "glass fixed bottom-40 right-4 z-[100] flex origin-bottom-right flex-col overflow-hidden rounded-3xl border border-border shadow-2xl shadow-black/40 lg:bottom-24 lg:right-6",
+            expanded
+              ? "h-[80vh] w-[min(56rem,calc(100vw-2rem))] lg:h-[42rem]"
+              : "h-[68vh] w-[min(24rem,calc(100vw-2rem))] lg:h-[34rem]",
+          )}
           style={{ animation: "chat-pop .22s cubic-bezier(.2,.9,.3,1.2)" }}
         >
           <style>{`@keyframes chat-pop{from{opacity:0;transform:translateY(12px) scale(.94)}to{opacity:1;transform:none}}`}</style>
@@ -314,20 +319,49 @@ export function ChatDock() {
                   </span>
                 </button>
                 {!active.direct && (
-                  <button onClick={() => setMembers((m) => !m)} aria-label="Membres" className="text-muted-foreground hover:text-gold">
-                    <Users className="h-4 w-4" />
-                  </button>
+                  <>
+                    <button onClick={() => setMembers((m) => !m)} aria-label="Membres" className="text-muted-foreground hover:text-gold">
+                      <Users className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setDetails(true);
+                        if (canEdit) setEditGroup({ ...active });
+                      }}
+                      aria-label="Gérer le groupe"
+                      title="Gérer le groupe"
+                      className="text-muted-foreground hover:text-gold"
+                    >
+                      <Settings className="h-4 w-4" />
+                    </button>
+                  </>
                 )}
               </>
             ) : (
               <>
                 <MessagesSquare className="h-4 w-4 text-gold" />
                 <div className="flex-1 font-display text-sm font-bold uppercase tracking-wide">Messages</div>
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                  {directList.length} · {groupList.length}
-                </span>
+                {tab === "groups" && can(me, "chat", "Créer") && (
+                  <button
+                    onClick={() => setNewGroup(emptyGroup())}
+                    aria-label="Nouveau groupe"
+                    title="Nouveau groupe"
+                    className="grid h-7 w-7 place-items-center rounded-full bg-brand-gradient text-brand-foreground transition-transform hover:scale-105"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                )}
               </>
             )}
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              aria-label={expanded ? "Réduire" : "Agrandir"}
+              title={expanded ? "Réduire" : "Agrandir"}
+              className="text-muted-foreground hover:text-gold"
+            >
+              {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </button>
+
             <button onClick={() => setDock({ open: false })} aria-label="Fermer" className="text-muted-foreground hover:text-brand">
               <X className="h-4 w-4" />
             </button>
