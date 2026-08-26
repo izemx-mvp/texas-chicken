@@ -594,7 +594,18 @@ export function ChatDock() {
               >
                 Fermer
               </Button>
+              {canEdit && !active.direct && !editGroup && (
+                <Button
+                  variant="ghost"
+                  className="text-brand"
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  <Trash2 className="mr-1 h-3.5 w-3.5" /> Supprimer
+                </Button>
+              )}
               {canEdit &&
+                !active.direct &&
+
                 (editGroup ? (
                   <Button
                     onClick={() => {
