@@ -10,6 +10,7 @@ import {
   Image as ImageIcon,
   MessagesSquare,
   Paperclip,
+  Plus,
   Search,
   Send,
   Smile,
