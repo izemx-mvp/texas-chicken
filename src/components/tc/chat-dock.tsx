@@ -394,17 +394,6 @@ export function ChatDock() {
                   className="h-6 w-full bg-transparent text-sm outline-none"
                 />
               </div>
-              {tab === "groups" && can(me, "chat", "Créer") && (
-                <div className="border-b border-border px-2 py-2">
-                  <button
-                    type="button"
-                    onClick={() => setNewGroup(emptyGroup())}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-gradient px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-brand-foreground transition-transform hover:scale-[1.01]"
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Nouveau groupe
-                  </button>
-                </div>
-              )}
               <div className="flex-1 space-y-1 overflow-y-auto p-2">
                 {filtered.map((g) => {
                   const last = messagesOf(g.id, state).slice(-1)[0];
@@ -437,7 +426,9 @@ export function ChatDock() {
                             : g.description}
                         </span>
                         <span className="block truncate text-[10px] uppercase tracking-widest text-gold">
-                          {g.direct ? peer?.role : `${g.memberIds.length} membres`}
+                          {g.direct
+                            ? `${peer?.role ?? ""} · ${restaurantName(peer?.restaurantId ?? null)}`
+                            : `${g.memberIds.length} membres`}
                         </span>
                       </span>
                       {n > 0 && (
@@ -448,12 +439,39 @@ export function ChatDock() {
                     </button>
                   );
                 })}
-                {filtered.length === 0 && (
+                {filtered.length === 0 && newPeople.length === 0 && (
                   <p className="p-8 text-center text-xs text-muted-foreground">
                     {tab === "direct" ? "Aucune conversation." : "Aucun groupe."}
                   </p>
                 )}
+
+                {newPeople.length > 0 && (
+                  <>
+                    <div className="px-2 pb-1 pt-3 text-[10px] uppercase tracking-widest text-muted-foreground">
+                      Annuaire · démarrer une conversation
+                    </div>
+                    {newPeople.map((u) => (
+                      <button
+                        key={u.id}
+                        onClick={() => startDirect(u.id)}
+                        className="flex w-full items-center gap-2.5 rounded-2xl p-2 text-left transition-colors hover:bg-secondary/60"
+                      >
+                        <UserAvatar user={u} size={40} presence rounded="rounded-full" />
+                        <span className="min-w-0 flex-1 leading-tight">
+                          <span className="block truncate text-sm font-medium">
+                            {u.firstName} {u.lastName}
+                          </span>
+                          <span className="block truncate text-[10px] uppercase tracking-widest text-gold">
+                            {u.role} · {restaurantName(u.restaurantId ?? null)}
+                          </span>
+                        </span>
+                        <UserPlus className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </button>
+                    ))}
+                  </>
+                )}
               </div>
+
 
             </>
           )}
