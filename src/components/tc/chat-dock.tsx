@@ -116,6 +116,7 @@ export function ChatDock() {
   const groups = useMemo(() => groupsForUser(me?.id, state), [state, me?.id]);
   const unread = totalUnread(me?.id, state);
 
+  const [tab, setTab] = useState<"direct" | "groups">("direct");
   const [q, setQ] = useState("");
   const [text, setText] = useState("");
   const [pending, setPending] = useState<ChatAttachment[]>([]);
@@ -123,9 +124,12 @@ export function ChatDock() {
   const [members, setMembers] = useState(false);
   const [details, setDetails] = useState(false);
   const [editGroup, setEditGroup] = useState<ChatGroup | null>(null);
+  const [newGroup, setNewGroup] = useState<ChatGroup | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [mentionOpen, setMentionOpen] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
 
   const active = groups.find((g) => g.id === groupId) ?? null;
   const canEdit =
