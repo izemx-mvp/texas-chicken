@@ -17,7 +17,6 @@ import {
   LogOut,
   Menu,
   Users as UsersIcon,
-  MessagesSquare,
   PackageSearch,
   GraduationCap,
   Truck,
