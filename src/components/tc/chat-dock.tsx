@@ -154,9 +154,54 @@ export function ChatDock() {
     return `${u?.firstName?.[0] ?? "?"}${u?.lastName?.[0] ?? ""}`;
   };
 
-  const filtered = groups.filter((g) =>
-    `${g.name} ${g.description}`.toLowerCase().includes(q.trim().toLowerCase()),
-  );
+  const restaurantName = (rid: string | null) =>
+    state.restaurants.find((r) => r.id === rid)?.name ?? "Réseau / siège";
+
+  const peerOf = (g: ChatGroup) => userOf(g.memberIds.find((m) => m !== me?.id) ?? g.memberIds[0] ?? "");
+  const labelOf = (g: ChatGroup) => {
+    if (!g.direct) return g.name;
+    const u = peerOf(g);
+    return u ? `${u.firstName} ${u.lastName}` : g.name;
+  };
+
+  const term = q.trim().toLowerCase();
+  const directList = groups
+    .filter((g) => g.direct)
+    .filter((g) => `${labelOf(g)} ${peerOf(g)?.role ?? ""}`.toLowerCase().includes(term));
+  const groupList = groups
+    .filter((g) => !g.direct)
+    .filter((g) => `${g.name} ${g.description}`.toLowerCase().includes(term));
+  const filtered = tab === "direct" ? directList : groupList;
+
+  const emptyGroup = (): ChatGroup => ({
+    id: "",
+    name: "",
+    description: "",
+    type: "Groupe personnalisé",
+    restaurantId: me?.restaurantId ?? null,
+    avatar: "",
+    memberIds: me ? [me.id] : [],
+    adminId: me?.id ?? "",
+    adminIds: me ? [me.id] : [],
+    createdAt: state.activeDate,
+    status: "Actif",
+  });
+
+  const saveNewGroup = () => {
+    if (!newGroup) return;
+    if (!newGroup.name.trim()) return toast.error("Le nom du groupe est obligatoire");
+    const id = `g${Date.now()}`;
+    upsertGroup({
+      ...newGroup,
+      id,
+      memberIds: Array.from(new Set([...(me ? [me.id] : []), ...newGroup.memberIds])),
+    });
+    toast.success("Groupe créé");
+    setNewGroup(null);
+    setTab("groups");
+    setDock({ groupId: id });
+  };
+
 
   const mentionCandidates = active
     ? [{ id: "all", label: "all", role: "Tout le groupe" }].concat(
