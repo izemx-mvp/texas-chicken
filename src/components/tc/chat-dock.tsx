@@ -183,6 +183,28 @@ export function ChatDock() {
     .filter((g) => `${g.name} ${g.description}`.toLowerCase().includes(term));
   const filtered = tab === "direct" ? directList : groupList;
 
+  /** Personnes avec qui aucune conversation n'existe encore (recherche annuaire). */
+  const knownPeerIds = new Set(
+    groups.filter((g) => g.direct).flatMap((g) => g.memberIds.filter((id) => id !== me?.id)),
+  );
+  const newPeople =
+    tab === "direct" && term.length > 0
+      ? state.users
+          .filter((u) => u.id !== me?.id && !knownPeerIds.has(u.id))
+          .filter((u) =>
+            `${u.firstName} ${u.lastName} ${u.role} ${u.email ?? ""}`.toLowerCase().includes(term),
+          )
+          .slice(0, 12)
+      : [];
+
+  const startDirect = (otherId: string) => {
+    if (!me) return;
+    const id = directChatWith(me.id, otherId);
+    setQ("");
+    setDock({ groupId: id });
+  };
+
+
   const emptyGroup = (): ChatGroup => ({
     id: "",
     name: "",
