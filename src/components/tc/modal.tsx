@@ -4,9 +4,11 @@
  * Seul le contenu interne défile : les actions restent toujours accessibles
  * et la page derrière ne scrolle jamais.
  */
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+
 
 export function TCModal({
   open = true,
