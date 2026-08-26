@@ -4,9 +4,11 @@
  * Seul le contenu interne défile : les actions restent toujours accessibles
  * et la page derrière ne scrolle jamais.
  */
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+
 
 export function TCModal({
   open = true,
@@ -30,6 +32,9 @@ export function TCModal({
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
 }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -42,7 +47,9 @@ export function TCModal({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
+
+
 
   const width = {
     sm: "max-w-md",
@@ -51,11 +58,12 @@ export function TCModal({
     xl: "max-w-5xl",
   }[size];
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[120] flex items-center justify-center overflow-hidden bg-black/70 p-3 backdrop-blur-sm sm:p-6"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
+
       <div
         className={cn(
           "glass animate-rise flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-hidden rounded-3xl sm:max-h-[min(90dvh,52rem)]",
@@ -84,6 +92,8 @@ export function TCModal({
           <div className="shrink-0 border-t border-border bg-background/40 px-5 py-3">{footer}</div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
+
 }
