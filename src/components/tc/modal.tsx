@@ -92,6 +92,8 @@ export function TCModal({
           <div className="shrink-0 border-t border-border bg-background/40 px-5 py-3">{footer}</div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
+
 }
