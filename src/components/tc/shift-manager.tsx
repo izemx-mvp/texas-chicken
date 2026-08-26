@@ -255,6 +255,11 @@ export function ShiftManager({ restaurantId }: { restaurantId: string }) {
               <h4 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                 Informations du shift
               </h4>
+              <Field label="Restaurant">
+                <div className="rounded-xl border border-border bg-secondary/30 px-3 py-2 text-sm font-semibold">
+                  {state.restaurants.find((r) => r.id === restaurantId)?.name ?? "Restaurant"}
+                </div>
+              </Field>
               <Field label="Nom du shift">
                 <Input
                   value={draft.name}
@@ -262,6 +267,7 @@ export function ShiftManager({ restaurantId }: { restaurantId: string }) {
                   placeholder="Matin, Soir, Nuit…"
                 />
               </Field>
+
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Début">
                   <Input type="time" value={draft.start} onChange={(e) => setDraft({ ...draft, start: e.target.value })} />
