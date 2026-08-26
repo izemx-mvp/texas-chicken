@@ -72,7 +72,10 @@ export interface ChatGroup {
   adminIds?: ID[];
   createdAt: string;
   status: "Actif" | "Inactif";
+  /** Conversation individuelle (1:1) — affichée dans l'onglet « Conversations ». */
+  direct?: boolean;
 }
+
 
 const AVATARS = [
   "linear-gradient(135deg,#d8452f,#f0a32f)",
