@@ -411,7 +411,7 @@ function MemberSelector({
         </div>
       )}
 
-      <div className="grid max-h-80 gap-1.5 overflow-y-auto rounded-2xl border border-border p-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+      <div className="grid max-h-[min(18rem,32dvh)] gap-1.5 overflow-y-auto rounded-2xl border border-border p-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
         {list.map((u) => {
           const on = value.includes(u.id);
           return (
