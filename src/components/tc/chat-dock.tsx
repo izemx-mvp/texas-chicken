@@ -11,6 +11,7 @@ import {
   MessagesSquare,
   Paperclip,
   Plus,
+  Trash2,
   Search,
   Send,
   Smile,
@@ -30,7 +31,7 @@ import {
   useStore,
 } from "@/lib/tc/store";
 import { toast } from "sonner";
-import { upsertGroup } from "@/lib/tc/store";
+import { upsertGroup, removeGroup } from "@/lib/tc/store";
 import type { ChatAttachment, ChatGroup } from "@/lib/tc/ops";
 import { GroupAvatar, UserAvatar } from "./avatar";
 import { TCModal } from "./modal";
