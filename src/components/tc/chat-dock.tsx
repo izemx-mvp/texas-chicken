@@ -189,7 +189,11 @@ export function ChatDock() {
 
   const saveNewGroup = () => {
     if (!newGroup) return;
-    if (!newGroup.name.trim()) return toast.error("Le nom du groupe est obligatoire");
+    if (!newGroup.name.trim()) {
+      toast.error("Le nom du groupe est obligatoire");
+      return;
+    }
+
     const id = `g${Date.now()}`;
     upsertGroup({
       ...newGroup,
