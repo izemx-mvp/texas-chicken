@@ -129,7 +129,8 @@ export function OrderWizard({
   const [draftMail, setDraftMail] = useState<{ to: string; subject: string; body: string } | null>(null);
   const editedMail = draftMail ?? (mail ? { to: mail.to, subject: mail.subject, body: mail.body } : null);
 
-  const blocked = !request || (request.status !== "Approuvée" && !created);
+  const blocked =
+    !request || (request.status !== "Approuvée" && request.status !== "En attente" && !created);
 
   const canNext =
     step === 0
