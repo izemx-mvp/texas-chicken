@@ -33,6 +33,8 @@ import type {
   ChatAttachment,
   ChatMessage,
   DeliveryNote,
+  DeliveryNoteFile,
+
   OrderLine,
   ProductRequest,
   RequestLine,
@@ -2064,11 +2066,23 @@ export function createOrder(input: {
   return order;
 }
 
-/** Envoi (simulé) du bon de commande par email au fournisseur. */
-export function sendOrder(id: string) {
+/**
+ * Envoi (simulé) du bon de commande par email au fournisseur.
+ * `override` permet d'envoyer l'email modifié manuellement dans l'aperçu.
+ */
+export function sendOrder(id: string, override?: { to?: string; subject?: string; body?: string }) {
   const order = state.purchaseOrders.find((o) => o.id === id);
   if (!order) return null;
-  const mail = orderEmail(order);
+  const base = orderEmail(order);
+  const mail = {
+    ...base,
+    to: override?.to?.trim() || base.to,
+    subject: override?.subject?.trim() || base.subject,
+    body: override?.body ?? base.body,
+  };
+  const edited =
+    !!override &&
+    (mail.to !== base.to || mail.subject !== base.subject || mail.body !== base.body);
   const at = nowStamp();
   setState((s) => ({
     purchaseOrders: s.purchaseOrders.map((o) =>
@@ -2080,13 +2094,22 @@ export function sendOrder(id: string) {
             emailTo: mail.to,
             emailSubject: mail.subject,
             emailBody: mail.body,
-            history: [...o.history, { at, label: `Commande envoyée à ${mail.to} (pièce jointe ${mail.attachment})` }],
+            history: [
+              ...o.history,
+              {
+                at,
+                label: `Commande envoyée à ${mail.to} (pièce jointe ${mail.attachment})${
+                  edited ? " — email personnalisé avant envoi" : ""
+                }`,
+              },
+            ],
           }
         : o,
     ),
   }));
   return mail;
 }
+
 
 export function cancelOrder(id: string, reason?: string) {
   setOrderStatus(id, "Annulée", reason ? `Commande annulée — ${reason}` : "Commande annulée");
@@ -2249,8 +2272,17 @@ export function deliveryNoteOf(orderId: string, s: State = state) {
 export function createDeliveryNote(
   orderId: string,
   signedBy: string,
-  data: { receivedQuantities?: Record<string, number>; comment?: string; photo?: string },
+  data: {
+    receivedQuantities?: Record<string, number>;
+    comment?: string;
+    photo?: string;
+    supplierNoteRef?: string;
+    carrier?: string;
+    temperature?: string;
+    document?: DeliveryNoteFile;
+  },
 ): DeliveryNote | null {
+
   const order = state.purchaseOrders.find((o) => o.id === orderId);
   if (!order) return null;
   const at = nowStamp();
@@ -2276,7 +2308,12 @@ export function createDeliveryNote(
     lines,
     conform,
     comment: data.comment?.trim() || undefined,
+    supplierNoteRef: data.supplierNoteRef?.trim() || undefined,
+    carrier: data.carrier?.trim() || undefined,
+    temperature: data.temperature?.trim() || undefined,
+    document: data.document,
   };
+
   setState((s) => ({
     deliveryNotes: [note, ...s.deliveryNotes],
     purchaseOrders: s.purchaseOrders.map((o) =>
@@ -2293,11 +2330,13 @@ export function createDeliveryNote(
               ...o.history,
               {
                 at,
-                label: conform
-                  ? `Bon de livraison ${note.ref} généré — livraison conforme`
-                  : `Bon de livraison ${note.ref} généré — écart signalé`,
+                label: `Réception confirmée par le restaurant — bon de livraison ${note.ref} ${
+                  conform ? "conforme" : "avec écart"
+                }${data.document ? ` · document importé : ${data.document.name}` : ""}`,
               },
+              { at, label: "Commande marquée « Livrée » par le manager du restaurant" },
             ],
+
           }
         : o,
     ),

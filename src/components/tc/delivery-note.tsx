@@ -3,7 +3,7 @@
  * moment de la réception physique de la marchandise. Il est rattaché à la
  * commande fournisseur correspondante.
  */
-import { AlertTriangle, Check, Printer } from "lucide-react";
+import { AlertTriangle, Check, FileText, Printer } from "lucide-react";
 import texasLogo from "@/assets/texas-chicken-logo.svg";
 import { money } from "./order-document";
 import { useStore } from "@/lib/tc/store";
@@ -42,7 +42,13 @@ export function DeliveryNoteDocument({ note }: { note: DeliveryNote }) {
         <div className="grid gap-3 py-4 sm:grid-cols-2">
           <Block
             title="Fournisseur"
-            rows={[supplier?.name ?? "—", supplier?.contact ?? "", supplier?.email ?? ""]}
+            rows={[
+              supplier?.name ?? "—",
+              supplier?.contact ?? "",
+              supplier?.email ?? "",
+              note.supplierNoteRef ? `Bon fournisseur n° ${note.supplierNoteRef}` : "",
+              note.carrier ? `Livreur : ${note.carrier}` : "",
+            ]}
           />
           <Block
             title="Réception au restaurant"
@@ -50,9 +56,11 @@ export function DeliveryNoteDocument({ note }: { note: DeliveryNote }) {
               restaurant?.name ?? "—",
               [restaurant?.address, restaurant?.city].filter(Boolean).join(", "),
               signer ? `Réceptionné par : ${signer.firstName} ${signer.lastName}` : "",
+              note.temperature ? `Température relevée : ${note.temperature}` : "",
             ]}
           />
         </div>
+
 
         <table className="w-full border-collapse text-left">
           <thead>
@@ -101,10 +109,38 @@ export function DeliveryNoteDocument({ note }: { note: DeliveryNote }) {
           </span>
         </div>
 
+        {note.document && (
+          <div className="mt-4 rounded-xl border border-gold/40 bg-gold/10 p-3">
+            <div className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-gold">
+              Bon de livraison importé par le restaurant
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-[11px]">
+              <FileText className="h-4 w-4 shrink-0 text-gold" />
+              <span className="min-w-0 flex-1 truncate font-semibold">{note.document.name}</span>
+              <span className="text-muted-foreground">
+                {note.document.type}
+                {note.document.size ? ` · ${(note.document.size / 1024 / 1024).toFixed(1)} Mo` : ""} · importé le{" "}
+                {note.document.uploadedAt}
+              </span>
+              {note.document.url && (
+                <a
+                  href={note.document.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-lg border border-gold/50 px-2 py-1 font-semibold text-gold"
+                >
+                  Ouvrir
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
         <p className="mt-4 border-t border-border pt-3 text-[10px] text-muted-foreground">
           Bon de livraison signé électroniquement par le responsable du restaurant. Ce document vaut confirmation de
           réception de la marchandise auprès du fournisseur.
         </p>
+
       </div>
 
       <button

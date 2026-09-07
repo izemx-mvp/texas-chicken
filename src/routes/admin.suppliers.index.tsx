@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { useLang } from "@/lib/tc/i18n";
 import {
   addSupplier,
   approveRequest,
@@ -84,6 +85,7 @@ const EMPTY: Omit<Supplier, "id" | "products"> = {
 
 function SuppliersPage() {
   const state = useStore((s) => s);
+  const { tr: L } = useLang();
   const navigate = useNavigate();
   const [tab, setTab] = useState<"fournisseurs" | "demandes" | "commandes">("fournisseurs");
   const [q, setQ] = useState("");
@@ -145,7 +147,7 @@ function SuppliersPage() {
           tone={pendingCount ? "warning" : "success"}
           icon={<ClipboardList className="h-4 w-4" />}
         />
-        <KpiCard label="Commandes" value={allOrders.length} icon={<ShoppingCart className="h-4 w-4" />} />
+        <KpiCard label={L("Commandes")} value={allOrders.length} icon={<ShoppingCart className="h-4 w-4" />} />
         <KpiCard label="À envoyer" value={toSend.length} tone="warning" icon={<Mail className="h-4 w-4" />} />
       </div>
 
@@ -160,7 +162,11 @@ function SuppliersPage() {
                 tab === t ? "bg-brand/20 text-foreground" : "text-muted-foreground",
               )}
             >
-              {t === "fournisseurs" ? "Fournisseurs" : t === "demandes" ? `Demandes${pendingCount ? ` (${pendingCount})` : ""}` : "Commandes"}
+              {t === "fournisseurs"
+                ? L("Fournisseurs")
+                : t === "demandes"
+                  ? `${L("Demandes")}${pendingCount ? ` (${pendingCount})` : ""}`
+                  : L("Commandes")}
             </button>
           ))}
         </div>
@@ -168,7 +174,7 @@ function SuppliersPage() {
           <ShoppingCart className="mr-1.5 h-4 w-4" /> Nouvelle commande
         </Button>
         <Button variant="ghost" onClick={() => setForm({ ...EMPTY })}>
-          <Plus className="mr-1.5 h-4 w-4" /> Fournisseur
+          <Plus className="mr-1.5 h-4 w-4" /> {L("Fournisseur")}
         </Button>
       </div>
 
