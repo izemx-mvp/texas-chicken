@@ -11,6 +11,8 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { getLang } from "../lib/tc/i18n";
+import { startAutoTranslate } from "../lib/tc/auto-translate";
 
 function NotFoundComponent() {
   return (
@@ -116,6 +118,13 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // Traduction automatique de toute l'interface selon la langue choisie.
+  useEffect(() => {
+    document.documentElement.lang = getLang();
+    document.documentElement.dir = "ltr";
+    startAutoTranslate();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
