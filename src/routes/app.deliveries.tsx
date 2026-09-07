@@ -13,6 +13,7 @@ import { SingleFileUpload, type UploadedDoc } from "@/components/tc/upload";
 
 import { money } from "@/components/tc/order-document";
 import { cn } from "@/lib/utils";
+import { useLang } from "@/lib/tc/i18n";
 import {
   createDeliveryNote,
   currentUser,
@@ -53,6 +54,7 @@ const TABS = ["Mes demandes", "Attendues", "En livraison", "En retard", "Reçues
 
 function CommandePage() {
   const state = useStore((s) => s);
+  const { tr: L } = useLang();
   const me = currentUser();
   const orders = useMemo(() => ordersFor(me?.restaurantId, state), [state, me?.restaurantId]);
   const requests = useMemo(() => requestsFor(me?.restaurantId, state), [state, me?.restaurantId]);
@@ -80,7 +82,7 @@ function CommandePage() {
         <div className="flex flex-wrap gap-2">
           <ChatContextButton label="Discuter livraisons" target={{ match: "logistique" }} />
           <Button size="sm" onClick={() => setNewRequest(true)}>
-            <Plus className="mr-1.5 h-4 w-4" /> Nouvelle demande
+            <Plus className="mr-1.5 h-4 w-4" /> {L("Nouvelle demande")}
           </Button>
         </div>
       </div>
@@ -95,7 +97,7 @@ function CommandePage() {
         ].map(([l, n]) => (
           <div key={l as string} className="glass rounded-2xl p-3 text-center">
             <div className="font-display text-xl font-bold text-gold">{n as number}</div>
-            <div className="text-[9px] uppercase tracking-widest text-muted-foreground">{l as string}</div>
+            <div className="text-[9px] uppercase tracking-widest text-muted-foreground">{L(l as string)}</div>
           </div>
         ))}
       </div>
@@ -110,7 +112,7 @@ function CommandePage() {
               tab === t ? "bg-brand/20 text-foreground" : "text-muted-foreground",
             )}
           >
-            {t}
+            {L(t)}
           </button>
         ))}
       </div>
