@@ -1458,28 +1458,8 @@ export const productRequests: ProductRequest[] = [
       status: "En attente" as RequestStatus,
     };
   }),
-  // Demandes approuvées, prêtes à être transformées en bon de commande
-  ...(["r1", "r2"] as const).map((rid, i) => {
-    const sup = suppliers[(i + 2) % suppliers.length]!;
-    const requester = users.find((u) => u.restaurantId === rid) ?? managerUser;
-    return {
-      id: `pra${i + 1}`,
-      ref: `DM-2026-${pad(300 + i)}`,
-      restaurantId: rid as ID,
-      requesterId: requester.id,
-      supplierId: sup.id,
-      lines: sup.products.slice(0, 3).map((p, li) => ({
-        productId: p.id,
-        name: p.name,
-        unit: p.unit,
-        quantity: 5 + ((i + li) % 5) * 3,
-        price: p.price,
-      })),
-      createdAt: `${shift(-1 - (i % 3))} ${pad(8 + i)}:${pad(10 + i * 4)}`,
-      status: "Approuvée" as RequestStatus,
-      decision: { by: adminUser.id, at: `${shift(-(i % 2))} 10:05` },
-    };
-  }),
+  // (Aucune demande approuvée en attente : dès l'approbation, un bon de commande est émis et la demande passe dans « Commandes ».)
+
   // Demande rejetée avec motif
   {
     id: "prr1",

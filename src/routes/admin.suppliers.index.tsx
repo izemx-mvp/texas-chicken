@@ -119,10 +119,8 @@ function SuppliersPage() {
     return true;
   });
   const toSend = allOrders.filter((o) => o.status === "À envoyer" || o.status === "Brouillon");
-  /** Une fois qu'un bon de commande existe, la demande quitte la file et vit dans l'onglet Commandes. */
-  const requests = requestsFor(null, state).filter(
-    (r) => !r.orderId && (r.status === "En attente" || r.status === "Approuvée"),
-  );
+  /** Onglet Demandes : uniquement les demandes à traiter. Une fois approuvée, elle devient une commande. */
+  const requests = requestsFor(null, state).filter((r) => r.status === "En attente");
   const pendingCount = requests.filter((r) => r.status === "En attente").length;
 
   const save = () => {
@@ -322,33 +320,10 @@ function SuppliersPage() {
                 )}
                 {r.status === "Approuvée" && (
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    {r.orderId ? (
-                      <Button
-                        size="sm"
-                        disabled={busy === r.id}
-                        onClick={() => {
-                          if (busy === r.id) return;
-                          setBusy(r.id);
-                          const mail = sendOrder(r.orderId!);
-                          toast.success(`Bon de commande envoyé à ${mail?.to ?? "fournisseur"}`);
-                        }}
-                      >
-                        <Mail className="mr-1.5 h-3.5 w-3.5" /> Envoyer le bon de commande
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={!!wizard}
-                        onClick={() => setWizard({ supplierId: r.supplierId, requestId: r.id })}
-                      >
-                        <ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> Créer le bon de commande
-                      </Button>
-                    )}
                     <span className="text-[11px] text-muted-foreground">
-                      En attente d'envoi au fournisseur — la demande basculera dans « Commandes » une fois l'email
-                      envoyé.
+                      Approuvée — la demande est passée dans « Commandes ».
                     </span>
+
                   </div>
                 )}
               </article>
