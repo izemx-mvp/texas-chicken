@@ -92,7 +92,8 @@ function SuppliersPage() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
   const [form, setForm] = useState<(Omit<Supplier, "id" | "products"> & { id?: string }) | null>(null);
-  const [wizard, setWizard] = useState<{ supplierId?: string } | null>(null);
+  const [wizard, setWizard] = useState<{ supplierId?: string; requestId?: string } | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const [preview, setPreview] = useState<PurchaseOrder | null>(null);
   const [noteView, setNoteView] = useState<DeliveryNote | null>(null);
   const [reject, setReject] = useState<ProductRequest | null>(null);
