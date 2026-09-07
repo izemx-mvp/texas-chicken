@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 import { useLang } from "@/lib/tc/i18n";
 import {
   addSupplier,
-  approveRequest,
+  
   cancelOrder,
   deliveryNoteOf,
   orderTotal,
