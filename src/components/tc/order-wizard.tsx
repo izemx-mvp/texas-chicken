@@ -44,23 +44,30 @@ export function OrderWizard({
   onClose,
   supplierId: initialSupplier,
   restaurantId: initialRestaurant,
+  requestId: initialRequest,
 }: {
   onClose: () => void;
   supplierId?: string;
   restaurantId?: string;
+  /** Demande ouverte explicitement (peut être encore « En attente »). */
+  requestId?: string;
 }) {
   const state = useStore((s) => s);
   const user = useStore(() => currentUser());
   const suppliers = state.suppliers.filter((x) => x.status === "Actif");
 
   const available = useMemo(() => {
+    if (initialRequest) {
+      const one = state.productRequests.find((r) => r.id === initialRequest);
+      if (one) return [one];
+    }
     let list = approvedRequests(initialRestaurant ?? null, state);
     if (initialSupplier) {
       const scoped = list.filter((r) => r.supplierId === initialSupplier);
       if (scoped.length) list = scoped;
     }
     return list;
-  }, [state, initialSupplier, initialRestaurant]);
+  }, [state, initialSupplier, initialRestaurant, initialRequest]);
 
   const [step, setStep] = useState(0);
   const first = available[0] ?? null;
