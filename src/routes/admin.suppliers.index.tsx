@@ -302,7 +302,10 @@ function SuppliersPage() {
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Button
                       size="sm"
+                      disabled={busy === r.id}
                       onClick={() => {
+                        if (busy === r.id) return;
+                        setBusy(r.id);
                         approveRequest(r.id, "u0");
                         toast.success(`Demande ${r.ref} approuvée`);
                       }}
@@ -312,6 +315,7 @@ function SuppliersPage() {
                     <Button
                       size="sm"
                       variant="ghost"
+                      disabled={busy === r.id}
                       onClick={() => {
                         setReject(r);
                         setRejectReason("");
@@ -323,7 +327,12 @@ function SuppliersPage() {
                 )}
                 {r.status === "Approuvée" && (
                   <div className="mt-3">
-                    <Button size="sm" variant="ghost" onClick={() => setWizard({ supplierId: r.supplierId })}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={!!wizard}
+                      onClick={() => setWizard({ supplierId: r.supplierId, requestId: r.id })}
+                    >
                       <ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> Créer le bon de commande
                     </Button>
                   </div>
