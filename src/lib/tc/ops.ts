@@ -43,8 +43,10 @@ export const GROUP_TYPES: GroupType[] = [
 
 export interface ChatAttachment {
   name: string;
-  kind: "Image" | "Document";
+  kind: "Image" | "Document" | "Audio";
   url?: string;
+  /** Durée du message vocal en millisecondes (kind === "Audio"). */
+  durationMs?: number;
 }
 
 export interface ChatMessage {
@@ -1326,3 +1328,184 @@ export const ORDER_STATUSES: OrderStatus[] = [
 
 export const TODAY_REF = TODAY;
 export const restaurantsRef = restaurants;
+
+/* ============ DEMANDES DE MARCHANDISE (Manager → Admin) ============ */
+
+export type RequestStatus = "En attente" | "Approuvée" | "Rejetée" | "Commandée" | "Livrée";
+
+export const REQUEST_STATUSES: RequestStatus[] = [
+  "En attente",
+  "Approuvée",
+  "Rejetée",
+  "Commandée",
+  "Livrée",
+];
+
+export interface RequestLine {
+  productId: ID;
+  name: string;
+  unit: string;
+  quantity: number;
+  price: number;
+}
+
+export interface ProductRequest {
+  id: ID;
+  ref: string;
+  restaurantId: ID;
+  requesterId: ID;
+  supplierId: ID;
+  lines: RequestLine[];
+  note?: string;
+  createdAt: string;
+  status: RequestStatus;
+  /** Décision de l'administration (approbation ou rejet motivé). */
+  decision?: { by: ID; at: string; reason?: string };
+  /** Bon de commande émis à partir de cette demande. */
+  orderId?: ID;
+}
+
+/* ==================== BONS DE LIVRAISON ==================== */
+
+export interface DeliveryNoteLine {
+  productId: ID;
+  name: string;
+  unit: string;
+  ordered: number;
+  received: number;
+  price: number;
+}
+
+export interface DeliveryNote {
+  id: ID;
+  ref: string;
+  orderId: ID;
+  requestId?: ID;
+  restaurantId: ID;
+  supplierId: ID;
+  at: string;
+  signedBy: ID;
+  lines: DeliveryNoteLine[];
+  conform: boolean;
+  comment?: string;
+}
+
+const RECEIVED_STATUSES = ["Reçue", "Livrée", "Clôturée"];
+
+/** Une demande manager est générée pour chaque commande existante (traçabilité). */
+export const productRequests: ProductRequest[] = [
+  ...purchaseOrders.map((o, i) => {
+    const requester = users.find((u) => u.restaurantId === o.restaurantId) ?? managerUser;
+    const createdAt = `${o.createdAt.slice(0, 10)} ${pad(6 + (i % 3))}:${pad((i * 7) % 60)}`;
+    const delivered = RECEIVED_STATUSES.includes(o.status);
+    return {
+      id: `pr${i + 1}`,
+      ref: `DM-2026-${pad(100 + i)}`,
+      restaurantId: o.restaurantId,
+      requesterId: requester.id,
+      supplierId: o.supplierId,
+      lines: o.lines.map((l) => ({
+        productId: l.productId,
+        name: l.name,
+        unit: l.unit,
+        quantity: l.quantity,
+        price: l.price,
+      })),
+      note: i % 4 === 0 ? "Besoin pour le rush du week-end." : undefined,
+      createdAt,
+      status: (delivered ? "Livrée" : "Commandée") as RequestStatus,
+      decision: { by: adminUser.id, at: `${o.createdAt.slice(0, 10)} 09:15` },
+      orderId: o.id,
+    };
+  }),
+  // Demandes en attente d'approbation côté Administration
+  ...(["r1", "r2", "r3", "r4"] as const).map((rid, i) => {
+    const sup = suppliers[i % suppliers.length]!;
+    const requester = users.find((u) => u.restaurantId === rid) ?? managerUser;
+    return {
+      id: `prw${i + 1}`,
+      ref: `DM-2026-${pad(200 + i)}`,
+      restaurantId: rid as ID,
+      requesterId: requester.id,
+      supplierId: sup.id,
+      lines: sup.products.slice(0, 2 + (i % 2)).map((p, li) => ({
+        productId: p.id,
+        name: p.name,
+        unit: p.unit,
+        quantity: 3 + ((i + li) % 6) * 2,
+        price: p.price,
+      })),
+      note: i === 0 ? "Stock bas sur le poulet mariné — livraison rapide souhaitée." : undefined,
+      createdAt: `${shift(-(i % 2))} ${pad(7 + i)}:${pad(20 + i * 5)}`,
+      status: "En attente" as RequestStatus,
+    };
+  }),
+  // Demandes approuvées, prêtes à être transformées en bon de commande
+  ...(["r1", "r1", "r2", "r3"] as const).map((rid, i) => {
+    const sup = suppliers[(i + 2) % suppliers.length]!;
+    const requester = users.find((u) => u.restaurantId === rid) ?? managerUser;
+    return {
+      id: `pra${i + 1}`,
+      ref: `DM-2026-${pad(300 + i)}`,
+      restaurantId: rid as ID,
+      requesterId: requester.id,
+      supplierId: sup.id,
+      lines: sup.products.slice(0, 3).map((p, li) => ({
+        productId: p.id,
+        name: p.name,
+        unit: p.unit,
+        quantity: 5 + ((i + li) % 5) * 3,
+        price: p.price,
+      })),
+      createdAt: `${shift(-1 - (i % 3))} ${pad(8 + i)}:${pad(10 + i * 4)}`,
+      status: "Approuvée" as RequestStatus,
+      decision: { by: adminUser.id, at: `${shift(-(i % 2))} 10:05` },
+    };
+  }),
+  // Demande rejetée avec motif
+  {
+    id: "prr1",
+    ref: `DM-2026-${pad(400)}`,
+    restaurantId: "r1",
+    requesterId: managerUser.id,
+    supplierId: suppliers[4]!.id,
+    lines: suppliers[4]!.products.slice(0, 2).map((p) => ({
+      productId: p.id,
+      name: p.name,
+      unit: p.unit,
+      quantity: 12,
+      price: p.price,
+    })),
+    createdAt: `${shift(-3)} 09:40`,
+    status: "Rejetée" as RequestStatus,
+    decision: {
+      by: adminUser.id,
+      at: `${shift(-3)} 15:10`,
+      reason: "Stock packaging suffisant en entrepôt central — demande reportée à la semaine prochaine.",
+    },
+  },
+];
+
+/** Bons de livraison générés pour les commandes déjà réceptionnées. */
+export const deliveryNotes: DeliveryNote[] = purchaseOrders
+  .filter((o) => o.reception)
+  .map((o, i) => ({
+    id: `dn${i + 1}`,
+    ref: `BL-2026-${pad(100 + i)}`,
+    orderId: o.id,
+    requestId: productRequests.find((r) => r.orderId === o.id)?.id,
+    restaurantId: o.restaurantId,
+    supplierId: o.supplierId,
+    at: o.reception!.at,
+    signedBy: o.reception!.by,
+    lines: o.lines.map((l) => ({
+      productId: l.productId,
+      name: l.name,
+      unit: l.unit,
+      ordered: l.quantity,
+      received: l.receivedQuantity ?? l.quantity,
+      price: l.price,
+    })),
+    conform: o.reception!.conform,
+    comment: o.reception!.comment,
+  }));

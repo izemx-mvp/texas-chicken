@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
-import { ArrowDown, ArrowUp, Check, Plus, Save, Trash2, Video } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Plus, Save, Trash2 } from "lucide-react";
+import { VideoUpload } from "@/components/tc/upload";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -463,11 +464,8 @@ function Builder() {
                     <Field label="Description courte">
                       <Input value={current.description} onChange={(e) => patch({ description: e.target.value })} />
                     </Field>
-                    <Field label="Vidéo tutoriel (URL)">
-                      <div className="flex items-center gap-2">
-                        <Video className="h-4 w-4 text-gold" />
-                        <Input value={current.videoUrl ?? ""} onChange={(e) => patch({ videoUrl: e.target.value })} placeholder="https://..." />
-                      </div>
+                    <Field label="Vidéo tutoriel (fichier)">
+                      <VideoUpload value={current.videoUrl} onChange={(url) => patch({ videoUrl: url })} />
                     </Field>
                   </div>
                 )}

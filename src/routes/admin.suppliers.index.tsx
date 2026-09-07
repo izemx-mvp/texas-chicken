@@ -1,21 +1,41 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Building2, Eye, Mail, Pencil, Plus, Power, ShoppingCart, Trash2, Truck } from "lucide-react";
+import {
+  Building2,
+  Check,
+  ClipboardList,
+  Eye,
+  FileText,
+  Mail,
+  Pencil,
+  Plus,
+  Power,
+  ShoppingCart,
+  Trash2,
+  Truck,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { KpiCard, SectionTitle, StatusPill } from "@/components/tc/bits";
 import { TCModal } from "@/components/tc/modal";
 import { TCSelect } from "@/components/tc/select";
 import { OrderWizard } from "@/components/tc/order-wizard";
 import { OrderPreview, money } from "@/components/tc/order-document";
+import { DeliveryNoteDocument } from "@/components/tc/delivery-note";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
   addSupplier,
+  approveRequest,
   cancelOrder,
+  deliveryNoteOf,
   orderTotal,
+  rejectRequest,
   removeSupplier,
+  requestTotal,
+  requestsFor,
   sendOrder,
   setOrderStatus,
   supplierStats,
@@ -23,7 +43,13 @@ import {
   updateSupplier,
   useStore,
 } from "@/lib/tc/store";
-import { SUPPLIER_CATEGORIES, type PurchaseOrder, type Supplier } from "@/lib/tc/ops";
+import {
+  SUPPLIER_CATEGORIES,
+  type DeliveryNote,
+  type ProductRequest,
+  type PurchaseOrder,
+  type Supplier,
+} from "@/lib/tc/ops";
 
 export const Route = createFileRoute("/admin/suppliers/")({
   head: () => ({
@@ -59,12 +85,17 @@ const EMPTY: Omit<Supplier, "id" | "products"> = {
 function SuppliersPage() {
   const state = useStore((s) => s);
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"fournisseurs" | "commandes">("fournisseurs");
+  const [tab, setTab] = useState<"fournisseurs" | "demandes" | "commandes">("fournisseurs");
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
   const [form, setForm] = useState<(Omit<Supplier, "id" | "products"> & { id?: string }) | null>(null);
   const [wizard, setWizard] = useState<{ supplierId?: string } | null>(null);
   const [preview, setPreview] = useState<PurchaseOrder | null>(null);
+  const [noteView, setNoteView] = useState<DeliveryNote | null>(null);
+  const [reject, setReject] = useState<ProductRequest | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
 
   const suppliers = useMemo(
     () =>
@@ -76,8 +107,16 @@ function SuppliersPage() {
     [state.suppliers, cat, q],
   );
 
-  const orders = [...state.purchaseOrders].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  const toSend = orders.filter((o) => o.status === "À envoyer" || o.status === "Brouillon");
+  const allOrders = [...state.purchaseOrders].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const orders = allOrders.filter((o) => {
+    const d = o.createdAt.slice(0, 10);
+    if (from && d < from) return false;
+    if (to && d > to) return false;
+    return true;
+  });
+  const toSend = allOrders.filter((o) => o.status === "À envoyer" || o.status === "Brouillon");
+  const requests = requestsFor(null, state);
+  const pendingCount = requests.filter((r) => r.status === "En attente").length;
 
   const save = () => {
     if (!form) return;
@@ -100,23 +139,28 @@ function SuppliersPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Fournisseurs" value={state.suppliers.length} icon={<Building2 className="h-4 w-4" />} />
-        <KpiCard label="Actifs" value={state.suppliers.filter((s) => s.status === "Actif").length} tone="success" />
-        <KpiCard label="Commandes" value={orders.length} icon={<ShoppingCart className="h-4 w-4" />} />
+        <KpiCard
+          label="Demandes en attente"
+          value={pendingCount}
+          tone={pendingCount ? "warning" : "success"}
+          icon={<ClipboardList className="h-4 w-4" />}
+        />
+        <KpiCard label="Commandes" value={allOrders.length} icon={<ShoppingCart className="h-4 w-4" />} />
         <KpiCard label="À envoyer" value={toSend.length} tone="warning" icon={<Mail className="h-4 w-4" />} />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex flex-1 gap-1 rounded-xl border border-border p-1">
-          {(["fournisseurs", "commandes"] as const).map((t) => (
+        <div className="flex min-w-[16rem] flex-1 gap-1 rounded-xl border border-border p-1">
+          {(["fournisseurs", "demandes", "commandes"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={cn(
-                "flex-1 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-widest transition-colors",
+                "flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-[11px] font-semibold uppercase tracking-widest transition-colors",
                 tab === t ? "bg-brand/20 text-foreground" : "text-muted-foreground",
               )}
             >
-              {t === "fournisseurs" ? "Fournisseurs" : "Commandes"}
+              {t === "fournisseurs" ? "Fournisseurs" : t === "demandes" ? `Demandes${pendingCount ? ` (${pendingCount})` : ""}` : "Commandes"}
             </button>
           ))}
         </div>
@@ -200,69 +244,239 @@ function SuppliersPage() {
             )}
           </div>
         </>
+      ) : tab === "demandes" ? (
+        <div className="space-y-3">
+          {requests.map((r) => {
+            const sup = state.suppliers.find((x) => x.id === r.supplierId);
+            const rest = state.restaurants.find((x) => x.id === r.restaurantId);
+            const requester = state.users.find((u) => u.id === r.requesterId);
+            return (
+              <article key={r.id} className="glass rounded-3xl p-4">
+                <div className="flex flex-wrap items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-display text-sm font-bold uppercase">
+                      {r.ref} · {rest?.name}
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground">
+                      {sup?.name} · demandé par {requester ? `${requester.firstName} ${requester.lastName}` : "—"} le{" "}
+                      {r.createdAt.slice(0, 10)}
+                    </p>
+                  </div>
+                  <StatusPill status={r.status} />
+                </div>
+
+                <div className="mt-3 space-y-1 rounded-2xl border border-border bg-secondary/25 p-3 text-xs">
+                  {r.lines.map((l) => (
+                    <div key={l.productId} className="flex justify-between border-b border-border/40 py-1 last:border-0">
+                      <span className="truncate">{l.name}</span>
+                      <span className="tabular shrink-0 pl-3">
+                        {l.quantity} {l.unit} · {money(l.quantity * l.price)}
+                      </span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between pt-1 font-semibold">
+                    <span>Total estimé</span>
+                    <span className="tabular">{money(requestTotal(r))}</span>
+                  </div>
+                </div>
+
+                {r.note && <p className="mt-2 text-[11px] text-muted-foreground">Note : {r.note}</p>}
+                {r.status === "Rejetée" && r.decision?.reason && (
+                  <p className="mt-2 rounded-xl border border-destructive/40 bg-destructive/10 p-2 text-[11px] text-destructive">
+                    Rejetée le {r.decision.at} : {r.decision.reason}
+                  </p>
+                )}
+
+                {r.status === "En attente" && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        approveRequest(r.id, "u0");
+                        toast.success(`Demande ${r.ref} approuvée`);
+                      }}
+                    >
+                      <Check className="mr-1.5 h-3.5 w-3.5" /> Approuver
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setReject(r);
+                        setRejectReason("");
+                      }}
+                    >
+                      <X className="mr-1.5 h-3.5 w-3.5 text-destructive" /> Rejeter
+                    </Button>
+                  </div>
+                )}
+                {r.status === "Approuvée" && (
+                  <div className="mt-3">
+                    <Button size="sm" variant="ghost" onClick={() => setWizard({ supplierId: r.supplierId })}>
+                      <ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> Créer le bon de commande
+                    </Button>
+                  </div>
+                )}
+              </article>
+            );
+          })}
+          {requests.length === 0 && (
+            <p className="glass rounded-3xl p-6 text-center text-sm text-muted-foreground">
+              Aucune demande de marchandise pour le moment.
+            </p>
+          )}
+        </div>
       ) : (
-        <div className="glass overflow-x-auto rounded-3xl p-4">
-          <table className="w-full min-w-[820px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-border text-[10px] uppercase tracking-widest text-muted-foreground">
-                <th className="py-2">Référence</th>
-                <th className="py-2">Fournisseur</th>
-                <th className="py-2">Restaurant</th>
-                <th className="py-2">Livraison</th>
-                <th className="py-2 text-right">Total</th>
-                <th className="py-2">Statut</th>
-                <th className="py-2 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((o) => {
-                const sup = state.suppliers.find((x) => x.id === o.supplierId);
-                const rest = state.restaurants.find((r) => r.id === o.restaurantId);
-                return (
-                  <tr key={o.id} className="border-b border-border/50">
-                    <td className="py-2 font-semibold">{o.ref}</td>
-                    <td className="py-2">{sup?.name}</td>
-                    <td className="py-2 text-muted-foreground">{rest?.name}</td>
-                    <td className="tabular py-2 text-muted-foreground">{o.expectedAt}</td>
-                    <td className="tabular py-2 text-right">{money(orderTotal(o))}</td>
-                    <td className="py-2">
-                      <StatusPill status={o.status} />
-                    </td>
-                    <td className="py-2">
-                      <div className="flex justify-end gap-1">
-                        <Button size="sm" variant="ghost" onClick={() => setPreview(o)}>
-                          <Eye className="h-3.5 w-3.5" />
-                        </Button>
-                        {(o.status === "À envoyer" || o.status === "Brouillon") && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              const mail = sendOrder(o.id);
-                              toast.success(`Commande envoyée à ${mail?.to}`);
-                            }}
-                          >
-                            <Mail className="h-3.5 w-3.5" />
+        <div className="space-y-3">
+          <div className="glass flex flex-wrap items-end gap-3 rounded-3xl p-3">
+            <label className="block">
+              <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">Du</span>
+              <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">Au</span>
+              <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" />
+            </label>
+            {(from || to) && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setFrom("");
+                  setTo("");
+                }}
+              >
+                <X className="mr-1.5 h-3.5 w-3.5" /> Réinitialiser
+              </Button>
+            )}
+            <span className="ml-auto text-[11px] text-muted-foreground">
+              {orders.length} commande(s) sur {allOrders.length}
+            </span>
+          </div>
+
+          <div className="glass overflow-x-auto rounded-3xl p-4">
+            <table className="w-full min-w-[900px] table-auto text-left text-sm">
+              <thead>
+                <tr className="border-b border-border text-[10px] uppercase tracking-widest text-muted-foreground">
+                  <th className="py-2">Référence</th>
+                  <th className="py-2">Fournisseur</th>
+                  <th className="py-2">Restaurant</th>
+                  <th className="py-2">Livraison</th>
+                  <th className="w-32 py-2 text-right">Total</th>
+                  <th className="w-36 py-2 pl-4">Statut</th>
+                  <th className="w-40 py-2 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((o) => {
+                  const sup = state.suppliers.find((x) => x.id === o.supplierId);
+                  const rest = state.restaurants.find((r) => r.id === o.restaurantId);
+                  const bl = deliveryNoteOf(o.id, state);
+                  return (
+                    <tr key={o.id} className="border-b border-border/50 align-middle">
+                      <td className="py-2 font-semibold">{o.ref}</td>
+                      <td className="py-2">{sup?.name}</td>
+                      <td className="py-2 text-muted-foreground">{rest?.name}</td>
+                      <td className="tabular py-2 text-muted-foreground">{o.expectedAt}</td>
+                      <td className="tabular w-32 whitespace-nowrap py-2 text-right">{money(orderTotal(o))}</td>
+                      <td className="w-36 py-2 pl-4">
+                        <StatusPill status={o.status} />
+                      </td>
+                      <td className="w-40 py-2">
+                        <div className="flex justify-end gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => setPreview(o)}>
+                            <Eye className="h-3.5 w-3.5" />
                           </Button>
-                        )}
-                        {["Envoyée", "Confirmée"].includes(o.status) && (
-                          <Button size="sm" variant="ghost" onClick={() => setOrderStatus(o.id, "En livraison")}>
-                            <Truck className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        {!["Annulée", "Livrée", "Reçue", "Clôturée"].includes(o.status) && (
-                          <Button size="sm" variant="ghost" onClick={() => cancelOrder(o.id, "Décision Administration")}>
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
-                        )}
-                      </div>
+                          {bl && (
+                            <Button size="sm" variant="ghost" onClick={() => setNoteView(bl)} title={`Bon de livraison ${bl.ref}`}>
+                              <FileText className="h-3.5 w-3.5 text-success" />
+                            </Button>
+                          )}
+                          {(o.status === "À envoyer" || o.status === "Brouillon") && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                const mail = sendOrder(o.id);
+                                toast.success(`Commande envoyée à ${mail?.to}`);
+                              }}
+                            >
+                              <Mail className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {["Envoyée", "Confirmée"].includes(o.status) && (
+                            <Button size="sm" variant="ghost" onClick={() => setOrderStatus(o.id, "En livraison")}>
+                              <Truck className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {!["Annulée", "Livrée", "Reçue", "Clôturée"].includes(o.status) && (
+                            <Button size="sm" variant="ghost" onClick={() => cancelOrder(o.id, "Décision Administration")}>
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {orders.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="py-6 text-center text-muted-foreground">
+                      Aucune commande sur cette période.
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
+      )}
+
+      {reject && (
+        <TCModal
+          title={`Rejeter la demande ${reject.ref}`}
+          subtitle="Le motif est transmis au manager du restaurant"
+          size="sm"
+          onClose={() => setReject(null)}
+          footer={
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setReject(null)}>
+                Annuler
+              </Button>
+              <Button
+                onClick={() => {
+                  const err = rejectRequest(reject.id, "u0", rejectReason);
+                  if (err) {
+                    toast.error(err);
+                    return;
+                  }
+                  toast.success("Demande rejetée");
+                  setReject(null);
+                }}
+              >
+                Confirmer le rejet
+              </Button>
+            </div>
+          }
+        >
+          <Textarea
+            rows={4}
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            placeholder="Motif du rejet (budget, produit indisponible, quantité excessive…)"
+          />
+        </TCModal>
+      )}
+
+      {noteView && (
+        <TCModal
+          title={`Bon de livraison ${noteView.ref}`}
+          subtitle="Réception confirmée par le restaurant"
+          size="xl"
+          onClose={() => setNoteView(null)}
+        >
+          <DeliveryNoteDocument note={noteView} />
+        </TCModal>
       )}
 
       {form && (

@@ -30,6 +30,8 @@ import { AnimatedBackground } from "./background";
 import { TCLogo, TCMark } from "./logo";
 import { ChatDock } from "./chat-dock";
 import { ThemeToggle } from "./theme-toggle";
+import { LanguageSwitcher } from "./language-switcher";
+import { useLang } from "@/lib/tc/i18n";
 import { Input } from "@/components/ui/input";
 import { can, currentUser, logout, useStore } from "@/lib/tc/store";
 import { StatusPill } from "./bits";
@@ -38,18 +40,20 @@ import { UserAvatar } from "./avatar";
 export interface NavItem {
   to: string;
   label: string;
+  /** Clé de traduction (français, anglais, arabe). */
+  i18nKey: string;
   module: string;
   icon: typeof Home;
   exact?: boolean;
 }
 
 export const ADMIN_NAV: NavItem[] = [
-  { to: "/admin", label: "Command Center", module: "Dashboard", icon: LayoutDashboard, exact: true },
-  { to: "/admin/restaurants", label: "Restaurants", module: "Restaurants", icon: Building2 },
-  { to: "/admin/processes", label: "Processus & Contrôles", module: "Processus", icon: Workflow },
-  { to: "/admin/trainings", label: "Formations", module: "Formations", icon: GraduationCap },
-  { to: "/admin/suppliers", label: "Fournisseurs", module: "Commandes", icon: PackageSearch },
-  { to: "/admin/users", label: "Utilisateurs", module: "Utilisateurs", icon: UsersIcon },
+  { to: "/admin", label: "Command Center", i18nKey: "nav.commandCenter", module: "Dashboard", icon: LayoutDashboard, exact: true },
+  { to: "/admin/restaurants", label: "Restaurants", i18nKey: "nav.restaurants", module: "Restaurants", icon: Building2 },
+  { to: "/admin/processes", label: "Processus & Contrôles", i18nKey: "nav.processes", module: "Processus", icon: Workflow },
+  { to: "/admin/trainings", label: "Formations", i18nKey: "nav.trainings", module: "Formations", icon: GraduationCap },
+  { to: "/admin/suppliers", label: "Fournisseurs", i18nKey: "nav.suppliers", module: "Commandes", icon: PackageSearch },
+  { to: "/admin/users", label: "Utilisateurs", i18nKey: "nav.users", module: "Utilisateurs", icon: UsersIcon },
 ];
 
 
@@ -283,6 +287,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", h);
   }, []);
 
+  const { t } = useLang();
   const nav = ADMIN_NAV.filter((n) => can(user, n.module, "Voir"));
 
   return (
@@ -309,7 +314,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                   )}
                 >
                   <n.icon className={cn("h-4 w-4", active ? "text-gold" : "group-hover:text-gold")} />
-                  <span className="whitespace-nowrap">{n.label}</span>
+                  <span className="whitespace-nowrap">{t(n.i18nKey)}</span>
                   {active && <span className="absolute inset-x-3 -bottom-0.5 h-0.5 rounded-full bg-brand-gradient" />}
                 </Link>
               );
@@ -322,7 +327,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
               className="hidden h-10 w-56 items-center gap-2 rounded-xl border border-border bg-secondary/40 px-3 text-sm text-muted-foreground transition-colors hover:border-gold/40 xl:flex"
             >
               <Search className="h-4 w-4" />
-              Recherche
+              {t("common.search")}
               <kbd className="ml-auto rounded border border-border px-1.5 text-[10px]">⌘K</kbd>
             </button>
             <button
@@ -333,6 +338,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
               <Search className="h-4 w-4" />
             </button>
             <NotificationBell />
+            <LanguageSwitcher />
             <ThemeToggle />
             <UserMenu />
             <button
@@ -360,7 +366,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                   )}
                 >
                   <n.icon className={cn("h-4 w-4", active && "text-gold")} />
-                  {n.label}
+                  {t(n.i18nKey)}
                 </Link>
               );
             })}
@@ -377,16 +383,17 @@ export function AdminShell({ children }: { children: ReactNode }) {
 }
 
 /* ---------------- manager shell ---------------- */
-const MANAGER_NAV: { to: string; label: string; icon: typeof Home; exact?: boolean }[] = [
-  { to: "/app", label: "Shift", icon: Home, exact: true },
-  { to: "/app/tasks", label: "Tâches", icon: ListChecks },
-  { to: "/app/trainings", label: "Formations", icon: GraduationCap },
-  { to: "/app/deliveries", label: "Livraisons", icon: Truck },
-  { to: "/app/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/app/profile", label: "Profil", icon: UserIcon },
+const MANAGER_NAV: { to: string; label: string; i18nKey: string; icon: typeof Home; exact?: boolean }[] = [
+  { to: "/app", label: "Shift", i18nKey: "nav.shift", icon: Home, exact: true },
+  { to: "/app/tasks", label: "Tâches", i18nKey: "nav.tasks", icon: ListChecks },
+  { to: "/app/trainings", label: "Formations", i18nKey: "nav.trainings", icon: GraduationCap },
+  { to: "/app/deliveries", label: "Commande", i18nKey: "nav.order", icon: Truck },
+  { to: "/app/analytics", label: "Analytics", i18nKey: "nav.analytics", icon: BarChart3 },
+  { to: "/app/profile", label: "Profil", i18nKey: "nav.profile", icon: UserIcon },
 ];
 
 export function ManagerShell({ children }: { children: ReactNode }) {
+  const { t } = useLang();
   const navigate = useNavigate();
   const user = useStore(() => currentUser());
   const restaurant = useStore((s) => s.restaurants.find((r) => r.id === user?.restaurantId));
@@ -407,6 +414,7 @@ export function ManagerShell({ children }: { children: ReactNode }) {
               {user?.firstName} {user?.lastName} — {user?.role}
             </div>
           </div>
+          <LanguageSwitcher />
           <ThemeToggle />
           <div className="relative">
             <Link
@@ -441,7 +449,7 @@ export function ManagerShell({ children }: { children: ReactNode }) {
               >
                 {active && <span className="absolute inset-x-6 top-0 h-0.5 rounded-full bg-brand-gradient" />}
                 <n.icon className="h-5 w-5" />
-                {n.label}
+                {t(n.i18nKey)}
               </Link>
             );
           })}

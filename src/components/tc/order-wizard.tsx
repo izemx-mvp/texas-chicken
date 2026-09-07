@@ -1,10 +1,13 @@
 /**
- * Workflow complet d'émission d'une commande fournisseur (7 étapes) :
- * fournisseur → restaurant & date → produits → quantités → récapitulatif →
- * document officiel → email et envoi simulé.
+ * Workflow complet d'émission d'une commande fournisseur (8 étapes) :
+ * demande manager approuvée → fournisseur → restaurant & date → produits →
+ * quantités → récapitulatif → document officiel → email et envoi simulé.
+ *
+ * Règle métier bloquante : aucun bon de commande ne peut être créé sans une
+ * demande de marchandise approuvée pour le restaurant concerné.
  */
 import { useMemo, useState } from "react";
-import { Check, Send, ShoppingCart } from "lucide-react";
+import { AlertTriangle, Check, Send, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { TCModal } from "./modal";
 import { TCSelect } from "./select";
@@ -13,11 +16,21 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { EmailPreview, OrderDocument, money } from "./order-document";
-import { createOrder, currentUser, orderEmail, sendOrder, shiftDate, useStore } from "@/lib/tc/store";
+import {
+  approvedRequests,
+  createOrder,
+  currentUser,
+  orderEmail,
+  requestTotal,
+  sendOrder,
+  shiftDate,
+  useStore,
+} from "@/lib/tc/store";
 import { TODAY } from "@/lib/tc/data";
-import type { OrderLine, PurchaseOrder } from "@/lib/tc/ops";
+import type { OrderLine, ProductRequest, PurchaseOrder } from "@/lib/tc/ops";
 
 const STEPS = [
+  "Demande",
   "Fournisseur",
   "Destination",
   "Produits",
@@ -40,7 +53,17 @@ export function OrderWizard({
   const user = useStore(() => currentUser());
   const suppliers = state.suppliers.filter((x) => x.status === "Actif");
 
+  const available = useMemo(() => {
+    let list = approvedRequests(initialRestaurant ?? null, state);
+    if (initialSupplier) {
+      const scoped = list.filter((r) => r.supplierId === initialSupplier);
+      if (scoped.length) list = scoped;
+    }
+    return list;
+  }, [state, initialSupplier, initialRestaurant]);
+
   const [step, setStep] = useState(0);
+  const [requestId, setRequestId] = useState<string>(available[0]?.id ?? "");
   const [supplierId, setSupplierId] = useState(initialSupplier ?? suppliers[0]?.id ?? "");
   const [restaurantId, setRestaurantId] = useState(initialRestaurant ?? state.restaurants[0]?.id ?? "r1");
   const [expectedAt, setExpectedAt] = useState(shiftDate(TODAY, 2));
@@ -49,8 +72,22 @@ export function OrderWizard({
   const [created, setCreated] = useState<PurchaseOrder | null>(null);
   const [sent, setSent] = useState(false);
 
+  const request = state.productRequests.find((r) => r.id === requestId) ?? null;
   const supplier = state.suppliers.find((x) => x.id === supplierId);
   const restaurant = state.restaurants.find((r) => r.id === restaurantId);
+
+  /** Charge la demande approuvée : fournisseur, restaurant et lignes pré-remplies. */
+  const useRequest = (r: ProductRequest) => {
+    setRequestId(r.id);
+    setSupplierId(r.supplierId);
+    setRestaurantId(r.restaurantId);
+    setPicked(
+      Object.fromEntries(
+        r.lines.map((l) => [l.productId, { quantity: l.quantity, priority: "Normale" as const }]),
+      ),
+    );
+    if (r.note) setNote(r.note);
+  };
 
   const lines: OrderLine[] = useMemo(
     () =>
@@ -58,27 +95,37 @@ export function OrderWizard({
         .filter(([, v]) => v.quantity > 0)
         .map(([pid, v]) => {
           const p = supplier?.products.find((x) => x.id === pid);
+          const fromRequest = request?.lines.find((x) => x.productId === pid);
           return {
             productId: pid,
-            name: p?.name ?? pid,
-            unit: p?.unit ?? "unité",
-            price: p?.price ?? 0,
+            name: p?.name ?? fromRequest?.name ?? pid,
+            unit: p?.unit ?? fromRequest?.unit ?? "unité",
+            price: p?.price ?? fromRequest?.price ?? 0,
             quantity: v.quantity,
             priority: v.priority,
           };
         }),
-    [picked, supplier],
+    [picked, supplier, request],
   );
 
   const total = lines.reduce((a, l) => a + l.quantity * l.price, 0);
   const draftRef = created?.ref ?? "BC-2026-XXX";
   const mail = created ? orderEmail(created, state) : null;
+  const blocked = !request || request.status !== "Approuvée";
 
   const canNext =
-    step === 0 ? !!supplierId : step === 1 ? !!restaurantId && !!expectedAt : step === 2 || step === 3 ? lines.length > 0 : true;
+    step === 0
+      ? !blocked
+      : step === 1
+        ? !!supplierId
+        : step === 2
+          ? !!restaurantId && !!expectedAt
+          : step === 3 || step === 4
+            ? lines.length > 0
+            : true;
 
   const next = () => {
-    if (step === 4 && !created) {
+    if (step === 5 && !created) {
       const order = createOrder({
         supplierId,
         restaurantId,
@@ -87,9 +134,16 @@ export function OrderWizard({
         createdBy: user?.id ?? "u1",
         expectedAt,
         status: "À envoyer",
+        requestId,
       });
+      if (!order) {
+        toast.error(
+          "Bon de commande bloqué : aucune demande de marchandise approuvée pour ce restaurant. Le manager doit d'abord soumettre une demande.",
+        );
+        return;
+      }
       setCreated(order);
-      toast.success(`Bon de commande ${order.ref} créé`);
+      toast.success(`Bon de commande ${order.ref} créé depuis la demande ${request?.ref}`);
     }
     setStep((s) => Math.min(STEPS.length - 1, s + 1));
   };
@@ -153,6 +207,77 @@ export function OrderWizard({
     >
       {step === 0 && (
         <div className="space-y-3">
+          <p className="rounded-2xl border border-gold/40 bg-gold/10 p-3 text-xs text-gold">
+            Un bon de commande ne peut être émis qu'à partir d'une demande de marchandise approuvée, soumise par le
+            manager du restaurant.
+          </p>
+          {available.length === 0 ? (
+            <div className="flex items-start gap-2 rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                Aucune demande approuvée disponible
+                {initialRestaurant ? " pour ce restaurant" : ""}. Le manager doit d'abord soumettre une demande depuis
+                son interface « Commande », puis l'Administration doit l'approuver.
+              </span>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {available.map((r) => {
+                const on = r.id === requestId;
+                const sup = state.suppliers.find((x) => x.id === r.supplierId);
+                const rest = state.restaurants.find((x) => x.id === r.restaurantId);
+                return (
+                  <button
+                    key={r.id}
+                    onClick={() => useRequest(r)}
+                    className={cn(
+                      "flex w-full flex-wrap items-center gap-3 rounded-2xl border p-3 text-left transition-colors",
+                      on ? "border-gold/60 bg-gold/10" : "border-border bg-secondary/25",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "grid h-5 w-5 shrink-0 place-items-center rounded-md border",
+                        on ? "border-gold bg-gold text-background" : "border-border",
+                      )}
+                    >
+                      {on && <Check className="h-3.5 w-3.5" />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold">
+                        {r.ref} · {rest?.name}
+                      </span>
+                      <span className="block truncate text-[11px] text-muted-foreground">
+                        {sup?.name} · {r.lines.length} produits · demandé le {r.createdAt.slice(0, 10)}
+                      </span>
+                    </span>
+                    <span className="tabular shrink-0 text-sm font-semibold">{money(requestTotal(r))}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {request && (
+            <div className="rounded-2xl border border-border bg-secondary/25 p-3 text-xs">
+              <div className="mb-1 font-semibold uppercase tracking-widest text-muted-foreground">
+                Contenu de la demande {request.ref}
+              </div>
+              {request.lines.map((l) => (
+                <div key={l.productId} className="flex justify-between border-b border-border/40 py-1 last:border-0">
+                  <span>{l.name}</span>
+                  <span className="tabular">
+                    {l.quantity} {l.unit}
+                  </span>
+                </div>
+              ))}
+              {request.note && <p className="mt-2 text-muted-foreground">Note manager : {request.note}</p>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {step === 1 && (
+        <div className="space-y-3">
           <TCSelect
             value={supplierId}
             onChange={(v) => {
@@ -181,7 +306,7 @@ export function OrderWizard({
         </div>
       )}
 
-      {step === 1 && (
+      {step === 2 && (
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block">
             <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">Restaurant</span>
@@ -198,6 +323,12 @@ export function OrderWizard({
             </span>
             <Input type="date" value={expectedAt} min={TODAY} onChange={(e) => setExpectedAt(e.target.value)} />
           </label>
+          {request && request.restaurantId !== restaurantId && (
+            <p className="sm:col-span-2 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+              La demande {request.ref} concerne un autre restaurant : la création sera bloquée. Revenez à l'étape
+              « Demande » pour sélectionner une demande de ce restaurant.
+            </p>
+          )}
           {restaurant && (
             <p className="sm:col-span-2 rounded-xl border border-border bg-secondary/25 p-3 text-xs text-muted-foreground">
               Adresse de livraison : {restaurant.address}, {restaurant.city}
@@ -207,10 +338,11 @@ export function OrderWizard({
         </div>
       )}
 
-      {step === 2 && (
+      {step === 3 && (
         <div className="space-y-2">
           {supplier?.products.map((p) => {
             const on = !!picked[p.id];
+            const asked = request?.lines.find((l) => l.productId === p.id);
             return (
               <button
                 key={p.id}
@@ -218,7 +350,7 @@ export function OrderWizard({
                   setPicked((prev) => {
                     const nextState = { ...prev };
                     if (on) delete nextState[p.id];
-                    else nextState[p.id] = { quantity: 1, priority: "Normale" };
+                    else nextState[p.id] = { quantity: asked?.quantity ?? 1, priority: "Normale" };
                     return nextState;
                   })
                 }
@@ -239,6 +371,7 @@ export function OrderWizard({
                   <span className="block truncate text-sm font-semibold">{p.name}</span>
                   <span className="block text-[11px] text-muted-foreground">
                     {p.category} · {p.unit}
+                    {asked ? ` · demandé : ${asked.quantity} ${asked.unit}` : ""}
                   </span>
                 </span>
                 <span className="tabular shrink-0 text-sm font-semibold">{money(p.price)}</span>
@@ -251,7 +384,7 @@ export function OrderWizard({
         </div>
       )}
 
-      {step === 3 && (
+      {step === 4 && (
         <div className="space-y-2">
           {lines.map((l) => (
             <div key={l.productId} className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-secondary/25 p-3">
@@ -298,9 +431,10 @@ export function OrderWizard({
         </div>
       )}
 
-      {step === 4 && (
+      {step === 5 && (
         <div className="space-y-3">
-          <div className="grid gap-2 sm:grid-cols-3">
+          <div className="grid gap-2 sm:grid-cols-4">
+            <Recap label="Demande" value={request?.ref ?? "—"} />
             <Recap label="Fournisseur" value={supplier?.name ?? "—"} />
             <Recap label="Restaurant" value={restaurant?.name ?? "—"} />
             <Recap label="Livraison" value={expectedAt} />
@@ -328,7 +462,7 @@ export function OrderWizard({
         </div>
       )}
 
-      {step === 5 && (
+      {step === 6 && (
         <OrderDocument
           ref_={draftRef}
           supplier={supplier}
@@ -341,7 +475,7 @@ export function OrderWizard({
         />
       )}
 
-      {step === 6 && mail && (
+      {step === 7 && mail && (
         <div className="space-y-3">
           <EmailPreview to={mail.to} subject={mail.subject} body={mail.body} attachment={mail.attachment} />
           {sent ? (

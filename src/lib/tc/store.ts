@@ -23,16 +23,23 @@ import {
   trainingProgress as seedTrainingProgress,
   suppliers as seedSuppliers,
   purchaseOrders as seedPurchaseOrders,
+  productRequests as seedProductRequests,
+  deliveryNotes as seedDeliveryNotes,
   assigneesOf,
   trainingMaxScore,
 } from "./ops";
 import type {
   ChatGroup,
+  ChatAttachment,
   ChatMessage,
+  DeliveryNote,
   OrderLine,
+  ProductRequest,
+  RequestLine,
   OrderStatus,
   PurchaseOrder,
   QuizQuestion,
+  RequestStatus,
   Supplier,
   SupplierProduct,
   Training,
@@ -86,6 +93,8 @@ export interface State {
   trainingProgress: TrainingProgress[];
   suppliers: Supplier[];
   purchaseOrders: PurchaseOrder[];
+  productRequests: ProductRequest[];
+  deliveryNotes: DeliveryNote[];
 }
 
 let state: State = {
@@ -110,6 +119,8 @@ let state: State = {
   trainingProgress: seedTrainingProgress,
   suppliers: seedSuppliers,
   purchaseOrders: seedPurchaseOrders,
+  productRequests: seedProductRequests,
+  deliveryNotes: seedDeliveryNotes,
 };
 
 
@@ -1545,7 +1556,7 @@ export function sendMessage(
   groupId: string,
   userId: string,
   text: string,
-  attachments?: { name: string; kind: "Image" | "Document"; url?: string }[],
+  attachments?: ChatAttachment[],
 ) {
   const mentions = (text.match(/@([\p{L}\-']+)/gu) ?? [])
     .map((m) => m.slice(1).toLowerCase())
@@ -2018,7 +2029,15 @@ export function createOrder(input: {
   createdBy: string;
   expectedAt: string;
   status?: OrderStatus;
+  /** Demande manager approuvée à l'origine du bon de commande (obligatoire). */
+  requestId?: string;
 }) {
+  const request = input.requestId
+    ? state.productRequests.find((r) => r.id === input.requestId)
+    : undefined;
+  if (!request || request.status !== "Approuvée" || request.restaurantId !== input.restaurantId) {
+    return null;
+  }
   const ref = `BC-2026-${String(200 + state.purchaseOrders.length).padStart(3, "0")}`;
   const at = nowStamp();
   const supplier = state.suppliers.find((x) => x.id === input.supplierId);
@@ -2036,7 +2055,12 @@ export function createOrder(input: {
     emailTo: supplier?.email,
     history: [{ at, label: "Bon de commande créé" }],
   };
-  setState((s) => ({ purchaseOrders: [order, ...s.purchaseOrders] }));
+  setState((s) => ({
+    purchaseOrders: [order, ...s.purchaseOrders],
+    productRequests: s.productRequests.map((r) =>
+      r.id === request.id ? { ...r, status: "Commandée" as RequestStatus, orderId: order.id } : r,
+    ),
+  }));
   return order;
 }
 
@@ -2122,4 +2146,164 @@ export function deliveryStats(list: PurchaseOrder[]): DeliveryStats {
     recues: list.filter((o) => ["Reçue", "Livrée", "Clôturée"].includes(o.status)).length,
     enRetard: list.filter((o) => o.status === "En retard").length,
   };
+}
+
+/* ============ DEMANDES DE MARCHANDISE (Manager → Admin) ============ */
+
+/** Demandes d'un restaurant (ou toutes si non précisé), les plus récentes d'abord. */
+export function requestsFor(restaurantId?: string | null, s: State = state) {
+  const list = restaurantId ? s.productRequests.filter((r) => r.restaurantId === restaurantId) : s.productRequests;
+  return [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export function pendingRequests(s: State = state) {
+  return requestsFor(null, s).filter((r) => r.status === "En attente");
+}
+
+/** Demandes approuvées encore disponibles pour émettre un bon de commande. */
+export function approvedRequests(restaurantId?: string | null, s: State = state) {
+  return requestsFor(restaurantId, s).filter((r) => r.status === "Approuvée" && !r.orderId);
+}
+
+export function requestTotal(r: ProductRequest) {
+  return r.lines.reduce((a, l) => a + l.quantity * l.price, 0);
+}
+
+export function submitRequest(input: {
+  restaurantId: string;
+  requesterId: string;
+  supplierId: string;
+  lines: RequestLine[];
+  note?: string;
+}): { error?: string; request?: ProductRequest } {
+  if (!input.supplierId) return { error: "Sélectionnez un fournisseur." };
+  const lines = input.lines.filter((l) => l.quantity > 0);
+  if (!lines.length) return { error: "Ajoutez au moins un produit avec une quantité." };
+  const at = nowStamp();
+  const request: ProductRequest = {
+    id: uid("pr"),
+    ref: `DM-2026-${String(500 + state.productRequests.length).padStart(3, "0")}`,
+    restaurantId: input.restaurantId,
+    requesterId: input.requesterId,
+    supplierId: input.supplierId,
+    lines,
+    note: input.note?.trim() || undefined,
+    createdAt: at,
+    status: "En attente",
+  };
+  setState((s) => ({ productRequests: [request, ...s.productRequests] }));
+  return { request };
+}
+
+export function approveRequest(id: string, by: string) {
+  const at = nowStamp();
+  setState((s) => ({
+    productRequests: s.productRequests.map((r) =>
+      r.id === id ? { ...r, status: "Approuvée" as RequestStatus, decision: { by, at } } : r,
+    ),
+  }));
+}
+
+export function rejectRequest(id: string, by: string, reason: string): string | null {
+  if (!reason.trim()) return "Le motif de rejet est obligatoire.";
+  const at = nowStamp();
+  setState((s) => ({
+    productRequests: s.productRequests.map((r) =>
+      r.id === id ? { ...r, status: "Rejetée" as RequestStatus, decision: { by, at, reason: reason.trim() } } : r,
+    ),
+  }));
+  return null;
+}
+
+/** Bloque l'émission d'un bon de commande sans demande manager approuvée. */
+export function orderBlockReason(restaurantId: string | null | undefined, s: State = state): string | null {
+  if (!restaurantId) return "Sélectionnez un restaurant.";
+  if (approvedRequests(restaurantId, s).length === 0) {
+    const rest = s.restaurants.find((r) => r.id === restaurantId);
+    return `Aucune demande approuvée pour ${rest?.name ?? "ce restaurant"} — le manager doit d'abord soumettre une demande de marchandise, et elle doit être approuvée.`;
+  }
+  return null;
+}
+
+/* ==================== BONS DE LIVRAISON ==================== */
+
+export function deliveryNotesFor(filter: { orderId?: string; restaurantId?: string; supplierId?: string }, s: State = state) {
+  return s.deliveryNotes
+    .filter(
+      (d) =>
+        (!filter.orderId || d.orderId === filter.orderId) &&
+        (!filter.restaurantId || d.restaurantId === filter.restaurantId) &&
+        (!filter.supplierId || d.supplierId === filter.supplierId),
+    )
+    .sort((a, b) => b.at.localeCompare(a.at));
+}
+
+export function deliveryNoteOf(orderId: string, s: State = state) {
+  return s.deliveryNotes.find((d) => d.orderId === orderId) ?? null;
+}
+
+/**
+ * Réception physique au restaurant : génère le Bon de Livraison, le rattache à
+ * la commande (statut « Livrée ») et clôture la demande d'origine.
+ */
+export function createDeliveryNote(
+  orderId: string,
+  signedBy: string,
+  data: { receivedQuantities?: Record<string, number>; comment?: string; photo?: string },
+): DeliveryNote | null {
+  const order = state.purchaseOrders.find((o) => o.id === orderId);
+  if (!order) return null;
+  const at = nowStamp();
+  const lines = order.lines.map((l) => ({
+    productId: l.productId,
+    name: l.name,
+    unit: l.unit,
+    ordered: l.quantity,
+    received: data.receivedQuantities?.[l.productId] ?? l.quantity,
+    price: l.price,
+  }));
+  const conform = lines.every((l) => l.received === l.ordered);
+  const request = state.productRequests.find((r) => r.orderId === orderId);
+  const note: DeliveryNote = {
+    id: uid("dn"),
+    ref: `BL-2026-${String(500 + state.deliveryNotes.length).padStart(3, "0")}`,
+    orderId,
+    requestId: request?.id,
+    restaurantId: order.restaurantId,
+    supplierId: order.supplierId,
+    at,
+    signedBy,
+    lines,
+    conform,
+    comment: data.comment?.trim() || undefined,
+  };
+  setState((s) => ({
+    deliveryNotes: [note, ...s.deliveryNotes],
+    purchaseOrders: s.purchaseOrders.map((o) =>
+      o.id === orderId
+        ? {
+            ...o,
+            status: "Livrée" as OrderStatus,
+            lines: o.lines.map((l) => ({
+              ...l,
+              receivedQuantity: data.receivedQuantities?.[l.productId] ?? l.quantity,
+            })),
+            reception: { at, by: signedBy, conform, comment: note.comment, photo: data.photo },
+            history: [
+              ...o.history,
+              {
+                at,
+                label: conform
+                  ? `Bon de livraison ${note.ref} généré — livraison conforme`
+                  : `Bon de livraison ${note.ref} généré — écart signalé`,
+              },
+            ],
+          }
+        : o,
+    ),
+    productRequests: s.productRequests.map((r) =>
+      r.orderId === orderId ? { ...r, status: "Livrée" as RequestStatus } : r,
+    ),
+  }));
+  return note;
 }
