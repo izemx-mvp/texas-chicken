@@ -1459,7 +1459,7 @@ export const productRequests: ProductRequest[] = [
     };
   }),
   // Demandes approuvées, prêtes à être transformées en bon de commande
-  ...(["r1", "r1", "r2", "r3"] as const).map((rid, i) => {
+  ...(["r1", "r2"] as const).map((rid, i) => {
     const sup = suppliers[(i + 2) % suppliers.length]!;
     const requester = users.find((u) => u.restaurantId === rid) ?? managerUser;
     return {
