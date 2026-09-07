@@ -2037,7 +2037,11 @@ export function createOrder(input: {
   const request = input.requestId
     ? state.productRequests.find((r) => r.id === input.requestId)
     : undefined;
-  if (!request || request.status !== "Approuvée" || request.restaurantId !== input.restaurantId) {
+  if (
+    !request ||
+    (request.status !== "Approuvée" && request.status !== "En attente") ||
+    request.restaurantId !== input.restaurantId
+  ) {
     return null;
   }
   const ref = `BC-2026-${String(200 + state.purchaseOrders.length).padStart(3, "0")}`;
@@ -2057,10 +2061,19 @@ export function createOrder(input: {
     emailTo: supplier?.email,
     history: [{ at, label: "Bon de commande créé" }],
   };
+  // La demande reste dans la file « Demandes » (statut Approuvée) tant que le bon de
+  // commande n'est pas envoyé au fournisseur ; l'envoi la passe en « Commandée ».
   setState((s) => ({
     purchaseOrders: [order, ...s.purchaseOrders],
     productRequests: s.productRequests.map((r) =>
-      r.id === request.id ? { ...r, status: "Commandée" as RequestStatus, orderId: order.id } : r,
+      r.id === request.id
+        ? {
+            ...r,
+            status: "Approuvée" as RequestStatus,
+            decision: r.decision ?? { by: input.createdBy, at },
+            orderId: order.id,
+          }
+        : r,
     ),
   }));
   return order;
@@ -2105,6 +2118,9 @@ export function sendOrder(id: string, override?: { to?: string; subject?: string
             ],
           }
         : o,
+    ),
+    productRequests: s.productRequests.map((r) =>
+      r.orderId === id ? { ...r, status: "Commandée" as RequestStatus } : r,
     ),
   }));
   return mail;
