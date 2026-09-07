@@ -119,7 +119,10 @@ function SuppliersPage() {
   });
   const toSend = allOrders.filter((o) => o.status === "À envoyer" || o.status === "Brouillon");
   /** Une fois commandée (ou livrée), la demande quitte la file et vit dans l'onglet Commandes. */
-  const requests = requestsFor(null, state).filter((r) => r.status !== "Commandée" && r.status !== "Livrée");
+  /** Onglet Demandes : uniquement les demandes encore à traiter (en attente ou approuvées non commandées). */
+  const requests = requestsFor(null, state).filter(
+    (r) => r.status === "En attente" || r.status === "Approuvée",
+  );
   const pendingCount = requests.filter((r) => r.status === "En attente").length;
 
   const save = () => {
