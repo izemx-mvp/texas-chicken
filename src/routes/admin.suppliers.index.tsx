@@ -92,7 +92,8 @@ function SuppliersPage() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
   const [form, setForm] = useState<(Omit<Supplier, "id" | "products"> & { id?: string }) | null>(null);
-  const [wizard, setWizard] = useState<{ supplierId?: string } | null>(null);
+  const [wizard, setWizard] = useState<{ supplierId?: string; requestId?: string } | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const [preview, setPreview] = useState<PurchaseOrder | null>(null);
   const [noteView, setNoteView] = useState<DeliveryNote | null>(null);
   const [reject, setReject] = useState<ProductRequest | null>(null);
@@ -119,7 +120,10 @@ function SuppliersPage() {
   });
   const toSend = allOrders.filter((o) => o.status === "À envoyer" || o.status === "Brouillon");
   /** Une fois commandée (ou livrée), la demande quitte la file et vit dans l'onglet Commandes. */
-  const requests = requestsFor(null, state).filter((r) => r.status !== "Commandée" && r.status !== "Livrée");
+  /** Onglet Demandes : uniquement les demandes encore à traiter (en attente ou approuvées non commandées). */
+  const requests = requestsFor(null, state).filter(
+    (r) => r.status === "En attente" || r.status === "Approuvée",
+  );
   const pendingCount = requests.filter((r) => r.status === "En attente").length;
 
   const save = () => {
@@ -299,7 +303,10 @@ function SuppliersPage() {
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Button
                       size="sm"
+                      disabled={busy === r.id}
                       onClick={() => {
+                        if (busy === r.id) return;
+                        setBusy(r.id);
                         approveRequest(r.id, "u0");
                         toast.success(`Demande ${r.ref} approuvée`);
                       }}
@@ -309,6 +316,7 @@ function SuppliersPage() {
                     <Button
                       size="sm"
                       variant="ghost"
+                      disabled={busy === r.id}
                       onClick={() => {
                         setReject(r);
                         setRejectReason("");
@@ -320,7 +328,12 @@ function SuppliersPage() {
                 )}
                 {r.status === "Approuvée" && (
                   <div className="mt-3">
-                    <Button size="sm" variant="ghost" onClick={() => setWizard({ supplierId: r.supplierId })}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={!!wizard}
+                      onClick={() => setWizard({ supplierId: r.supplierId, requestId: r.id })}
+                    >
                       <ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> Créer le bon de commande
                     </Button>
                   </div>
