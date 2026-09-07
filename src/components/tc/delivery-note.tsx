@@ -3,7 +3,7 @@
  * moment de la réception physique de la marchandise. Il est rattaché à la
  * commande fournisseur correspondante.
  */
-import { AlertTriangle, Check, Printer } from "lucide-react";
+import { AlertTriangle, Check, FileText, Printer } from "lucide-react";
 import texasLogo from "@/assets/texas-chicken-logo.svg";
 import { money } from "./order-document";
 import { useStore } from "@/lib/tc/store";
