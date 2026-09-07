@@ -10,7 +10,9 @@ import {
   Image as ImageIcon,
   Maximize2,
   MessagesSquare,
+  Mic,
   Minimize2,
+  Square,
   Paperclip,
   Plus,
   Settings,
@@ -46,6 +48,12 @@ import { TCSelect } from "./select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+
+/** mm:ss d'une durée en millisecondes (messages vocaux). */
+export function formatDuration(ms: number) {
+  const total = Math.round(ms / 1000);
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
 
 /* ------------------------ état global du dock ------------------------ */
 type DockState = { open: boolean; groupId: string | null };
@@ -139,6 +147,62 @@ export function ChatDock() {
   const [mentionOpen, setMentionOpen] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  /* --- message vocal --- */
+  const [recording, setRecording] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const startedAtRef = useRef(0);
+
+  useEffect(() => {
+    if (!recording) return;
+    const t = window.setInterval(() => setElapsed(Date.now() - startedAtRef.current), 250);
+    return () => window.clearInterval(t);
+  }, [recording]);
+
+  const startRecording = async () => {
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      toast.error("L'enregistrement audio n'est pas disponible sur cet appareil.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rec = new MediaRecorder(stream);
+      const chunks: BlobPart[] = [];
+      rec.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
+      rec.onstop = () => {
+        const durationMs = Date.now() - startedAtRef.current;
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
+        const url = URL.createObjectURL(blob);
+        setPending((p) => [
+          ...p,
+          { name: `message-vocal-${formatDuration(durationMs).replace(":", "m")}s.webm`, kind: "Audio", url, durationMs },
+        ]);
+        setRecording(false);
+        setElapsed(0);
+      };
+      startedAtRef.current = Date.now();
+      recorderRef.current = rec;
+      rec.start();
+      setRecording(true);
+    } catch {
+      toast.error("Micro refusé — autorisez l'accès au microphone pour envoyer un message vocal.");
+    }
+  };
+
+  const stopRecording = (cancel = false) => {
+    const rec = recorderRef.current;
+    if (!rec) return;
+    if (cancel) rec.onstop = null;
+    rec.stop();
+    recorderRef.current = null;
+    if (cancel) {
+      rec.stream.getTracks().forEach((t) => t.stop());
+      setRecording(false);
+      setElapsed(0);
+    }
+  };
 
 
   const active = groups.find((g) => g.id === groupId) ?? null;
@@ -532,15 +596,32 @@ export function ChatDock() {
                               ),
                             )}
                           </p>
-                          {m.attachments?.map((a) => (
-                            <span
-                              key={a.name}
-                              className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-border bg-background/40 px-2 py-1 text-[11px]"
-                            >
-                              {a.kind === "Image" ? <ImageIcon className="h-3.5 w-3.5 text-gold" /> : <Paperclip className="h-3.5 w-3.5 text-gold" />}
-                              <span className="truncate">{a.name}</span>
-                            </span>
-                          ))}
+                          {m.attachments?.map((a) =>
+                            a.kind === "Audio" ? (
+                              <span
+                                key={a.name}
+                                className="mt-1.5 flex items-center gap-2 rounded-xl border border-gold/30 bg-gold/10 px-2 py-1.5"
+                              >
+                                <Mic className="h-3.5 w-3.5 shrink-0 text-gold" />
+                                {a.url ? (
+                                  <audio src={a.url} controls className="h-8 max-w-[11rem]" />
+                                ) : (
+                                  <span className="text-[11px]">Message vocal</span>
+                                )}
+                                <span className="tabular shrink-0 text-[10px] text-muted-foreground">
+                                  {formatDuration(a.durationMs ?? 0)}
+                                </span>
+                              </span>
+                            ) : (
+                              <span
+                                key={a.name}
+                                className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-border bg-background/40 px-2 py-1 text-[11px]"
+                              >
+                                {a.kind === "Image" ? <ImageIcon className="h-3.5 w-3.5 text-gold" /> : <Paperclip className="h-3.5 w-3.5 text-gold" />}
+                                <span className="truncate">{a.name}</span>
+                              </span>
+                            ),
+                          )}
                           <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
                             {m.at.slice(11)}
                             {mine && <span className="text-gold">{m.readBy.length > 1 ? "Lu" : "Envoyé"}</span>}
@@ -598,6 +679,15 @@ export function ChatDock() {
                     ))}
                   </div>
                 )}
+                {recording && (
+                  <div className="mb-1.5 flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-[11px] text-destructive">
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-destructive" />
+                    <span className="tabular font-semibold">Enregistrement… {formatDuration(elapsed)}</span>
+                    <button type="button" onClick={() => stopRecording(true)} className="ml-auto underline">
+                      Annuler
+                    </button>
+                  </div>
+                )}
                 <form
                   className="flex items-center gap-1.5"
                   onSubmit={(e) => {
@@ -610,6 +700,17 @@ export function ChatDock() {
                   </button>
                   <button type="button" onClick={() => fileRef.current?.click()} aria-label="Pièce jointe" className="text-muted-foreground hover:text-gold">
                     <Paperclip className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => (recording ? stopRecording() : startRecording())}
+                    aria-label={recording ? "Arrêter l'enregistrement" : "Message vocal"}
+                    className={cn(
+                      "transition-colors",
+                      recording ? "text-destructive" : "text-muted-foreground hover:text-gold",
+                    )}
+                  >
+                    {recording ? <Square className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
                   </button>
                   <input
                     ref={fileRef}
