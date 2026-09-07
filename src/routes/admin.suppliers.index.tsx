@@ -522,7 +522,9 @@ function SuppliersPage() {
         </TCModal>
       )}
 
-      {wizard && <OrderWizard supplierId={wizard.supplierId} onClose={() => setWizard(null)} />}
+      {wizard && (
+        <OrderWizard supplierId={wizard.supplierId} requestId={wizard.requestId} onClose={() => setWizard(null)} />
+      )}
 
       {preview && (
         <TCModal
