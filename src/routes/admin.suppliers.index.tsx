@@ -303,20 +303,15 @@ function SuppliersPage() {
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Button
                       size="sm"
-                      disabled={busy === r.id}
-                      onClick={() => {
-                        if (busy === r.id) return;
-                        setBusy(r.id);
-                        approveRequest(r.id, "u0");
-                        toast.success(`Demande ${r.ref} approuvée`);
-                      }}
+                      disabled={!!wizard}
+                      onClick={() => setWizard({ supplierId: r.supplierId, requestId: r.id })}
                     >
                       <Check className="mr-1.5 h-3.5 w-3.5" /> Approuver
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
-                      disabled={busy === r.id}
+                      disabled={!!wizard}
                       onClick={() => {
                         setReject(r);
                         setRejectReason("");
@@ -327,15 +322,20 @@ function SuppliersPage() {
                   </div>
                 )}
                 {r.status === "Approuvée" && (
-                  <div className="mt-3">
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Button
                       size="sm"
                       variant="ghost"
                       disabled={!!wizard}
                       onClick={() => setWizard({ supplierId: r.supplierId, requestId: r.id })}
                     >
-                      <ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> Créer le bon de commande
+                      <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
+                      {r.orderId ? "Reprendre l'envoi du bon de commande" : "Créer le bon de commande"}
                     </Button>
+                    <span className="text-[11px] text-muted-foreground">
+                      En attente d'envoi au fournisseur — la demande basculera dans « Commandes » une fois l'email
+                      envoyé.
+                    </span>
                   </div>
                 )}
               </article>
