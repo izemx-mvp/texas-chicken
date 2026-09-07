@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { tr } from "@/lib/tc/i18n";
+import { useLang } from "@/lib/tc/i18n";
 import { cn } from "@/lib/utils";
 
 export function AnimatedNumber({
@@ -116,6 +116,7 @@ const STATUS_TONE: Record<string, string> = {
 };
 
 export function StatusPill({ status, className }: { status: string; className?: string }) {
+  const { tr } = useLang();
   return (
     <span
       className={cn(
@@ -207,6 +208,7 @@ export function SectionTitle({
   subtitle?: string;
   action?: ReactNode;
 }) {
+  const { tr } = useLang();
   return (
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div>
