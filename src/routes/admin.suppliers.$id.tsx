@@ -1,16 +1,19 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Eye, Mail, Package, Pencil, Plus, ShoppingCart, Trash2, Truck } from "lucide-react";
+import { ArrowLeft, Eye, FileText, Mail, Package, Pencil, Plus, ShoppingCart, Trash2, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { KpiCard, StatusPill } from "@/components/tc/bits";
 import { TCModal } from "@/components/tc/modal";
 import { OrderPreview, money } from "@/components/tc/order-document";
+import { DeliveryNoteDocument } from "@/components/tc/delivery-note";
+import { DateRangeFilter } from "@/components/tc/date-range-filter";
 import { OrderWizard } from "@/components/tc/order-wizard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TCSelect } from "@/components/tc/select";
 import {
   addSupplierProduct,
+  deliveryNoteOf,
   orderTotal,
   removeSupplierProduct,
   sendOrder,
@@ -20,7 +23,7 @@ import {
   updateSupplierProduct,
   useStore,
 } from "@/lib/tc/store";
-import { SUPPLIER_CATEGORIES, type PurchaseOrder, type Supplier } from "@/lib/tc/ops";
+import { SUPPLIER_CATEGORIES, type DeliveryNote, type PurchaseOrder, type Supplier } from "@/lib/tc/ops";
 
 export const Route = createFileRoute("/admin/suppliers/$id")({
   head: () => ({
@@ -45,6 +48,9 @@ function SupplierDetail() {
   const supplier = state.suppliers.find((x) => x.id === id);
   const [preview, setPreview] = useState<PurchaseOrder | null>(null);
   const [wizard, setWizard] = useState(false);
+  const [noteView, setNoteView] = useState<DeliveryNote | null>(null);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
 
   if (!supplier) {
     return (
@@ -57,7 +63,14 @@ function SupplierDetail() {
     );
   }
 
-  const orders = supplierOrders(supplier.id, state);
+  const allOrders = supplierOrders(supplier.id, state);
+  /** Filtre de période inclusif sur la date de création de la commande. */
+  const orders = allOrders.filter((o) => {
+    const d = o.createdAt.slice(0, 10);
+    if (from && d < from) return false;
+    if (to && d > to) return false;
+    return true;
+  });
   const stats = supplierStats(supplier.id, state);
 
   return (
@@ -96,7 +109,22 @@ function SupplierDetail() {
       <SupplierProducts supplier={supplier} />
 
       <section className="glass rounded-3xl p-5">
-        <h3 className="mb-3 font-display text-sm font-bold uppercase tracking-wider">Historique des commandes ({orders.length})</h3>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="font-display text-sm font-bold uppercase tracking-wider">
+            Historique des commandes ({orders.length})
+          </h3>
+          <DateRangeFilter
+            from={from}
+            to={to}
+            onFrom={setFrom}
+            onTo={setTo}
+            onReset={() => {
+              setFrom("");
+              setTo("");
+            }}
+            info={`${orders.length} / ${allOrders.length}`}
+          />
+        </div>
         <div className="space-y-2">
           {orders.map((o) => {
             const rest = state.restaurants.find((r) => r.id === o.restaurantId);
@@ -128,6 +156,17 @@ function SupplierDetail() {
                       <Mail className="h-3.5 w-3.5" />
                     </Button>
                   )}
+                  {deliveryNoteOf(o.id, state) && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-success"
+                      title="Bon de livraison"
+                      onClick={() => setNoteView(deliveryNoteOf(o.id, state) ?? null)}
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                   {["Envoyée", "Confirmée"].includes(o.status) && (
                     <Button size="sm" variant="ghost" onClick={() => setOrderStatus(o.id, "En livraison")}>
                       <Truck className="h-3.5 w-3.5" />
@@ -137,14 +176,39 @@ function SupplierDetail() {
               </div>
             );
           })}
-          {orders.length === 0 && <p className="text-sm text-muted-foreground">Aucune commande pour ce fournisseur.</p>}
+          {orders.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              {allOrders.length ? "Aucune commande sur cette période." : "Aucune commande pour ce fournisseur."}
+            </p>
+          )}
         </div>
       </section>
 
+      {noteView && (
+        <TCModal
+          title={`Bon de livraison ${noteView.ref}`}
+          subtitle="Document remis par le livreur et importé par le manager"
+          size="xl"
+          onClose={() => setNoteView(null)}
+        >
+          <DeliveryNoteDocument note={noteView} />
+        </TCModal>
+      )}
       {wizard && <OrderWizard supplierId={supplier.id} onClose={() => setWizard(false)} />}
       {preview && (
         <TCModal title={`Commande ${preview.ref}`} subtitle="Document, email et historique" size="xl" onClose={() => setPreview(null)}>
-          <OrderPreview order={preview} />
+          <div className="space-y-3">
+            {deliveryNoteOf(preview.id, state) && (
+              <button
+                onClick={() => setNoteView(deliveryNoteOf(preview.id, state) ?? null)}
+                className="flex w-full items-center gap-2 rounded-xl border border-success/40 bg-success/10 p-3 text-left text-xs font-semibold text-success"
+              >
+                <FileText className="h-4 w-4" /> Voir le bon de livraison{" "}
+                {deliveryNoteOf(preview.id, state)?.ref}
+              </button>
+            )}
+            <OrderPreview order={preview} />
+          </div>
         </TCModal>
       )}
     </div>

@@ -63,12 +63,19 @@ export function OrderWizard({
   }, [state, initialSupplier, initialRestaurant]);
 
   const [step, setStep] = useState(0);
-  const [requestId, setRequestId] = useState<string>(available[0]?.id ?? "");
-  const [supplierId, setSupplierId] = useState(initialSupplier ?? suppliers[0]?.id ?? "");
-  const [restaurantId, setRestaurantId] = useState(initialRestaurant ?? state.restaurants[0]?.id ?? "r1");
+  const first = available[0] ?? null;
+  const [requestId, setRequestId] = useState<string>(first?.id ?? "");
+  const [supplierId, setSupplierId] = useState(first?.supplierId ?? initialSupplier ?? suppliers[0]?.id ?? "");
+  const [restaurantId, setRestaurantId] = useState(
+    first?.restaurantId ?? initialRestaurant ?? state.restaurants[0]?.id ?? "r1",
+  );
   const [expectedAt, setExpectedAt] = useState(shiftDate(TODAY, 2));
   const [note, setNote] = useState("");
-  const [picked, setPicked] = useState<Record<string, { quantity: number; priority: "Normale" | "Urgente" }>>({});
+  const [picked, setPicked] = useState<Record<string, { quantity: number; priority: "Normale" | "Urgente" }>>(() =>
+    Object.fromEntries(
+      (first?.lines ?? []).map((l) => [l.productId, { quantity: l.quantity, priority: "Normale" as const }]),
+    ),
+  );
   const [created, setCreated] = useState<PurchaseOrder | null>(null);
   const [sent, setSent] = useState(false);
 
@@ -115,7 +122,7 @@ export function OrderWizard({
   const [draftMail, setDraftMail] = useState<{ to: string; subject: string; body: string } | null>(null);
   const editedMail = draftMail ?? (mail ? { to: mail.to, subject: mail.subject, body: mail.body } : null);
 
-  const blocked = !request || request.status !== "Approuvée";
+  const blocked = !request || (request.status !== "Approuvée" && !created);
 
   const canNext =
     step === 0
@@ -129,10 +136,20 @@ export function OrderWizard({
             : true;
 
   const next = () => {
+    // La commande reste toujours adossée à la demande approuvée sélectionnée.
+    if (step === 0 && request) {
+      setSupplierId(request.supplierId);
+      setRestaurantId(request.restaurantId);
+    }
     if (step === 5 && !created) {
+      if (!request) {
+        toast.error("Sélectionnez d'abord une demande de marchandise approuvée.");
+        setStep(0);
+        return;
+      }
       const order = createOrder({
-        supplierId,
-        restaurantId,
+        supplierId: request.supplierId,
+        restaurantId: request.restaurantId,
         lines,
         note: note.trim() || undefined,
         createdBy: user?.id ?? "u1",

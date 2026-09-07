@@ -11,7 +11,7 @@ import { TCSelect } from "@/components/tc/select";
 import { DeliveryNoteDocument } from "@/components/tc/delivery-note";
 import { SingleFileUpload, type UploadedDoc } from "@/components/tc/upload";
 
-import { money } from "@/components/tc/order-document";
+import { OrderDocument, money } from "@/components/tc/order-document";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/lib/tc/i18n";
 import {
@@ -411,6 +411,7 @@ function ReceptionModal({
   const [carrier, setCarrier] = useState("");
   const [temperature, setTemperature] = useState("");
   const [doc, setDoc] = useState<UploadedDoc | null>(null);
+  const [showOrderDoc, setShowOrderDoc] = useState(false);
   const received = ["Reçue", "Livrée", "Clôturée"].includes(order.status);
   const conform = order.lines.every((l) => (qty[l.productId] ?? l.quantity) === l.quantity);
   const receivedValue = order.lines.reduce((a, l) => a + (qty[l.productId] ?? l.quantity) * l.price, 0);
@@ -485,6 +486,29 @@ function ReceptionModal({
               <div className="truncate text-xs font-semibold">{v}</div>
             </div>
           ))}
+        </div>
+
+        {/* ---- documents de la commande : bon de commande + bon de livraison ---- */}
+        <div className="grid gap-2 sm:grid-cols-2">
+          <button
+            onClick={() => setShowOrderDoc(true)}
+            className="flex items-center gap-2 rounded-xl border border-border bg-secondary/30 p-3 text-left text-xs font-semibold"
+          >
+            <FileText className="h-4 w-4 text-gold" /> Voir le bon de commande {order.ref}
+          </button>
+          {existing ? (
+            <button
+              onClick={() => onGenerated(existing)}
+              className="flex items-center gap-2 rounded-xl border border-success/40 bg-success/10 p-3 text-left text-xs font-semibold text-success"
+            >
+              <FileText className="h-4 w-4" /> Voir le bon de livraison {existing.ref}
+              {existing.document ? ` · ${existing.document.name}` : ""}
+            </button>
+          ) : (
+            <span className="flex items-center gap-2 rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
+              <FileText className="h-4 w-4" /> Bon de livraison à importer à la réception
+            </span>
+          )}
         </div>
 
         {order.note && (
@@ -601,16 +625,27 @@ function ReceptionModal({
                 {order.reception.conform ? " — conforme" : " — écart signalé"}
               </div>
             )}
-            {existing && (
-              <button
-                onClick={() => onGenerated(existing)}
-                className="flex w-full items-center gap-2 rounded-xl border border-border bg-secondary/30 p-3 text-left text-xs font-semibold"
-              >
-                <FileText className="h-4 w-4 text-gold" /> Voir le bon de livraison {existing.ref}
-                {existing.document ? ` · ${existing.document.name}` : ""}
-              </button>
-            )}
           </div>
+        )}
+
+        {showOrderDoc && (
+          <TCModal
+            title={`Bon de commande ${order.ref}`}
+            subtitle="Document émis par l'administration au fournisseur"
+            size="xl"
+            onClose={() => setShowOrderDoc(false)}
+          >
+            <OrderDocument
+              ref_={order.ref}
+              supplier={supplier}
+              restaurant={restaurant}
+              lines={order.lines}
+              createdAt={order.createdAt}
+              expectedAt={order.expectedAt}
+              note={order.note}
+            />
+
+          </TCModal>
         )}
 
         {/* ---- historique ---- */}

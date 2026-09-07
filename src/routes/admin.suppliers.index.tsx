@@ -22,6 +22,7 @@ import { TCSelect } from "@/components/tc/select";
 import { OrderWizard } from "@/components/tc/order-wizard";
 import { OrderPreview, money } from "@/components/tc/order-document";
 import { DeliveryNoteDocument } from "@/components/tc/delivery-note";
+import { DateRangeFilter } from "@/components/tc/date-range-filter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -334,31 +335,18 @@ function SuppliersPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="glass flex flex-wrap items-end gap-3 rounded-3xl p-3">
-            <label className="block">
-              <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">Du</span>
-              <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" />
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">Au</span>
-              <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" />
-            </label>
-            {(from || to) && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  setFrom("");
-                  setTo("");
-                }}
-              >
-                <X className="mr-1.5 h-3.5 w-3.5" /> Réinitialiser
-              </Button>
-            )}
-            <span className="ml-auto text-[11px] text-muted-foreground">
-              {orders.length} commande(s) sur {allOrders.length}
-            </span>
-          </div>
+          <DateRangeFilter
+            className="glass rounded-3xl p-3"
+            from={from}
+            to={to}
+            onFrom={setFrom}
+            onTo={setTo}
+            onReset={() => {
+              setFrom("");
+              setTo("");
+            }}
+            info={`${orders.length} / ${allOrders.length}`}
+          />
 
           <div className="glass overflow-x-auto rounded-3xl p-4">
             <table className="w-full min-w-[900px] table-auto text-left text-sm">
