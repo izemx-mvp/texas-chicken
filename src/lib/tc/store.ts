@@ -2119,6 +2119,9 @@ export function sendOrder(id: string, override?: { to?: string; subject?: string
           }
         : o,
     ),
+    productRequests: s.productRequests.map((r) =>
+      r.orderId === id ? { ...r, status: "Commandée" as RequestStatus } : r,
+    ),
   }));
   return mail;
 }
