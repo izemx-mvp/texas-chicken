@@ -4,6 +4,9 @@
  * et aperçu de l'email envoyé au fournisseur avec pièce jointe simulée.
  */
 import { Mail, Paperclip } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+
 import texasLogo from "@/assets/texas-chicken-logo.svg";
 import { orderTotal, useStore } from "@/lib/tc/store";
 import type { OrderLine, PurchaseOrder, Supplier } from "@/lib/tc/ops";
@@ -162,32 +165,63 @@ export function EmailPreview({
   subject,
   body,
   attachment,
+  editable = false,
+  onChange,
 }: {
   to: string;
   subject: string;
   body: string;
   attachment: string;
+  /** Rend le destinataire, l'objet et le message modifiables avant l'envoi. */
+  editable?: boolean;
+  onChange?: (next: { to: string; subject: string; body: string }) => void;
 }) {
+  const patch = (p: Partial<{ to: string; subject: string; body: string }>) =>
+    onChange?.({ to, subject, body, ...p });
   return (
     <div className="rounded-2xl border border-border bg-background/85 p-4 text-[12px]">
       <div className="flex items-center gap-2 border-b border-border pb-2">
         <Mail className="h-4 w-4 text-gold" />
-        <span className="font-display text-sm font-bold uppercase">Aperçu de l'email</span>
+        <span className="font-display text-sm font-bold uppercase">
+          {editable ? "Email au fournisseur — modifiable" : "Aperçu de l'email"}
+        </span>
       </div>
-      <dl className="mt-3 space-y-1">
-        <Row label="À" value={to} />
-        <Row label="De" value="approvisionnement@texaschicken-demo.com" />
-        <Row label="Objet" value={subject} />
-      </dl>
-      <pre className="mt-3 whitespace-pre-wrap rounded-xl border border-border bg-secondary/25 p-3 font-sans text-[12px]">
-        {body}
-      </pre>
+      {editable ? (
+        <div className="mt-3 space-y-2">
+          <label className="block">
+            <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">
+              Destinataire
+            </span>
+            <Input value={to} onChange={(e) => patch({ to: e.target.value })} />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">Objet</span>
+            <Input value={subject} onChange={(e) => patch({ subject: e.target.value })} />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">Message</span>
+            <Textarea rows={12} value={body} onChange={(e) => patch({ body: e.target.value })} />
+          </label>
+        </div>
+      ) : (
+        <>
+          <dl className="mt-3 space-y-1">
+            <Row label="À" value={to} />
+            <Row label="De" value="approvisionnement@texaschicken-demo.com" />
+            <Row label="Objet" value={subject} />
+          </dl>
+          <pre className="mt-3 whitespace-pre-wrap rounded-xl border border-border bg-secondary/25 p-3 font-sans text-[12px]">
+            {body}
+          </pre>
+        </>
+      )}
       <div className="mt-3 inline-flex items-center gap-2 rounded-xl border border-gold/40 bg-gold/10 px-3 py-2 text-[11px] font-semibold text-gold">
         <Paperclip className="h-3.5 w-3.5" /> {attachment}
       </div>
     </div>
   );
 }
+
 
 function Row({ label, value }: { label: string; value: string }) {
   return (

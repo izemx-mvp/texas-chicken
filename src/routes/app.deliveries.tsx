@@ -9,6 +9,8 @@ import { SectionTitle, StatusPill } from "@/components/tc/bits";
 import { TCModal } from "@/components/tc/modal";
 import { TCSelect } from "@/components/tc/select";
 import { DeliveryNoteDocument } from "@/components/tc/delivery-note";
+import { SingleFileUpload, type UploadedDoc } from "@/components/tc/upload";
+
 import { money } from "@/components/tc/order-document";
 import { cn } from "@/lib/utils";
 import {
@@ -394,18 +396,49 @@ function ReceptionModal({
   userId: string;
   onGenerated: (note: DeliveryNote) => void;
 }) {
+  const state = useStore((s) => s);
+  const supplier = state.suppliers.find((s) => s.id === order.supplierId);
+  const restaurant = state.restaurants.find((r) => r.id === order.restaurantId);
+  const request = state.productRequests.find((r) => r.orderId === order.id);
+  const existing = deliveryNoteOf(order.id, state);
   const [qty, setQty] = useState<Record<string, number>>(
     Object.fromEntries(order.lines.map((l) => [l.productId, l.receivedQuantity ?? l.quantity])),
   );
   const [comment, setComment] = useState("");
+  const [noteRef, setNoteRef] = useState("");
+  const [carrier, setCarrier] = useState("");
+  const [temperature, setTemperature] = useState("");
+  const [doc, setDoc] = useState<UploadedDoc | null>(null);
   const received = ["Reçue", "Livrée", "Clôturée"].includes(order.status);
   const conform = order.lines.every((l) => (qty[l.productId] ?? l.quantity) === l.quantity);
+  const receivedValue = order.lines.reduce((a, l) => a + (qty[l.productId] ?? l.quantity) * l.price, 0);
+
+  const confirm = () => {
+    if (!doc) {
+      toast.error("Importez le bon de livraison remis par le livreur pour confirmer la réception.");
+      return;
+    }
+    const note = createDeliveryNote(order.id, userId, {
+      comment,
+      receivedQuantities: qty,
+      supplierNoteRef: noteRef,
+      carrier,
+      temperature,
+      document: { ...doc, uploadedAt: new Date().toISOString().slice(0, 16).replace("T", " ") },
+    });
+    if (!note) {
+      toast.error("Impossible de générer le bon de livraison.");
+      return;
+    }
+    toast.success(`Réception confirmée — commande ${order.ref} marquée « Livrée »`);
+    onGenerated(note);
+  };
 
   return (
     <TCModal
       title={order.ref}
-      subtitle={`Livraison prévue le ${order.expectedAt}`}
-      size="lg"
+      subtitle={`${supplier?.name ?? "Fournisseur"} · livraison prévue le ${order.expectedAt}`}
+      size="xl"
       onClose={onClose}
       footer={
         received ? (
@@ -417,80 +450,182 @@ function ReceptionModal({
         ) : (
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs text-muted-foreground">
-              {conform ? "Quantités conformes à la commande" : "Écart détecté sur les quantités"}
+              {conform ? "Quantités conformes à la commande" : "Écart détecté sur les quantités"} ·{" "}
+              {doc ? "bon de livraison importé" : "bon de livraison requis"}
             </span>
             <div className="flex gap-2">
               <Button variant="ghost" onClick={onClose}>
                 Annuler
               </Button>
-              <Button
-                onClick={() => {
-                  const note = createDeliveryNote(order.id, userId, { comment, receivedQuantities: qty });
-                  if (!note) {
-                    toast.error("Impossible de générer le bon de livraison.");
-                    return;
-                  }
-                  toast.success(`Bon de livraison ${note.ref} généré`);
-                  onGenerated(note);
-                }}
-              >
-                <PackageCheck className="mr-1.5 h-4 w-4" /> Générer le bon de livraison
+              <Button onClick={confirm} disabled={!doc}>
+                <PackageCheck className="mr-1.5 h-4 w-4" /> Confirmer la réception (Livrée)
               </Button>
             </div>
           </div>
         )
       }
     >
-      <div className="space-y-2">
-        {order.lines.map((l) => (
-          <div key={l.productId} className="flex items-center gap-2 rounded-xl border border-border p-2 text-xs">
-            <div className="min-w-0 flex-1">
-              <div className="truncate font-medium">{l.name}</div>
-              <div className="text-[10px] text-muted-foreground">
-                Commandé : {l.quantity} {l.unit} · {l.price} MAD
-              </div>
+      <div className="space-y-4">
+        {/* ---- récapitulatif complet de la commande ---- */}
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            ["Fournisseur", supplier?.name ?? "—"],
+            ["Contact", supplier ? `${supplier.contact} · ${supplier.phone}` : "—"],
+            ["Restaurant", restaurant?.name ?? "—"],
+            ["Demande d'origine", request?.ref ?? "—"],
+            ["Émise le", order.createdAt],
+            ["Envoyée le", order.sentAt ?? "—"],
+            ["Prévue le", order.expectedAt],
+            ["Statut", order.status],
+          ].map(([l, v]) => (
+            <div key={l} className="rounded-xl border border-border bg-secondary/30 px-3 py-2">
+              <div className="text-[9px] uppercase tracking-widest text-muted-foreground">{l}</div>
+              <div className="truncate text-xs font-semibold">{v}</div>
             </div>
-            {received ? (
-              <span className="text-[11px] text-gold">{l.receivedQuantity ?? l.quantity} reçu</span>
-            ) : (
-              <Input
-                type="number"
-                className="h-8 w-20"
-                value={qty[l.productId] ?? l.quantity}
-                onChange={(e) => setQty((q) => ({ ...q, [l.productId]: Number(e.target.value) }))}
-              />
+          ))}
+        </div>
+
+        {order.note && (
+          <p className="rounded-xl border border-border bg-secondary/25 p-3 text-xs text-muted-foreground">
+            Note de commande : {order.note}
+          </p>
+        )}
+
+        {/* ---- lignes détaillées ---- */}
+        <div className="overflow-x-auto rounded-2xl border border-border">
+          <table className="w-full min-w-[560px] text-left text-xs">
+            <thead className="bg-secondary/50 text-[9px] uppercase tracking-widest text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2">Produit</th>
+                <th className="px-3 py-2">Unité</th>
+                <th className="px-3 py-2 text-right">Commandé</th>
+                <th className="px-3 py-2 text-right">PU</th>
+                <th className="px-3 py-2 text-right">Reçu</th>
+                <th className="px-3 py-2 text-right">Écart</th>
+              </tr>
+            </thead>
+            <tbody>
+              {order.lines.map((l) => {
+                const got = qty[l.productId] ?? l.quantity;
+                const gap = got - l.quantity;
+                return (
+                  <tr key={l.productId} className="border-t border-border/50">
+                    <td className="px-3 py-2 font-medium">{l.name}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{l.unit}</td>
+                    <td className="tabular px-3 py-2 text-right">{l.quantity}</td>
+                    <td className="tabular px-3 py-2 text-right">{money(l.price)}</td>
+                    <td className="px-3 py-2 text-right">
+                      {received ? (
+                        <span className="tabular text-gold">{l.receivedQuantity ?? l.quantity}</span>
+                      ) : (
+                        <Input
+                          type="number"
+                          min={0}
+                          className="ml-auto h-8 w-20"
+                          value={got}
+                          onChange={(e) => setQty((q) => ({ ...q, [l.productId]: Number(e.target.value) }))}
+                        />
+                      )}
+                    </td>
+                    <td
+                      className={cn(
+                        "tabular px-3 py-2 text-right font-semibold",
+                        gap === 0 ? "text-success" : "text-destructive",
+                      )}
+                    >
+                      {gap === 0 ? "—" : gap > 0 ? `+${gap}` : gap}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="border-t border-border bg-secondary/30">
+                <td className="px-3 py-2 font-semibold" colSpan={4}>
+                  Valeur reçue
+                </td>
+                <td className="tabular px-3 py-2 text-right font-bold text-gold" colSpan={2}>
+                  {money(receivedValue)} / {money(orderTotal(order))}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        {/* ---- saisie de réception ---- */}
+        {!received ? (
+          <div className="space-y-3 rounded-2xl border border-gold/40 bg-gold/5 p-3">
+            <div className="text-[10px] font-semibold uppercase tracking-widest text-gold">
+              Confirmation de réception
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <label className="block">
+                <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">
+                  N° du bon fournisseur
+                </span>
+                <Input value={noteRef} onChange={(e) => setNoteRef(e.target.value)} placeholder="BLF-2418" />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Livreur / véhicule
+                </span>
+                <Input value={carrier} onChange={(e) => setCarrier(e.target.value)} placeholder="Nom — plaque" />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Température relevée
+                </span>
+                <Input value={temperature} onChange={(e) => setTemperature(e.target.value)} placeholder="2 °C" />
+              </label>
+            </div>
+            <label className="block">
+              <span className="mb-1 block text-[10px] uppercase tracking-widest text-muted-foreground">
+                Bon de livraison (obligatoire)
+              </span>
+              <SingleFileUpload value={doc} onChange={setDoc} />
+            </label>
+            <Textarea
+              rows={2}
+              placeholder="Commentaire (écart, produit abîmé, retard, température…)"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+            />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {order.reception && (
+              <div className="flex items-center gap-2 rounded-xl border border-success/40 bg-success/10 p-3 text-xs text-success">
+                <Check className="h-4 w-4" /> Réceptionnée le {order.reception.at}
+                {order.reception.conform ? " — conforme" : " — écart signalé"}
+              </div>
+            )}
+            {existing && (
+              <button
+                onClick={() => onGenerated(existing)}
+                className="flex w-full items-center gap-2 rounded-xl border border-border bg-secondary/30 p-3 text-left text-xs font-semibold"
+              >
+                <FileText className="h-4 w-4 text-gold" /> Voir le bon de livraison {existing.ref}
+                {existing.document ? ` · ${existing.document.name}` : ""}
+              </button>
             )}
           </div>
-        ))}
-      </div>
+        )}
 
-      <div className="mt-4 space-y-1 rounded-2xl border border-border p-3 text-[11px] text-muted-foreground">
-        {order.history.map((h, i) => (
-          <div key={i} className="flex gap-2">
-            <span className="text-gold">{h.at}</span>
-            <span>{h.label}</span>
-          </div>
-        ))}
+        {/* ---- historique ---- */}
+        <div className="space-y-1 rounded-2xl border border-border p-3 text-[11px] text-muted-foreground">
+          <div className="mb-1 text-[9px] font-semibold uppercase tracking-widest">Historique de la commande</div>
+          {order.history.map((h, i) => (
+            <div key={i} className="flex gap-2">
+              <span className="tabular shrink-0 text-gold">{h.at}</span>
+              <span>{h.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
-
-      {!received ? (
-        <Input
-          className="mt-3"
-          placeholder="Commentaire (écart, produit abîmé, température…)"
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-        />
-      ) : (
-        order.reception && (
-          <div className="mt-4 flex items-center gap-2 rounded-xl border border-success/40 bg-success/10 p-3 text-xs text-success">
-            <Check className="h-4 w-4" /> Réceptionnée le {order.reception.at}
-            {order.reception.conform ? " — conforme" : " — écart signalé"}
-          </div>
-        )
-      )}
     </TCModal>
   );
 }
+
 
 /** Icône réutilisée pour fermer les popups internes (compat historique). */
 export const CloseIcon = X;

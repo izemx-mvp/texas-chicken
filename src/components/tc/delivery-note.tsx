@@ -42,7 +42,13 @@ export function DeliveryNoteDocument({ note }: { note: DeliveryNote }) {
         <div className="grid gap-3 py-4 sm:grid-cols-2">
           <Block
             title="Fournisseur"
-            rows={[supplier?.name ?? "—", supplier?.contact ?? "", supplier?.email ?? ""]}
+            rows={[
+              supplier?.name ?? "—",
+              supplier?.contact ?? "",
+              supplier?.email ?? "",
+              note.supplierNoteRef ? `Bon fournisseur n° ${note.supplierNoteRef}` : "",
+              note.carrier ? `Livreur : ${note.carrier}` : "",
+            ]}
           />
           <Block
             title="Réception au restaurant"
@@ -50,9 +56,11 @@ export function DeliveryNoteDocument({ note }: { note: DeliveryNote }) {
               restaurant?.name ?? "—",
               [restaurant?.address, restaurant?.city].filter(Boolean).join(", "),
               signer ? `Réceptionné par : ${signer.firstName} ${signer.lastName}` : "",
+              note.temperature ? `Température relevée : ${note.temperature}` : "",
             ]}
           />
         </div>
+
 
         <table className="w-full border-collapse text-left">
           <thead>

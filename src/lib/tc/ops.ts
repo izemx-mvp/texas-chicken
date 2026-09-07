@@ -1376,6 +1376,15 @@ export interface DeliveryNoteLine {
   price: number;
 }
 
+/** Fichier du bon de livraison fournisseur importé par le manager. */
+export interface DeliveryNoteFile {
+  name: string;
+  type: string;
+  url?: string;
+  size?: number;
+  uploadedAt: string;
+}
+
 export interface DeliveryNote {
   id: ID;
   ref: string;
@@ -1388,7 +1397,16 @@ export interface DeliveryNote {
   lines: DeliveryNoteLine[];
   conform: boolean;
   comment?: string;
+  /** Référence du bon papier remis par le livreur. */
+  supplierNoteRef?: string;
+  /** Nom du livreur / plaque du véhicule (traçabilité réception). */
+  carrier?: string;
+  /** Température relevée à la réception (produits frais / surgelés). */
+  temperature?: string;
+  /** Scan du bon de livraison importé par le manager — obligatoire. */
+  document?: DeliveryNoteFile;
 }
+
 
 const RECEIVED_STATUSES = ["Reçue", "Livrée", "Clôturée"];
 
@@ -1508,4 +1526,14 @@ export const deliveryNotes: DeliveryNote[] = purchaseOrders
     })),
     conform: o.reception!.conform,
     comment: o.reception!.comment,
+    supplierNoteRef: `BLF-${pad(2400 + i * 7)}`,
+    carrier: ["Youssef Amrani — 1234-A-12", "Hamid Berrada — 5678-B-34", "Transport Atlas — 9012-C-56"][i % 3],
+    temperature: i % 2 === 0 ? "2 °C (frais) / -19 °C (surgelé)" : "4 °C (frais)",
+    document: {
+      name: `BL_${pad(100 + i)}_${o.ref}.pdf`,
+      type: "PDF",
+      size: 180000 + i * 24000,
+      uploadedAt: o.reception!.at,
+    },
   }));
+

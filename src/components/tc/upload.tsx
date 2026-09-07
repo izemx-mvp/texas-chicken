@@ -177,7 +177,73 @@ export interface UploadedDoc {
   name: string;
   type: string;
   url?: string;
+  size?: number;
 }
+
+/**
+ * Upload d'UN seul fichier (scan/photo/PDF) — utilisé pour importer le bon de
+ * livraison remis par le livreur lors de la réception au restaurant.
+ */
+export function SingleFileUpload({
+  value,
+  onChange,
+  label = "Importer le bon de livraison",
+  hint = "PDF, photo ou scan du bon remis par le livreur",
+}: {
+  value?: UploadedDoc | null;
+  onChange: (doc: UploadedDoc | null) => void;
+  label?: string;
+  hint?: string;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+  const take = (files: File[]) => {
+    const f = files[0];
+    if (!f) return;
+    onChange({
+      name: f.name,
+      type: (f.name.split(".").pop() ?? "PDF").toUpperCase(),
+      url: URL.createObjectURL(f),
+      size: f.size,
+    });
+  };
+  const { over, handlers } = useDrop(take);
+  return (
+    <div className="space-y-2">
+      {value ? (
+        <div className="flex items-center gap-2 rounded-2xl border border-success/40 bg-success/10 px-3 py-2 text-xs">
+          <FileText className="h-4 w-4 shrink-0 text-success" />
+          <span className="min-w-0 flex-1 truncate font-semibold">{value.name}</span>
+          <span className="text-[10px] text-muted-foreground">{value.type}</span>
+          <button
+            type="button"
+            aria-label="Retirer le fichier"
+            onClick={() => onChange(null)}
+            className="text-muted-foreground hover:text-destructive"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ) : (
+        <Zone
+          over={over}
+          handlers={handlers}
+          onPick={() => input.current?.click()}
+          icon={<UploadCloud className="h-5 w-5" />}
+          label={label}
+          hint={hint}
+        />
+      )}
+      <input
+        ref={input}
+        type="file"
+        accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"
+        hidden
+        onChange={(e) => take(Array.from(e.target.files ?? []))}
+      />
+    </div>
+  );
+}
+
 
 /** Upload de documents (PDF, fiches techniques). */
 export function DocumentUpload({

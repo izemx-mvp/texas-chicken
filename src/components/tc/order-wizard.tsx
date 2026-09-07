@@ -111,6 +111,10 @@ export function OrderWizard({
   const total = lines.reduce((a, l) => a + l.quantity * l.price, 0);
   const draftRef = created?.ref ?? "BC-2026-XXX";
   const mail = created ? orderEmail(created, state) : null;
+  /** Email modifiable avant envoi (destinataire, objet, message). */
+  const [draftMail, setDraftMail] = useState<{ to: string; subject: string; body: string } | null>(null);
+  const editedMail = draftMail ?? (mail ? { to: mail.to, subject: mail.subject, body: mail.body } : null);
+
   const blocked = !request || request.status !== "Approuvée";
 
   const canNext =
@@ -150,10 +154,15 @@ export function OrderWizard({
 
   const send = () => {
     if (!created) return;
-    sendOrder(created.id);
+    if (editedMail && (!editedMail.to.trim() || !editedMail.subject.trim())) {
+      toast.error("Le destinataire et l'objet de l'email sont obligatoires.");
+      return;
+    }
+    const sentMail = sendOrder(created.id, editedMail ?? undefined);
     setSent(true);
-    toast.success(`Commande ${created.ref} envoyée à ${supplier?.email}`);
+    toast.success(`Commande ${created.ref} envoyée à ${sentMail?.to ?? supplier?.email}`);
   };
+
 
   return (
     <TCModal
@@ -475,20 +484,28 @@ export function OrderWizard({
         />
       )}
 
-      {step === 7 && mail && (
+      {step === 7 && mail && editedMail && (
         <div className="space-y-3">
-          <EmailPreview to={mail.to} subject={mail.subject} body={mail.body} attachment={mail.attachment} />
+          <EmailPreview
+            to={editedMail.to}
+            subject={editedMail.subject}
+            body={editedMail.body}
+            attachment={mail.attachment}
+            editable={!sent}
+            onChange={setDraftMail}
+          />
           {sent ? (
             <p className="flex items-center gap-2 rounded-2xl border border-success/40 bg-success/10 p-3 text-sm font-semibold text-success">
-              <Check className="h-4 w-4" /> Commande {created?.ref} envoyée à {mail.to}. Statut : Envoyée.
+              <Check className="h-4 w-4" /> Commande {created?.ref} envoyée à {editedMail.to}. Statut : Envoyée.
             </p>
           ) : (
             <p className="flex items-center gap-2 rounded-2xl border border-gold/40 bg-gold/10 p-3 text-xs text-gold">
               <ShoppingCart className="h-4 w-4" /> Le bon de commande {created?.ref} est créé au statut « À envoyer ».
-              L'envoi déclenche l'email ci-dessus avec le document en pièce jointe.
+              Vous pouvez modifier le destinataire, l'objet et le message avant l'envoi — le document reste joint.
             </p>
           )}
         </div>
+
       )}
     </TCModal>
   );
