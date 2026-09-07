@@ -3,7 +3,7 @@
  * document officiel Texas Chicken (en-tête, parties, lignes, totaux, mentions)
  * et aperçu de l'email envoyé au fournisseur avec pièce jointe simulée.
  */
-import { Mail, Paperclip } from "lucide-react";
+import { Mail, PackageCheck, Paperclip } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -383,6 +383,15 @@ export function OrderPreview({ order }: { order: PurchaseOrder }) {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+function Mini2({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-border bg-background/60 px-2.5 py-1.5">
+      <div className="text-[9px] uppercase tracking-widest text-muted-foreground">{label}</div>
+      <div className="truncate font-semibold">{value}</div>
     </div>
   );
 }
