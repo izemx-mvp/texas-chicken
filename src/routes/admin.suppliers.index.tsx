@@ -85,6 +85,7 @@ const EMPTY: Omit<Supplier, "id" | "products"> = {
 
 function SuppliersPage() {
   const state = useStore((s) => s);
+  const { tr: L } = useLang();
   const navigate = useNavigate();
   const [tab, setTab] = useState<"fournisseurs" | "demandes" | "commandes">("fournisseurs");
   const [q, setQ] = useState("");
