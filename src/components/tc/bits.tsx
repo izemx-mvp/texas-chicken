@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { tr } from "@/lib/tc/i18n";
 import { cn } from "@/lib/utils";
 
 export function AnimatedNumber({
@@ -124,7 +125,7 @@ export function StatusPill({ status, className }: { status: string; className?: 
       )}
     >
       <span className="h-1.5 w-1.5 rounded-full bg-current" />
-      {status}
+      {tr(status)}
     </span>
   );
 }
@@ -210,9 +211,9 @@ export function SectionTitle({
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div>
         <h2 className="font-display text-2xl font-bold uppercase tracking-wide text-foreground">
-          {title}
+          {tr(title)}
         </h2>
-        {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
+        {subtitle && <p className="mt-1 text-sm text-muted-foreground">{tr(subtitle)}</p>}
       </div>
       {action}
     </div>
