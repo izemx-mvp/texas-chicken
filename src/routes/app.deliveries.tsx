@@ -635,7 +635,16 @@ function ReceptionModal({
             size="xl"
             onClose={() => setShowOrderDoc(false)}
           >
-            <OrderDocument order={order} />
+            <OrderDocument
+              ref_={order.ref}
+              supplier={supplier}
+              restaurant={restaurant}
+              lines={order.lines}
+              createdAt={order.createdAt}
+              expectedAt={order.expectedAt}
+              note={order.note}
+            />
+
           </TCModal>
         )}
 
